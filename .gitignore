@@ -26,6 +26,7 @@ blob-report
 .vscode
 .DS_Store
 .claude/
+.playwright-mcp/
 AGENTS.md
 
 # Legacy Yarn 1 config (Yarn 4 reads .yarnrc.yml), may hold registry tokens

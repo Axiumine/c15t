@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Axiumine
 
-import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
+import { copyFileSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
@@ -14,6 +14,9 @@ import { git, gitEnv, run } from './test-support.mjs';
  */
 
 const SCRIPT = resolve(import.meta.dirname, 'check-dco.sh');
+// The script is copied next to the throwaway repository's history and run by its relative name, as
+// release-package.test.mjs does, so no absolute path of this checkout reaches the `bash` command.
+const SCRIPT_IN_REPO = 'check-dco.sh';
 const DEPENDABOT = '49699333+dependabot[bot]@users.noreply.github.com';
 const ACTIONS = '41898282+github-actions[bot]@users.noreply.github.com';
 
@@ -44,6 +47,7 @@ const human = { name: 'Una Dev', email: 'una@example.com' };
 function scenario(...candidates) {
   const repo = join(root, `repo-${counter++}`);
   mkdirSync(repo);
+  copyFileSync(SCRIPT, join(repo, SCRIPT_IN_REPO));
   git(repo, ['init', '-q', '-b', 'main']);
   const base = commit(repo, {
     ...human,
@@ -54,7 +58,7 @@ function scenario(...candidates) {
 }
 
 function check({ repo, base, head }) {
-  return run('bash', [SCRIPT], {
+  return run('bash', [SCRIPT_IN_REPO], {
     cwd: repo,
     env: gitEnv({ BASE_SHA: base, HEAD_SHA: head }),
   });
@@ -107,7 +111,7 @@ describe('commits that need a sign-off', () => {
 
   test('BASE_SHA and HEAD_SHA are required', () => {
     const { repo } = scenario();
-    const result = run('bash', [SCRIPT], { cwd: repo, env: gitEnv() });
+    const result = run('bash', [SCRIPT_IN_REPO], { cwd: repo, env: gitEnv() });
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain('BASE_SHA is required');
   });

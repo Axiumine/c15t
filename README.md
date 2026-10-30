@@ -341,9 +341,11 @@ Sections 1 to 3 set up a development machine. Sections 4 and 5 install the platf
 - nginx 1.25.1 or newer (`http2 on;`) with `ngx_http_realip_module` (included in the Debian and Ubuntu packages)
 - Every website and the dashboard on Cloudflare (proxied), plus a firewall (nftables or ufw)
 
-### 1. Install and configure
+### 1. Get the source, install and configure
 
 ```bash
+git clone https://github.com/Axiumine/c15t.git
+cd c15t
 npm install -g corepack   # Node 26 does not bundle Corepack
 corepack enable
 yarn install
