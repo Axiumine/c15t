@@ -1,4 +1,6 @@
-# Every change needs a review by a code owner. See GOVERNANCE.md.
+# GitHub requests a review from a code owner on every change. The `main protection` ruleset does not
+# require it yet (a sole maintainer cannot approve their own pull request): see docs/scorecard.md.
+# See also GOVERNANCE.md.
 # Order matters: the last matching pattern wins, so the narrow paths below repeat the owner on purpose.
 * @giovannimanzoni
 

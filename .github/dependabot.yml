@@ -49,12 +49,25 @@ updates:
       semver-major-days: 21
       semver-minor-days: 7
       semver-patch-days: 3
+    ignore:
+      # TypeScript stays on 6.0.3 on purpose (CLAUDE.md): 7.x is the native compiler, and its JS
+      # API is unstable, which breaks the tools that import `typescript`. Minor and patch updates
+      # of 6.x still arrive; a major one is taken by hand.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+      # `effect` and `@effect/sql-pg` must stay on the exact version @c15t/backend lists as its
+      # peer (currently 4.0.0). A newer one that @c15t/backend does not accept breaks the c15t
+      # database layer. They are bumped by hand, together with @c15t/*, never on their own.
+      # Dependabot alerts for them are not affected by this list.
+      - dependency-name: "effect"
+      - dependency-name: "@effect/sql-pg"
     groups:
-      # These must move together: @c15t/backend pins the @effect/sql-pg and effect versions it
-      # needs, and the whole stack is checked by the integration tests as one set. Majors of
-      # this group stay one pull request too, so they are reviewed together.
+      # @c15t/backend, @c15t/cli and @c15t/schema must move together, and the whole stack is
+      # checked by the integration tests as one set. Majors of this group stay one pull request
+      # too, so they are reviewed together. `effect` and `@effect/sql-pg` are in the ignore list
+      # above: after a @c15t/* update, bump them by hand to the peer version it lists.
       c15t-stack:
-        patterns: ["@c15t/*", "@effect/*", "effect"]
+        patterns: ["@c15t/*"]
       drizzle:
         patterns: ["drizzle-orm", "drizzle-kit"]
       minor-and-patch:

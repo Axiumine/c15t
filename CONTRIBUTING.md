@@ -195,7 +195,7 @@ updates the actions, but not the digest of the PostgreSQL image in `ci.yml`: tha
 
 Maintainers release in this order:
 
-1. Set `version` in the root `package.json` to `X.Y.Z` (it is `0.0.0` until the first release).
+1. Set `version` in the root `package.json` to `X.Y.Z` (only the root one is read; the workspace packages are private and stay at `0.0.0`).
 2. Move the "Unreleased" section of [`CHANGELOG.md`](./CHANGELOG.md) to `## [X.Y.Z] - <date>`.
 3. Merge both changes to `main` through a pull request and wait for CI to pass on `main`.
 4. Tag that commit and push the tag: `git tag vX.Y.Z && git push origin vX.Y.Z`.
