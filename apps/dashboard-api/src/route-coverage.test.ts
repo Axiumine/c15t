@@ -63,7 +63,7 @@ function routesOf(): Probe[] {
 }
 
 const concretePath = (path: string) =>
-  path.replace(':siteKey', 'zz-probe').replace(':id', 'probe').replace('*', 'x');
+  path.replaceAll(':siteKey', 'zz-probe').replaceAll(':id', 'probe').replaceAll('*', 'x');
 
 function call(method: string, path: string, headers: Record<string, string> = {}) {
   const hasBody = ['POST', 'PUT', 'PATCH'].includes(method);

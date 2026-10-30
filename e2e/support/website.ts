@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Axiumine
 
-import { randomBytes } from 'node:crypto';
+import { randomInt } from 'node:crypto';
 
 /*
  * The test "website": one static page, served by the nginx test container for both site
@@ -31,13 +31,13 @@ export function sitePage(scriptTag: string): string {
 /** A client-generated subject id in the format c15t validates (`sub_` plus base58). */
 export function subjectId(): string {
   const alphabet = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
-  const bytes = randomBytes(24);
-  return `sub_${Array.from(bytes, (byte) => alphabet[byte % alphabet.length]).join('')}`;
+  // randomInt draws uniformly; `byte % 58` on a random byte would favour the first characters.
+  return `sub_${Array.from({ length: 24 }, () => alphabet[randomInt(alphabet.length)]).join('')}`;
 }
 
 /** A visitor address in TEST-NET-3 that nginx's `real_ip` restores from `CF-Connecting-IP`. */
 export function visitorIp(): string {
-  return `203.0.113.${1 + (randomBytes(1).readUInt8(0) % 253)}`;
+  return `203.0.113.${randomInt(1, 254)}`;
 }
 
 /** c15t masks the last octet of a stored IPv4 address. */

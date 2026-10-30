@@ -86,7 +86,7 @@ test.describe('content security policy', () => {
 
   test('the shipped HTML has no inline script and no inline event handler', async ({ request }) => {
     const html = await (await request.get('/')).text();
-    const scripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)];
+    const scripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script[^>]*>/gi)];
     expect(scripts.length).toBeGreaterThan(0);
     for (const [, attributes, body] of scripts) {
       expect(attributes, 'script without src').toMatch(/\bsrc="\/assets\/[^"]+\.js"/);

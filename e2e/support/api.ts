@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Axiumine
 
-import { randomBytes } from 'node:crypto';
+import { randomBytes, randomInt } from 'node:crypto';
 import { type APIRequestContext, type APIResponse, expect, request } from '@playwright/test';
 import type { Credentials } from './bootstrap.js';
 import { recordClientIp } from './db.js';
@@ -9,8 +9,8 @@ import type { Runtime } from './runtime.js';
 
 /** A random visitor address (198.18.0.0/15, the benchmarking range), one per browser or client. */
 export function randomClientIp(rt: Runtime): string {
-  const bytes = randomBytes(3);
-  const ip = `198.${18 + ((bytes[0] ?? 0) % 2)}.${bytes[1] ?? 0}.${1 + ((bytes[2] ?? 0) % 253)}`;
+  // randomInt is uniform; `byte % n` on a random byte is not when n does not divide 256.
+  const ip = `198.${randomInt(18, 20)}.${randomInt(0, 256)}.${randomInt(1, 254)}`;
   recordClientIp(rt, ip);
   return ip;
 }

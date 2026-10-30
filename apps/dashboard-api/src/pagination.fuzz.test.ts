@@ -14,6 +14,25 @@ import { decodeCursor, encodeCursor, toPage } from './pagination.js';
 
 const RUNS = { numRuns: 300 };
 
+/*
+ * Every arbitrary below is built once, at import. `fc.string({ unit: 'binary' })` takes a few
+ * hundred milliseconds the first time it is built (a lazy table in fast-check), and on a loaded CI
+ * runner with coverage on, that cost inside the test body exceeded Vitest's 5 s default timeout.
+ * `codeUnitString` covers the same input domain (any UTF-16 code unit, so lone surrogates and
+ * NUL included) and costs nothing to build.
+ */
+const codeUnitString = fc
+  .array(fc.integer({ min: 0, max: 0xffff }), { maxLength: 40 })
+  .map((units) => String.fromCharCode(...units));
+
+/** Whatever a client could put in the `cursor` query parameter. */
+const anyCursor = fc.oneof(
+  fc.string(),
+  codeUnitString,
+  fc.base64String(),
+  fc.stringMatching(/^[A-Za-z0-9_=-]{0,60}$/),
+);
+
 const keySchema = z.strictObject({ at: z.string(), id: z.string() });
 const payload = fc.record({ at: fc.string(), id: fc.string() });
 
@@ -59,24 +78,16 @@ test('no cursor means no position', () => {
 
 test('any string decodes to a valid value or to a 400, never to another error', () => {
   fc.assert(
-    fc.property(
-      fc.oneof(
-        fc.string(),
-        fc.string({ unit: 'binary' }),
-        fc.base64String(),
-        fc.stringMatching(/^[A-Za-z0-9_=-]{0,60}$/),
-      ),
-      (cursor) => {
-        const outcome = decodeOutcome(cursor, keySchema);
-        if ('error' in outcome) {
-          expect(outcome.error).toBeInstanceOf(HttpError);
-          expect((outcome.error as HttpError).code).toBe('BAD_REQUEST');
-          expect((outcome.error as HttpError).message).toBe('Invalid cursor');
-        } else {
-          expect(keySchema.safeParse(outcome.value).success).toBe(true);
-        }
-      },
-    ),
+    fc.property(anyCursor, (cursor) => {
+      const outcome = decodeOutcome(cursor, keySchema);
+      if ('error' in outcome) {
+        expect(outcome.error).toBeInstanceOf(HttpError);
+        expect((outcome.error as HttpError).code).toBe('BAD_REQUEST');
+        expect((outcome.error as HttpError).message).toBe('Invalid cursor');
+      } else {
+        expect(keySchema.safeParse(outcome.value).success).toBe(true);
+      }
+    }),
     RUNS,
   );
 });

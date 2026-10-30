@@ -18,7 +18,7 @@
 // REUSE.toml, then run this script (it rewrites the old header lines).
 
 import { execFileSync } from 'node:child_process';
-import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, extname, join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -184,8 +184,10 @@ function processFile(rel, style, globs) {
   if (globs.some((g) => g.test(rel))) return null;
   if (!style) return 'no comment style known and not listed in REUSE.toml';
   const abs = join(ROOT, rel);
-  if (statSync(abs).size === 0) return null;
-  const next = withHeader(readFileSync(abs, 'utf8'), style);
+  // One read decides everything: no stat-then-read, so nothing can change between check and use.
+  const text = readFileSync(abs, 'utf8');
+  if (text === '') return null;
+  const next = withHeader(text, style);
   if (next === null) return null;
   if (CHECK) return 'missing or outdated SPDX header';
   writeFileSync(abs, next);
