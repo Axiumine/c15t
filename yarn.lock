@@ -655,9 +655,9 @@ __metadata:
     "@c15t/schema": "npm:3.1.0"
     "@consent/db": "workspace:*"
     "@consent/shared": "workspace:*"
-    "@effect/sql-pg": "npm:4.0.0"
+    "@effect/sql-pg": "npm:4.0.6"
     "@hono/node-server": "npm:2.1.5"
-    effect: "npm:4.0.0"
+    effect: "npm:4.0.6"
     fast-check: "npm:4.10.2"
     hono: "npm:4.13.14"
     postgres: "npm:3.4.9"
@@ -815,12 +815,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@effect/sql-pg@npm:4.0.0":
-  version: 4.0.0
-  resolution: "@effect/sql-pg@npm:4.0.0"
+"@effect/sql-pg@npm:4.0.6":
+  version: 4.0.6
+  resolution: "@effect/sql-pg@npm:4.0.6"
   peerDependencies:
-    effect: ^4.0.0
-  checksum: 10c0/01efc0ea638c9340f44520b735f673c65f4207528ebe9fdf7249650f94dc02d4fc7cc1585e26dcd3903ff18a80aeb7095a9676e76a62b9c9c26b8aded3756797
+    effect: ^4.0.6
+  checksum: 10c0/e406c7be721991fbc8477374e44c46fbd81777b2565a6dd9aa37bc1a9887b39ac85aa29c9a26e3c6735e91c5743234088045d270731b35fd17d3d82b0d560ae7
   languageName: node
   linkType: hard
 
@@ -3991,11 +3991,11 @@ __metadata:
     "@biomejs/biome": "npm:2.6.4"
     "@c15t/backend": "npm:3.1.0"
     "@c15t/cli": "npm:3.1.0"
-    "@effect/sql-pg": "npm:4.0.0"
+    "@effect/sql-pg": "npm:4.0.6"
     "@playwright/test": "npm:1.64.1"
     "@types/node": "npm:26.6.6"
     "@vitest/coverage-v8": "npm:5.0.5"
-    effect: "npm:4.0.0"
+    effect: "npm:4.0.6"
     playwright-core: "npm:1.64.1"
     postgres: "npm:3.4.9"
     typescript: "npm:6.0.3"
@@ -4464,6 +4464,13 @@ __metadata:
   version: 4.0.0
   resolution: "effect@npm:4.0.0"
   checksum: 10c0/c9cd4c151a0d5141c82331e313fcfa5ba2ac99c6b3cc3d310eb92925286efe96487685f2a3b215a2470b9ee50b0e2f10c187149b820c696c9b1d7d0edd3a6e3c
+  languageName: node
+  linkType: hard
+
+"effect@npm:4.0.6":
+  version: 4.0.6
+  resolution: "effect@npm:4.0.6"
+  checksum: 10c0/9cc83670e5346d9bf25faa119ae209f0d0901c691005a9fe5efb2bbe37947255a149ec0fcd73a65caa38b2c47f4e3757a3f99f95d88ce9d4602e3a517a893946
   languageName: node
   linkType: hard
 
