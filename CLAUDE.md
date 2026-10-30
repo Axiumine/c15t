@@ -18,7 +18,7 @@ Self-hosted cookie-consent platform for websites that run on the same server.
     - **dashboard-api**: a Hono JSON API with Better Auth, on the same origin under `/api/`.
 - **PostgreSQL**: a single database with two schemas. `c15t` holds consent data and is owned by the c15t migrations. `app` holds dashboard data: auth, sites, memberships and the audit log. The database runs on the existing **Patroni cluster** (5 nodes, etcd). Apps reach the leader only through its internal DNS name, plus an optional replica URL (README D9).
 
-Status: **implemented, pre-release (0.x)**. consent-api, dashboard-api and dashboard-web, the shared packages, the database layer, `infra/` (nginx, systemd, `deploy.sh`) and the unit, integration and Playwright tests all exist; no release has been published yet (see README "Status and what is next"). The layout and commands below describe the repository as it is. Update this file whenever reality diverges from it.
+Status: **implemented, pre-1.0 (0.x)**. consent-api, dashboard-api and dashboard-web, the shared packages, the database layer, `infra/` (nginx, systemd, `deploy.sh`) and the unit, integration and Playwright tests all exist; releases are cut from `vX.Y.Z` tags (see CONTRIBUTING.md "Releases" and README "Status and what is next"). The layout and commands below describe the repository as it is. Update this file whenever reality diverges from it.
 
 ## Stack
 

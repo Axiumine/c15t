@@ -16,8 +16,15 @@ their own "Security" heading and name the advisory.
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-30
+
+First release. The project is pre-1.0: minor versions may contain breaking changes.
+
 ### Added
 
+- The platform itself: consent-api (one c15t instance per registered site), dashboard-api (Hono and Better
+  Auth, admin and read-only user roles), dashboard-web (React single-page app), the shared packages, the
+  PostgreSQL layer (`app` and `c15t` schemas) and `infra/` (nginx, systemd, `deploy.sh` with rollback).
 - Licensed under AGPL-3.0-or-later, with an SPDX header in every source file and `REUSE.toml` for the
   rest (`scripts/add-spdx-headers.mjs`).
 - Community and project-health files: `SECURITY.md`, `CONTRIBUTING.md` (DCO sign-off), `CODE_OF_CONDUCT.md`,
@@ -30,4 +37,20 @@ their own "Security" heading and name the advisory.
 - Documentation: `docs/architecture.md`, `docs/security-model.md`, `docs/dependency-policy.md`,
   `docs/database-setup.md`, `docs/scorecard.md`, `docs/openssf-best-practices.md`.
 
-[Unreleased]: https://github.com/Axiumine/c15t/commits/main
+### Changed
+
+- The coverage report counts every source file under `apps/*/src` and `packages/*/src`. Entry points that no
+  test imports (the servers, `admin-create`, `migrate`, `main.tsx`) now show up at 0% instead of being left
+  out.
+- README: the getting-started steps begin with `git clone`.
+
+### Fixed
+
+- Code scanning alerts in scripts and tests: a file-system race in `scripts/add-spdx-headers.mjs`, biased
+  random subject ids in the end-to-end helpers, a script end-tag pattern in an end-to-end spec that
+  HTML parsers accept more loosely, an incomplete path sanitization in the route coverage test, and an
+  absolute checkout path reaching a shell command in `scripts/check-dco.test.mjs`.
+- The cursor pagination fuzz test no longer times out on a loaded CI runner.
+
+[Unreleased]: https://github.com/Axiumine/c15t/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/Axiumine/c15t/releases/tag/v0.1.0

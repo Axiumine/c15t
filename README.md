@@ -13,7 +13,7 @@ Self-hosted cookie-consent backend and dashboard for websites that run on the sa
   - **Users** log in with credentials an admin gave them. They see only the websites assigned to them, and their access is read-only.
 - Everything lives in a single **PostgreSQL** database on the existing **Patroni cluster** (5 nodes, etcd). The services run on **Node.js 26 LTS**, managed with **Yarn 4**. They sit behind **nginx** and **Cloudflare** and run under **systemd**. There is no Docker.
 
-> Status: pre-release (0.x). The three services and the database layer are implemented and tested, but no stable release has been published yet, so expect breaking changes. Contributing: [`CONTRIBUTING.md`](./CONTRIBUTING.md). Reporting a vulnerability: [`SECURITY.md`](./SECURITY.md). Engineering rules for contributors and Claude Code: [`CLAUDE.md`](./CLAUDE.md).
+> Status: pre-1.0 (0.x, first release `v0.1.0`). The three services and the database layer are implemented and tested, but there is no 1.0 yet, so expect breaking changes between 0.x versions (see [`CHANGELOG.md`](./CHANGELOG.md)). Contributing: [`CONTRIBUTING.md`](./CONTRIBUTING.md). Reporting a vulnerability: [`SECURITY.md`](./SECURITY.md). Engineering rules for contributors and Claude Code: [`CLAUDE.md`](./CLAUDE.md).
 
 ---
 
@@ -626,7 +626,7 @@ Done and covered by tests (unit, PostgreSQL integration and Playwright end to en
 
 Still open:
 
-- A first release (`0.1.0`, see `CONTRIBUTING.md`): no release has been published yet.
+- A 1.0 release. Until then, 0.x minor versions may contain breaking changes (see `CHANGELOG.md`; releases follow `CONTRIBUTING.md`).
 - A retention job for consent records. It waits for the legal decision under Open questions.
 - Monitoring on `/status` and `/api/health`, and the cluster backups (D9). Both are the operator's job.
 - Calling the c15t admin endpoints from dashboard-api through `@c15t/node-sdk` (D4). Nothing needs it yet.

@@ -1,6 +1,6 @@
 {
   "name": "c15t-platform",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "description": "Self-hosted cookie-consent platform: consent-api, dashboard-api, dashboard-web",

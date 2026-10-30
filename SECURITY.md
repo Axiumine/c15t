@@ -42,7 +42,7 @@ Vulnerabilities in our dependencies follow the (shorter) timelines in
 
 ## Supported versions
 
-The project is pre-release (0.x). Only the latest release and the `main` branch receive security
+The project is pre-1.0 (0.x). Only the latest release and the `main` branch receive security
 fixes. Older 0.x releases do not.
 
 | Version | Supported |
