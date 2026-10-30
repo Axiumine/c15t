@@ -1,0 +1,57 @@
+# Loads the origin lock-down (nftables table inet c15t_cloudflare) again at every boot.
+#
+# update-cloudflare-ips.sh writes /etc/nftables.d/c15t-cloudflare.nft and, with CF_NFT_APPLY=1,
+# loads it into the running kernel. The kernel forgets it at a reboot, and until the weekly timer
+# runs again ports 80 and 443 would be open to everyone: anyone could reach the origin directly
+# and forge CF-Connecting-IP / CF-IPCountry (README D7). This unit closes that gap.
+#
+#   sudo systemctl enable --now c15t-cloudflare-nft.service     # once, after the first CF_NFT_APPLY=1 run
+#
+# Alternative that needs no unit: add `include "/etc/nftables.d/*.nft"` as the LAST line of
+# /etc/nftables.conf (after its `flush ruleset`). Using both is harmless: the file deletes and
+# recreates its own table, so loading it twice gives the same result.
+[Unit]
+Description=Load the Cloudflare origin allowlist (nftables table inet c15t_cloudflare)
+Documentation=file:///opt/c15t-platform/current/README.md
+# Nothing to load until update-cloudflare-ips.sh has written the file.
+ConditionPathExists=/etc/nftables.d/c15t-cloudflare.nft
+# A firewall is up before the network is. nftables.service (Debian, Ubuntu) starts with
+# `flush ruleset`, so this unit loads after it, and again whenever nftables is restarted or reloaded.
+DefaultDependencies=no
+After=local-fs.target nftables.service
+Wants=network-pre.target
+Before=network-pre.target shutdown.target
+Conflicts=shutdown.target
+PartOf=nftables.service
+ReloadPropagatedFrom=nftables.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/sbin/nft -f /etc/nftables.d/c15t-cloudflare.nft
+ExecReload=/usr/sbin/nft -f /etc/nftables.d/c15t-cloudflare.nft
+# "-": the table is already gone when nftables.service flushed the ruleset.
+ExecStop=-/usr/sbin/nft delete table inet c15t_cloudflare
+
+# ---- Sandbox. Root with CAP_NET_ADMIN and netlink only: nft needs nothing else.
+CapabilityBoundingSet=CAP_NET_ADMIN
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+RestrictAddressFamilies=AF_NETLINK
+SystemCallArchitectures=native
+
+[Install]
+WantedBy=sysinit.target

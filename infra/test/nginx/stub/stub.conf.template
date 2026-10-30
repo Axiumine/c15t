@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 Axiumine
+
+# Stand-in for consent-api and dashboard-api: echoes what nginx forwarded.
+server {
+    listen ${CONSENT_API_HOST}:${CONSENT_API_PORT};
+    listen ${DASHBOARD_API_HOST}:${DASHBOARD_API_PORT};
+    default_type application/json;
+    location / {
+        return 200 '{"port":"$server_port","uri":"$request_uri","host":"$http_host","xff":"$http_x_forwarded_for","xfproto":"$http_x_forwarded_proto","xfhost":"$http_x_forwarded_host","country":"$http_cf_ipcountry","forwarded":"$http_forwarded","xrealip":"$http_x_real_ip"}\n';
+    }
+}

@@ -1,0 +1,185 @@
+/*
+ * SPDX-License-Identifier: AGPL-3.0-or-later
+ * Copyright (C) 2026 Axiumine
+ */
+
+@import "tailwindcss";
+
+/*
+ * Design tokens. Neutrals and the data-viz slots follow the reference palette of the dataviz
+ * skill; dark values are stepped for the dark surface, not an automatic inversion. Both
+ * schemes follow the OS (prefers-color-scheme), there is no toggle.
+ */
+:root {
+  color-scheme: light;
+  --background: #f9f9f7;
+  --foreground: #0b0b0b;
+  --card: #fcfcfb;
+  --card-foreground: #0b0b0b;
+  --muted: #f0efec;
+  --muted-foreground: #52514e;
+  --accent: #f0efec;
+  --accent-foreground: #0b0b0b;
+  --primary: #256abf;
+  --primary-hover: #184f95;
+  --primary-foreground: #ffffff;
+  --link: #256abf;
+  --destructive: #d03b3b;
+  --destructive-hover: #b02f2f;
+  --destructive-foreground: #ffffff;
+  --success: #006300;
+  --warning-bg: #fff3d6;
+  --warning-fg: #6b4700;
+  --border: #e1e0d9;
+  --input: #898781;
+  --ring: #2a78d6;
+
+  --viz-1: #2a78d6;
+  --viz-track: #cde2fb;
+  --viz-grid: #e1e0d9;
+  --viz-axis: #c3c2b7;
+  --viz-surface: #fcfcfb;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --background: #0d0d0d;
+    --foreground: #f0efec;
+    --card: #1a1a19;
+    --card-foreground: #f0efec;
+    --muted: #232321;
+    --muted-foreground: #c3c2b7;
+    --accent: #2c2c2a;
+    --accent-foreground: #f0efec;
+    --primary: #256abf;
+    --primary-hover: #2a78d6;
+    --primary-foreground: #ffffff;
+    --link: #6aa6f0;
+    --destructive: #d03b3b;
+    --destructive-hover: #e34948;
+    --destructive-foreground: #ffffff;
+    --success: #0ca30c;
+    --warning-bg: #3a2c0a;
+    --warning-fg: #fab219;
+    --border: #2c2c2a;
+    --input: #898781;
+    --ring: #6da7ec;
+
+    --viz-1: #3987e5;
+    --viz-track: #0d366b;
+    --viz-grid: #2c2c2a;
+    --viz-axis: #383835;
+    --viz-surface: #1a1a19;
+  }
+}
+
+@theme inline {
+  --font-sans: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-link: var(--link);
+  --color-destructive: var(--destructive);
+  --color-destructive-hover: var(--destructive-hover);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-warning-bg: var(--warning-bg);
+  --color-warning-fg: var(--warning-fg);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    line-height: 1.5;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  /*
+   * A bare grid has one auto-sized column, which grows to the widest table or code block inside
+   * it and pushes the page sideways on a phone. minmax(0, 1fr) lets those blocks scroll in
+   * place instead; utilities such as sm:grid-cols-3 still override this.
+   */
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--ring) 35%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .overlay-motion[data-state="open"] {
+    animation: fade-in 140ms ease-out;
+  }
+
+  .dialog-motion[data-state="open"] {
+    animation: dialog-in 160ms ease-out;
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+  }
+
+  @keyframes dialog-in {
+    from {
+      opacity: 0;
+      transform: translate(-50%, calc(-50% + 6px));
+    }
+  }
+}
+
+/* !important is deliberate: this must beat every utility class that sets a duration. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    /* biome-ignore lint/complexity/noImportantStyles: the user's preference wins over utilities */
+    animation-duration: 0.01ms !important;
+    /* biome-ignore lint/complexity/noImportantStyles: see above */
+    animation-iteration-count: 1 !important;
+    /* biome-ignore lint/complexity/noImportantStyles: see above */
+    transition-duration: 0.01ms !important;
+    /* biome-ignore lint/complexity/noImportantStyles: see above */
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Recharts: keep the keyboard focus ring visible and the hover layer quiet. */
+.recharts-wrapper:focus-visible,
+.recharts-surface:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}

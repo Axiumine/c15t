@@ -1,0 +1,45 @@
+name: Set up toolchain
+description: >-
+  Node.js from .nvmrc, Corepack and the CycloneDX Yarn plugin from the lockfile-pinned
+  .github/ci-tools package, then `yarn install --immutable`. The calling workflow must set
+  YARN_NODE_LINKER and YARN_ENABLE_TELEMETRY at workflow level and check the repository out first.
+
+inputs:
+  install:
+    description: Run `yarn install --immutable` after the tools are in place.
+    required: false
+    default: "true"
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Node.js
+      uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      with:
+        node-version-file: .nvmrc
+        # Nothing is cached on purpose: every run installs from the lockfile.
+        package-manager-cache: false
+
+    # Node 25 and later no longer bundle Corepack. It is installed from .github/ci-tools, whose
+    # package-lock.json carries integrity hashes (`npm ci` verifies every one of them), and
+    # Dependabot's npm ecosystem bumps it. The corepack package ships the yarn shims, so putting
+    # its .bin directory on PATH is all that is needed; Corepack then fetches the Yarn release
+    # named in the packageManager field of package.json.
+    - name: Install pinned CI tools
+      shell: bash
+      env:
+        WORKSPACE: ${{ github.workspace }}
+      run: |
+        set -euo pipefail
+        npm ci --prefix .github/ci-tools --ignore-scripts --no-audit --no-fund
+        echo "${WORKSPACE}/.github/ci-tools/node_modules/.bin" >> "$GITHUB_PATH"
+
+    - name: Install dependencies
+      if: inputs.install == 'true'
+      shell: bash
+      env:
+        COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
+      run: |
+        set -euo pipefail
+        yarn --version
+        yarn install --immutable

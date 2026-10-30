@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": ".tsbuild/web-test",
+    "tsBuildInfoFile": ".tsbuild/web-test.tsbuildinfo"
+  },
+  "include": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/test"],
+  "exclude": [],
+  "references": [
+    { "path": "./tsconfig.json" },
+    { "path": "../../packages/shared" },
+    { "path": "../dashboard-api" }
+  ]
+}

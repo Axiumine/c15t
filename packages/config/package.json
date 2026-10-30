@@ -1,0 +1,12 @@
+{
+  "name": "@consent/config",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Shared tsconfig and Biome base for the workspaces",
+  "license": "AGPL-3.0-or-later",
+  "exports": {
+    "./tsconfig.base.json": "./tsconfig.base.json",
+    "./biome.json": "./biome.json"
+  }
+}

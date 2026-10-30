@@ -1,0 +1,53 @@
+{
+  "name": "c15t-platform",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Self-hosted cookie-consent platform: consent-api, dashboard-api, dashboard-web",
+  "license": "AGPL-3.0-or-later",
+  "packageManager": "yarn@4.18.1",
+  "engines": {
+    "node": ">=26 <27"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "yarn workspaces foreach -Api run dev",
+    "build": "yarn workspaces foreach -Apt run build",
+    "typecheck": "tsc -b",
+    "lint": "biome check .",
+    "format": "biome check --write .",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "spdx": "node scripts/add-spdx-headers.mjs",
+    "spdx:check": "node scripts/add-spdx-headers.mjs --check",
+    "db:migrate": "yarn workspace @consent/db run migrate",
+    "db:pull-c15t": "yarn workspace @consent/db run pull-c15t",
+    "c15t:plan": "c15t self-host migrate --config ./c15t-backend.config.ts --plan --no-telemetry",
+    "c15t:migrate": "c15t self-host migrate --config ./c15t-backend.config.ts --apply --no-telemetry",
+    "admin:create": "yarn workspace @consent/dashboard-api run admin:create"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
+    "@biomejs/biome": "2.6.4",
+    "@c15t/backend": "3.1.0",
+    "@c15t/cli": "3.1.0",
+    "@effect/sql-pg": "4.0.0",
+    "@playwright/test": "1.64.1",
+    "@types/node": "26.6.6",
+    "@vitest/coverage-v8": "5.0.5",
+    "effect": "4.0.0",
+    "playwright-core": "1.64.1",
+    "postgres": "3.4.9",
+    "typescript": "6.0.3",
+    "vite": "8.3.5",
+    "vitest": "5.0.5"
+  },
+  "resolutions": {
+    "@c15t/cli/postcss": "8.5.32",
+    "@c15t/cli/zod": "4.6.7",
+    "drizzle-kit/@esbuild-kit/esm-loader": "npm:tsx@4.23.15"
+  }
+}

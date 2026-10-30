@@ -1,0 +1,117 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+# A newer push to a pull request supersedes the older run. Runs on main always finish, so every
+# commit that lands has a complete result.
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  # .yarnrc.yml sets the same values; they are repeated here so CI does not depend on that file.
+  YARN_NODE_LINKER: node-modules
+  YARN_ENABLE_TELEMETRY: "0"
+
+jobs:
+  verify:
+    name: Verify (typecheck, lint, build)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up toolchain
+        uses: ./.github/actions/setup
+
+      - name: Typecheck
+        run: yarn typecheck
+
+      - name: Lint
+        run: yarn lint
+
+      # Every source file has an SPDX header, and every other file is covered by REUSE.toml.
+      - name: Check SPDX headers
+        run: yarn spdx:check
+
+      - name: Build
+        run: yarn build
+
+  # The real-database suites fail loudly instead of skipping when their variables are missing
+  # (a green run must mean the database was exercised), so there is no database-free run of
+  # `yarn test`: every test runs here, against a real PostgreSQL server.
+  test:
+    name: Test (PostgreSQL 17, coverage)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      # Throwaway administrator password of a container that only this job can reach.
+      CI_PG_ADMIN_PASSWORD: ci-only-throwaway-admin-password
+      # Several date-range tests assume UTC. GitHub-hosted runners are UTC already; this keeps
+      # the result the same when the job is reproduced on a machine with another time zone.
+      TZ: UTC
+    services:
+      postgres:
+        # postgres:17 (17.11), the multi-arch image index, pinned by digest. Dependabot does not
+        # update images used in `services:`, so bump the digest by hand: it is the
+        # Docker-Content-Digest header of the registry manifest for the tag.
+        image: postgres:17@sha256:31ba9c94a03ada9988f2bb493a22a75eef3a185884533e5cdbcd498ea835b08f
+        env:
+          POSTGRES_PASSWORD: ${{ env.CI_PG_ADMIN_PASSWORD }}
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up toolchain
+        uses: ./.github/actions/setup
+
+      # Creates the roles and schemas (infra/postgres/init.sql), applies the c15t and app
+      # migrations and exports DATABASE_URL_C15T, DATABASE_URL_DASHBOARD and C15T_ADMIN_API_KEY
+      # with every secret masked. psql comes from the runner image.
+      - name: Bootstrap the database
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: "5432"
+          PGUSER: postgres
+          PGPASSWORD: ${{ env.CI_PG_ADMIN_PASSWORD }}
+        run: bash scripts/ci-bootstrap-db.sh
+
+      # @vitest/coverage-v8 is a pinned devDependency, so the report is always produced. If the
+      # package ever goes missing, vitest fails here instead of silently running without coverage.
+      - name: Test
+        run: >-
+          yarn test
+          --coverage.enabled
+          --coverage.provider=v8
+          --coverage.reportsDirectory=coverage
+          --coverage.reportOnFailure=true
+          --coverage.reporter=text-summary
+          --coverage.reporter=lcov
+          --coverage.reporter=json-summary
+
+      - name: Upload coverage
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage
+          path: coverage/
+          if-no-files-found: ignore
+          retention-days: 14

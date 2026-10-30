@@ -1,0 +1,32 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 Axiumine
+
+# Template for /etc/nginx/conf.d/c15t-upstreams.conf (http level, loaded before any vhost).
+# Rendered by infra/deploy.sh from CONSENT_API_HOST/PORT (consent-api.env) and
+# DASHBOARD_API_HOST/PORT (dashboard-api.env). The rendered file is never edited by hand.
+# Placeholders are the four variables above, in envsubst syntax. An IPv6 host must be bracketed,
+# so deploy.sh renders it as [fd00::10]. The nginx test container uses the same template.
+
+# keepalive_timeout stays below Node's default http keepAliveTimeout (5 s). If nginx held an idle
+# connection longer, Node could close it just as nginx reuses it, and a POST would fail with 502.
+upstream c15t_consent_api {
+    server ${CONSENT_API_HOST}:${CONSENT_API_PORT};
+    keepalive 16;
+    keepalive_timeout 4s;
+}
+
+upstream c15t_dashboard_api {
+    server ${DASHBOARD_API_HOST}:${DASHBOARD_API_PORT};
+    keepalive 8;
+    keepalive_timeout 4s;
+}
+
+# Cache-Control for the dashboard's /assets/ (see dashboard-locations.conf). Hashed files that
+# exist are cached for a year. Anything else, a 404 above all, must not be cached: a year-long
+# cache entry for a missing asset would stay in Cloudflare and in browsers after the next deploy
+# has added the file. map is http level only, which is why it lives here.
+map $status $c15t_assets_cache {
+    200     "public, max-age=31536000, immutable";
+    304     "public, max-age=31536000, immutable";
+    default "no-store";
+}

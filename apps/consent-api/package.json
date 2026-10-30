@@ -1,0 +1,30 @@
+{
+  "name": "@consent/consent-api",
+  "version": "0.0.0",
+  "license": "AGPL-3.0-or-later",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -b tsconfig.json",
+    "dev": "tsx watch --conditions=source src/server.ts",
+    "start": "node dist/server.js",
+    "typecheck": "tsc -b tsconfig.json tsconfig.test.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@c15t/backend": "3.1.0",
+    "@c15t/schema": "3.1.0",
+    "@consent/db": "workspace:*",
+    "@consent/shared": "workspace:*",
+    "@effect/sql-pg": "4.0.0",
+    "@hono/node-server": "2.1.5",
+    "effect": "4.0.0",
+    "hono": "4.13.14",
+    "postgres": "3.4.9",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "fast-check": "4.10.2",
+    "tsx": "4.23.15"
+  }
+}

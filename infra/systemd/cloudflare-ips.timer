@@ -1,0 +1,12 @@
+[Unit]
+Description=Refresh Cloudflare IP ranges weekly
+
+[Timer]
+OnCalendar=weekly
+RandomizedDelaySec=1h
+# Run once at the next boot if the machine was off at the scheduled time.
+Persistent=true
+Unit=cloudflare-ips.service
+
+[Install]
+WantedBy=timers.target

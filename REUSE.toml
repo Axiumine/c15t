@@ -1,0 +1,51 @@
+# REUSE specification 3.x annotations (https://reuse.software/spec-3.3/#reusetoml).
+# Hand-written source files carry their own SPDX header, added by scripts/add-spdx-headers.mjs.
+# This file covers everything that cannot carry a comment header or is generated.
+# `node scripts/add-spdx-headers.mjs --check` fails when a file is in neither group.
+#
+# To change the copyright holder, edit SPDX-FileCopyrightText below and COPYRIGHT in
+# scripts/add-spdx-headers.mjs, then run that script once.
+
+version = 1
+SPDX-PackageName = "c15t-platform"
+SPDX-PackageSupplier = "Axiumine"
+SPDX-PackageDownloadLocation = "https://github.com/Axiumine/c15t"
+
+# Generated files: regenerate them, never edit the header by hand.
+[[annotations]]
+path = [
+  "apps/dashboard-web/src/routeTree.gen.ts",
+  "packages/db/src/c15t.generated.ts",
+  "packages/db/drizzle/**",
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "Copyright (C) 2026 Axiumine"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+
+# Data, documentation, workflow and configuration files that have no (safe) comment header, plus
+# the license texts and the test fixtures served by the nginx test container.
+[[annotations]]
+path = [
+  "**/*.json",
+  "**/*.md",
+  "**/*.yml",
+  "**/*.yaml",
+  "**/*.toml",
+  "**/*.html",
+  "**/*.svg",
+  "**/*.txt",
+  "**/*.lock",
+  "**/*.service",
+  "**/*.timer",
+  "**/.gitignore",
+  "**/.nvmrc",
+  "**/.editorconfig",
+  "**/CODEOWNERS",
+  "LICENSE",
+  "env.example",
+  "infra/test/test.env",
+  "infra/test/nginx/placeholder/**",
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "Copyright (C) 2026 Axiumine"
+SPDX-License-Identifier = "AGPL-3.0-or-later"

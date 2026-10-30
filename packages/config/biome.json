@@ -1,0 +1,87 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.6.4/schema.json",
+  "root": false,
+  "files": {
+    "includes": [
+      "**",
+      "!**/node_modules",
+      "!**/*.md",
+      "!**/dist",
+      "!**/.tsbuild",
+      "!**/coverage",
+      "!**/.vite",
+      "!**/.yarn",
+      "!**/.idea",
+      "!**/.claude",
+      "!**/.gitnexus",
+      "!**/playwright-report",
+      "!**/test-results",
+      "!**/*.tsbuildinfo",
+      "!**/routeTree.gen.ts",
+      "!packages/db/drizzle",
+      "!packages/db/src/c15t.generated.ts"
+    ]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100,
+    "lineEnding": "lf"
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single",
+      "jsxQuoteStyle": "double",
+      "semicolons": "always",
+      "trailingCommas": "all"
+    }
+  },
+  "json": {
+    "formatter": {
+      "expand": "auto"
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["**/package.json"],
+      "json": { "formatter": { "expand": "always" } }
+    }
+  ],
+  "assist": {
+    "enabled": true,
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended",
+      "complexity": {
+        "noExcessiveCognitiveComplexity": "warn",
+        "useLiteralKeys": "off"
+      },
+      "correctness": {
+        "noUnusedImports": "error",
+        "noUnusedVariables": "error"
+      },
+      "style": {
+        "noNonNullAssertion": "error",
+        "useConst": "error",
+        "useImportType": "error",
+        "useNodejsImportProtocol": "error",
+        "noParameterAssign": "error"
+      },
+      "suspicious": {
+        "noExplicitAny": "error",
+        "noConsole": {
+          "level": "warn",
+          "options": { "allow": ["warn", "error"] }
+        }
+      }
+    }
+  }
+}

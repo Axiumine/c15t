@@ -1,0 +1,52 @@
+name: Dependency review
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dependency-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  dependency-review:
+    name: Dependency review
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Compares the dependency graph of the pull request with its base (the yarn.lock changes
+      # and the GitHub Actions in .github). It needs the dependency graph, which is on by default
+      # for public repositories. The result goes to the job summary; no comment is posted, so the
+      # job stays read-only.
+      - name: Review dependency changes
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          # Block a pull request that adds a runtime dependency with a known high or critical
+          # vulnerability.
+          fail-on-severity: high
+          # Licenses compatible with distributing the platform under AGPL-3.0-or-later. Checked
+          # against the installed packages on 2026-10-30; that set only contained MIT, Apache-2.0,
+          # ISC, BSD-2-Clause, BSD-3-Clause, MPL-2.0 (lightningcss, a build tool), MIT-0,
+          # Unlicense, BlueOak-1.0.0, CC0-1.0, CC-BY-4.0 (caniuse-lite data), 0BSD and
+          # "MIT OR Apache-2.0" / "MIT AND ISC AND BSD-3-Clause" expressions, plus the project's
+          # own AGPL-3.0-or-later. GPL-2.0-only is deliberately absent: it cannot be combined
+          # with AGPL-3.0.
+          allow-licenses: >-
+            MIT, MIT-0, ISC, BSD-2-Clause, BSD-3-Clause, Apache-2.0, 0BSD, CC0-1.0, Unlicense,
+            BlueOak-1.0.0, Python-2.0, Zlib, MPL-2.0, CC-BY-4.0, LGPL-2.1-or-later,
+            LGPL-3.0-or-later, GPL-3.0-or-later, AGPL-3.0-or-later
+          # The repository's own workspace packages are private and carry no registry metadata.
+          allow-dependencies-licenses: >-
+            pkg:npm/%40consent/consent-api, pkg:npm/%40consent/dashboard-api,
+            pkg:npm/%40consent/dashboard-web, pkg:npm/%40consent/db, pkg:npm/%40consent/shared,
+            pkg:npm/%40consent/config, pkg:npm/c15t-platform

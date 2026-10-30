@@ -1,0 +1,16 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./packages/shared" },
+    { "path": "./packages/shared/tsconfig.test.json" },
+    { "path": "./packages/db" },
+    { "path": "./packages/db/tsconfig.test.json" },
+    { "path": "./apps/consent-api" },
+    { "path": "./apps/consent-api/tsconfig.test.json" },
+    { "path": "./apps/dashboard-api" },
+    { "path": "./apps/dashboard-api/tsconfig.test.json" },
+    { "path": "./apps/dashboard-web" },
+    { "path": "./apps/dashboard-web/tsconfig.test.json" },
+    { "path": "./tsconfig.tools.json" }
+  ]
+}

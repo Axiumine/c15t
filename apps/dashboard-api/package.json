@@ -1,0 +1,44 @@
+{
+  "name": "@consent/dashboard-api",
+  "version": "0.0.0",
+  "license": "AGPL-3.0-or-later",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "source": "./src/index.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -b tsconfig.json",
+    "dev": "tsx watch --conditions=source src/server.ts",
+    "start": "node dist/server.js",
+    "typecheck": "tsc -b tsconfig.json tsconfig.test.json",
+    "test": "vitest run",
+    "admin:create": "tsc -b tsconfig.json && node dist/admin-create.js"
+  },
+  "dependencies": {
+    "@consent/db": "workspace:*",
+    "@consent/shared": "workspace:*",
+    "@hono/node-server": "2.1.5",
+    "@hono/zod-validator": "0.9.1",
+    "better-auth": "1.7.14",
+    "drizzle-orm": "0.45.4",
+    "hono": "4.13.14",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.12",
+    "fast-check": "4.10.2",
+    "postgres": "3.4.9",
+    "tsx": "4.23.15",
+    "typescript": "6.0.3",
+    "vite": "8.3.5",
+    "vitest": "5.0.5"
+  }
+}

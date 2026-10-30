@@ -1,0 +1,32 @@
+# Every change needs a review by a code owner. See GOVERNANCE.md.
+# Order matters: the last matching pattern wins, so the narrow paths below repeat the owner on purpose.
+* @giovannimanzoni
+
+# Release, CI and supply-chain configuration
+/.github/ @giovannimanzoni
+/scripts/ @giovannimanzoni
+/infra/ @giovannimanzoni
+/REUSE.toml @giovannimanzoni
+/LICENSE @giovannimanzoni
+/LICENSES/ @giovannimanzoni
+
+# Security-critical code: authentication, authorization, tenant isolation, network trust
+/apps/dashboard-api/src/auth.ts @giovannimanzoni
+/apps/dashboard-api/src/authz.ts @giovannimanzoni
+/apps/dashboard-api/src/password.ts @giovannimanzoni
+/apps/dashboard-api/src/audit.ts @giovannimanzoni
+/apps/dashboard-api/src/users.ts @giovannimanzoni
+/apps/consent-api/src/request-guard.ts @giovannimanzoni
+/apps/consent-api/src/registry.ts @giovannimanzoni
+/apps/consent-api/src/instance.ts @giovannimanzoni
+/packages/shared/src/network.ts @giovannimanzoni
+/packages/shared/src/site.ts @giovannimanzoni
+
+# Database roles, schema and migrations
+/packages/db/ @giovannimanzoni
+
+# Policy documents
+/SECURITY.md @giovannimanzoni
+/GOVERNANCE.md @giovannimanzoni
+/docs/security-model.md @giovannimanzoni
+/docs/dependency-policy.md @giovannimanzoni

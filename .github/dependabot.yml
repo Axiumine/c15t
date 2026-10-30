@@ -1,0 +1,86 @@
+version: 2
+
+# Weekly version updates, grouped to keep the number of pull requests low. Security updates are
+# separate: Dependabot opens them as soon as an advisory exists, one pull request per advisory
+# (no group below has applies-to: security-updates), and they ignore `cooldown`.
+# `cooldown` keeps brand-new releases out for a few days, which gives the registry time to pull
+# a compromised or broken release before it reaches this repository.
+updates:
+  # Actions used by .github/workflows and by the composite action in .github/actions/setup. With
+  # `directory: /` Dependabot reads only .github/workflows and a root action.yml, so the composite
+  # action needs its own directory entry. Keeps the commit SHAs and their "# vX.Y.Z" comments
+  # current, and the tag of the SLSA generator reusable workflow in release.yml.
+  # Not covered, because Dependabot cannot update them: the digest of the `services: postgres`
+  # image in ci.yml (bumped by hand, see the comment there) and the floating test-only
+  # `nginx:stable-alpine` tag in infra/test/compose.yaml (see docs/dependency-policy.md).
+  - package-ecosystem: github-actions
+    directories:
+      - "/"
+      - "/.github/actions/*"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Rome
+    open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
+    groups:
+      github-actions:
+        patterns: ["*"]
+        update-types: [minor, patch]
+    commit-message:
+      prefix: chore(deps)
+    labels: [dependencies, github_actions]
+
+  # The application: Yarn 4 (Berry) workspaces, yarn.lock at the root. Dependabot's npm ecosystem
+  # reads the workspace manifests listed in package.json, so one entry covers apps/* and
+  # packages/*. Versions are pinned exactly in package.json and stay that way.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Rome
+    open-pull-requests-limit: 10
+    cooldown:
+      default-days: 7
+      semver-major-days: 21
+      semver-minor-days: 7
+      semver-patch-days: 3
+    groups:
+      # These must move together: @c15t/backend pins the @effect/sql-pg and effect versions it
+      # needs, and the whole stack is checked by the integration tests as one set. Majors of
+      # this group stay one pull request too, so they are reviewed together.
+      c15t-stack:
+        patterns: ["@c15t/*", "@effect/*", "effect"]
+      drizzle:
+        patterns: ["drizzle-orm", "drizzle-kit"]
+      minor-and-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+    commit-message:
+      prefix: chore(deps)
+      prefix-development: chore(deps-dev)
+    labels: [dependencies, javascript]
+
+  # Build tooling for the workflows only (Corepack and the CycloneDX Yarn plugin), pinned by
+  # package-lock.json: see .github/ci-tools/README.md.
+  - package-ecosystem: npm
+    directory: /.github/ci-tools
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Rome
+    open-pull-requests-limit: 2
+    cooldown:
+      default-days: 7
+    groups:
+      ci-tools:
+        patterns: ["*"]
+    commit-message:
+      prefix: chore(deps)
+      prefix-development: chore(deps)
+    labels: [dependencies, javascript]

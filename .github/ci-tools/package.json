@@ -1,0 +1,10 @@
+{
+  "name": "c15t-platform-ci-tools",
+  "private": true,
+  "description": "Build tooling for GitHub Actions only, pinned by lockfile. Not part of the application: see .github/ci-tools/README.md.",
+  "license": "AGPL-3.0-or-later",
+  "devDependencies": {
+    "@cyclonedx/yarn-plugin-cyclonedx": "3.4.0",
+    "corepack": "0.36.0"
+  }
+}

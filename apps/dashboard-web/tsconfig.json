@@ -1,0 +1,17 @@
+{
+  "extends": "@consent/config/tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2024", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "types": ["vite/client"],
+    "jsx": "react-jsx",
+    "rootDir": "src",
+    "outDir": ".tsbuild/web",
+    "tsBuildInfoFile": ".tsbuild/web.tsbuildinfo",
+    "emitDeclarationOnly": true
+  },
+  "include": ["src"],
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/test"],
+  "references": [{ "path": "../../packages/shared" }, { "path": "../dashboard-api" }]
+}

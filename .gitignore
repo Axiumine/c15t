@@ -1,0 +1,36 @@
+.env
+.env.*
+node_modules
+dist
+.tsbuild
+*.tsbuildinfo
+coverage
+.nyc_output
+.vite
+playwright-report
+playwright/.cache
+test-results
+blob-report
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+.pnp.*
+*.log
+.gitnexus
+
+# Editor and agent tooling, local only
+.idea
+.vscode
+.DS_Store
+.claude/
+AGENTS.md
+
+# Legacy Yarn 1 config (Yarn 4 reads .yarnrc.yml), may hold registry tokens
+.yarnrc
+
+# Personal scratch notes, never published (the published setup guide is docs/database-setup.md)
+/db-setup.md
+/todo.md

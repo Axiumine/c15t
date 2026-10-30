@@ -1,0 +1,31 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 Axiumine
+
+# Two website vhosts for the Playwright suite (e2e/). The hostnames and site keys come from the
+# environment, so a run can map its own, run-unique sites without touching the fixed `shop.test`
+# vhost. compose.yaml gives every variable a harmless default, so this file is inert for manual use.
+#
+# Same shape as a real website vhost: `set $c15t_site <siteKey>; include snippets/c15t.conf;`,
+# plus static files from /srv/site (the banner test page).
+#
+# proxy_bind: the e2e suite sets it to a second loopback address, so that consent-api sees nginx
+# (a trusted proxy) and the test client (not trusted) as different TCP peers. `off` by default.
+server {
+    listen ${NGINX_TEST_PORT};
+    server_name ${NGINX_TEST_SITE_A_HOST};
+    root /srv/site;
+    set $c15t_site ${NGINX_TEST_SITE_A_KEY};
+    proxy_bind ${NGINX_TEST_PROXY_BIND};
+    include snippets/c15t.conf;
+    location / { try_files $uri =404; }
+}
+
+server {
+    listen ${NGINX_TEST_PORT};
+    server_name ${NGINX_TEST_SITE_B_HOST};
+    root /srv/site;
+    set $c15t_site ${NGINX_TEST_SITE_B_KEY};
+    proxy_bind ${NGINX_TEST_PROXY_BIND};
+    include snippets/c15t.conf;
+    location / { try_files $uri =404; }
+}

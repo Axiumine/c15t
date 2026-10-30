@@ -1,0 +1,37 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 Axiumine
+
+# Test vhosts. Use: curl --resolve shop.test:$NGINX_TEST_PORT:127.0.0.1 http://shop.test:$NGINX_TEST_PORT/api/c15t/init
+# Unknown Host never falls through to a site's tenant.
+server {
+    listen ${NGINX_TEST_PORT} default_server;
+    server_name _;
+    return 444;
+}
+
+server {
+    listen ${NGINX_TEST_PORT};
+    server_name shop.test;
+    set $c15t_site shop;
+    include snippets/c15t.conf;
+}
+
+# A website with regex locations of its own (static-asset cache, an API of its own). They must never
+# answer /api/c15t/*: the snippet's `^~` prefix location has to win. Checked by infra/test/nginx-snippet.test.sh.
+server {
+    listen ${NGINX_TEST_PORT};
+    server_name regex.test;
+    set $c15t_site shop;
+    include snippets/c15t.conf;
+    location ~* \.(js|json)$ { default_type text/plain; return 200 "regex-location-hit\n"; }
+    location ~ ^/api/ { default_type text/plain; return 200 "regex-api-hit\n"; }
+    location / { default_type text/plain; return 200 "site-hit\n"; }
+}
+
+# The same locations as production (infra/nginx/dashboard.conf), without TLS.
+server {
+    listen ${NGINX_TEST_PORT};
+    server_name dashboard.test;
+    root /srv/dashboard-web;
+    include snippets/c15t-dashboard-locations.conf;
+}

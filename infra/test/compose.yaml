@@ -1,0 +1,50 @@
+# TEST ONLY. Production has no Docker (README D7). This runs a clean nginx that loads the real
+# snippets from infra/nginx, so they can be exercised against consent-api / dashboard-api on the host.
+#
+#   docker compose -f infra/test/compose.yaml --env-file <file with the four *_API_HOST/PORT> --env-file infra/test/test.env up -d
+#   ... --profile stub up -d     # also start an echo upstream on the consent-api / dashboard-api ports
+#
+# Host networking: nginx reaches the services on the host loopback, exactly as in production.
+# Only the five variables below enter the container, never the rest of the root env file.
+services:
+  nginx:
+    image: nginx:stable-alpine
+    network_mode: host
+    environment:
+      NGINX_TEST_PORT: ${NGINX_TEST_PORT:?set in infra/test/test.env}
+      CONSENT_API_HOST: ${CONSENT_API_HOST:?}
+      CONSENT_API_PORT: ${CONSENT_API_PORT:?}
+      DASHBOARD_API_HOST: ${DASHBOARD_API_HOST:?}
+      DASHBOARD_API_PORT: ${DASHBOARD_API_PORT:?}
+      # Used by the Playwright suite (e2e/, templates/c15t-e2e-sites.conf.template). Defaults keep
+      # manual use unchanged: the two extra vhosts then answer to names nobody requests.
+      NGINX_TEST_SITE_A_HOST: ${NGINX_TEST_SITE_A_HOST:-site-a.e2e-default.test}
+      NGINX_TEST_SITE_A_KEY: ${NGINX_TEST_SITE_A_KEY:-shop}
+      NGINX_TEST_SITE_B_HOST: ${NGINX_TEST_SITE_B_HOST:-site-b.e2e-default.test}
+      NGINX_TEST_SITE_B_KEY: ${NGINX_TEST_SITE_B_KEY:-shop}
+      NGINX_TEST_PROXY_BIND: ${NGINX_TEST_PROXY_BIND:-off}
+    volumes:
+      - /dev/null:/etc/nginx/conf.d/default.conf:ro # host networking: drop the image's :80 server
+      # File mounts, not a directory mount: the real upstream template is added next to the test vhosts.
+      - ./nginx/templates/c15t-test-vhosts.conf.template:/etc/nginx/templates/c15t-test-vhosts.conf.template:ro
+      - ./nginx/templates/c15t-e2e-sites.conf.template:/etc/nginx/templates/c15t-e2e-sites.conf.template:ro
+      - ../nginx/upstreams.conf.tmpl:/etc/nginx/templates/c15t-upstreams.conf.template:ro
+      - ./nginx/conf.d/realip-test.conf:/etc/nginx/conf.d/realip-test.conf:ro
+      - ../nginx/c15t.conf:/etc/nginx/snippets/c15t.conf:ro
+      - ../nginx/dashboard-headers.conf:/etc/nginx/snippets/c15t-dashboard-headers.conf:ro
+      - ../nginx/dashboard-locations.conf:/etc/nginx/snippets/c15t-dashboard-locations.conf:ro
+      - ./nginx/placeholder:/srv/dashboard-web:ro
+      - ${NGINX_TEST_SITE_DIR:-./nginx/placeholder}:/srv/site:ro
+
+  stub:
+    profiles: [stub]
+    image: nginx:stable-alpine
+    network_mode: host
+    environment:
+      CONSENT_API_HOST: ${CONSENT_API_HOST:?}
+      CONSENT_API_PORT: ${CONSENT_API_PORT:?}
+      DASHBOARD_API_HOST: ${DASHBOARD_API_HOST:?}
+      DASHBOARD_API_PORT: ${DASHBOARD_API_PORT:?}
+    volumes:
+      - /dev/null:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/stub/stub.conf.template:/etc/nginx/templates/stub.conf.template:ro

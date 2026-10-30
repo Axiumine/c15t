@@ -1,0 +1,67 @@
+[Unit]
+Description=c15t consent-api (internal multi-tenant c15t backend)
+Documentation=file:///opt/c15t-platform/current/README.md
+After=network-online.target
+Wants=network-online.target
+# The database is the Patroni cluster, reached over the network by its internal DNS name.
+# If the config is invalid the process exits at once. Stop retrying after 10 failures in 2 minutes.
+StartLimitIntervalSec=120
+StartLimitBurst=10
+
+[Service]
+Type=simple
+User=c15t
+Group=c15t
+# NODE_ENV and TZ come first, so that the env file may override NODE_ENV. TZ=UTC is required: c15t stores
+# timestamps without a time zone, so the process must run in UTC. Secrets and the bind address live in the
+# env file (owner c15t, mode 0600); systemd reads it as root before the sandbox below is set up.
+Environment=NODE_ENV=production
+Environment=TZ=UTC
+EnvironmentFile=/etc/c15t-platform/consent-api.env
+# `current` is a symlink switched by infra/deploy.sh; systemd resolves it at every (re)start.
+WorkingDirectory=/opt/c15t-platform/current/apps/consent-api
+ExecStart=/usr/bin/node dist/server.js
+Restart=on-failure
+RestartSec=2s
+# SIGTERM first: the server stops accepting connections and drains requests in flight. Then SIGKILL.
+KillSignal=SIGTERM
+TimeoutStopSec=30s
+LimitNOFILE=65535
+UMask=0077
+
+# ---- Sandbox. Check with: systemd-analyze security c15t-consent-api ----
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+RemoveIPC=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+# V8 compiles JavaScript to executable memory at run time, so W^X enforcement must stay off.
+MemoryDenyWriteExecute=no
+# AF_NETLINK: glibc name resolution and os.networkInterfaces() read the interface list that way.
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+# A call outside the filter fails with EPERM (libuv falls back, e.g. when io_uring is refused) instead of killing the process.
+SystemCallErrorNumber=EPERM
+# Both services run as user c15t, so each must not read the other's secrets. Put a CA bundle for
+# the database outside this directory, e.g. /etc/ssl/c15t/, and point NODE_EXTRA_CA_CERTS at it.
+InaccessiblePaths=/etc/c15t-platform
+# Nothing is written: no ReadWritePaths. The code under /opt/c15t-platform is read-only to the service.
+
+[Install]
+WantedBy=multi-user.target

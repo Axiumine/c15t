@@ -1,0 +1,51 @@
+name: Feature request
+description: Suggest an improvement or a new capability
+title: "feat: "
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please read the design decisions in the [README](https://github.com/Axiumine/c15t/blob/main/README.md)
+        first (D1 to D11). A request that conflicts with one of them is welcome, but say which decision
+        you would change and why.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What are you trying to do, and what stops you today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What would you like to happen? Mention the API, the screen or the configuration involved.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - consent-api
+        - dashboard-api
+        - dashboard-web
+        - packages (db, shared, config)
+        - infra
+        - documentation
+        - not sure
+    validations:
+      required: true
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: Contribution
+      options:
+        - label: I am willing to work on this and open a pull request.
+        - label: This request has no security or privacy implications, or I described them above.
+          required: true

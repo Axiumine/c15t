@@ -1,0 +1,11 @@
+{
+  "extends": "@consent/config/tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": ".tsbuild/tools",
+    "tsBuildInfoFile": ".tsbuild/tools.tsbuildinfo",
+    "emitDeclarationOnly": true,
+    "lib": ["ES2024", "DOM", "DOM.Iterable"]
+  },
+  "include": ["*.config.ts", "packages/*/*.config.ts", "apps/*/*.config.ts", "e2e/**/*.ts"]
+}
