@@ -70,6 +70,27 @@ yarn commands):
   is test-only: production has no Docker.
 - `infra/deploy.sh --dry-run` prints every deploy step without changing anything.
 
+### Reproducible build
+
+A build of the same commit must give the same bytes, wherever and whenever it is made.
+`scripts/verify-reproducible-build.sh` checks this: it clones `HEAD` twice into two directories with
+different names and lengths, builds each clone (`yarn install --immutable`, `yarn build`,
+`scripts/release-package.sh`) with a different time zone and different file times, and compares the SHA-256
+of every file under `dist/` and of every release file (the tarballs, the SBOMs and `SHA256SUMS`). It takes
+about a minute, needs network access for `yarn install`, and builds only the committed state. The CI job
+"Reproducible build" runs it on every pull request and every push to `main`.
+
+```bash
+npm ci --prefix .github/ci-tools --ignore-scripts          # once: provides cyclonedx-yarn
+PATH="$PWD/.github/ci-tools/node_modules/.bin:$PATH" scripts/verify-reproducible-build.sh
+```
+
+What the check varies is the checkout path, the time zone and the file times. What both builds share is
+what the project pins: Node.js 26 and Yarn from `packageManager`, the lockfile and the operating system, so
+a different Node.js version or CPU architecture is not covered by it. If a change makes the build depend on
+one of those inputs (a timestamp, an absolute path, an unsorted directory listing, a random value), the
+check fails and prints the files that differ; run it with `--keep` to inspect the two trees.
+
 ### Database-backed tests
 
 Most tests need no database server: pure code, the web app with jsdom, the migration tests and the
@@ -185,6 +206,72 @@ welcome but not required.
 
 Changes to authentication, authorization, the trusted-proxy handling, database grants, the release
 workflow or the dependencies are reviewed with extra care and may take longer.
+
+## Code review
+
+Every change reaches `main` through a pull request. The ruleset on `main` forbids a direct push, a force
+push and deleting the branch, with no bypass for anyone, and requires the CI checks below (except the
+reproducible-build check).
+
+**How a review is done.** The reviewer reads the whole diff (not only the lines that changed), reads the
+tests before the code, and runs the change when behaviour is not obvious from the diff. They leave comments
+on the lines concerned and say what is wrong and why. The author answers each comment with a new commit or
+a reason. A review ends with an approval or with a list of changes that are needed. The first answer to a
+pull request usually comes within a week (see [`SUPPORT.md`](./SUPPORT.md)); a security fix is handled
+first (see [`SECURITY.md`](./SECURITY.md)).
+
+**What the reviewer checks.**
+
+1. *Scope.* The change does one thing, and the description says what and why. Unrelated clean-ups are in
+   another pull request.
+2. *Correctness and tests.* New behaviour has a test, and a bug fix has a regression test that fails without
+   the fix. The tests assert behaviour, not implementation. Coverage stays at 100%, and no test is skipped
+   or deleted to make CI pass (see "Test policy").
+3. *Security.* The questions from [`docs/security-model.md`](./docs/security-model.md) ("Reviewing a change
+   for security"): does it add a route (is it guarded in `authz.ts` and does the route coverage test pass)?
+   Does it read the `c15t` schema (is every query filtered by the tenant IDs of the session)? Does it take a
+   tenant from request data (it must not)? Does it read the client IP or geo data (only from the sanitised
+   headers)? Does it add a dependency (the [dependency policy](./docs/dependency-policy.md))? Does it change
+   a database grant, a trusted-proxy rule or the release workflow?
+4. *Input and errors.* Every boundary is validated with zod, errors are `{ error: { code, message } }`, and
+   neither SQL nor a stack trace nor a secret reaches a response or a log.
+5. *Conventions.* The rules in "Coding standards" hold: strict TypeScript without `any`, the environment read
+   only in `src/env.ts`, no hard-coded address or port, the SPDX header on new files, domain names
+   (`site`, `siteKey`, `member`, `consent`, `subject`).
+6. *Infrastructure.* A change in `infra/` ran the matching script from "Testing changes to `infra/`", and a
+   change in `deploy.sh install` or `uninstall` keeps `infra/test/uninstall.test.sh` in step.
+7. *Dependencies and workflows.* A new dependency has an exact version pin, an AGPL-compatible license and an
+   updated `yarn.lock`. A new GitHub Action is pinned by its full commit SHA, and a workflow asks for the
+   least permissions that it needs.
+8. *Documentation.* The README, `docs/`, `CLAUDE.md` and `CHANGELOG.md` say what is now true, and a
+   superseded decision is amended, not deleted.
+
+**What makes a change acceptable.** All of these hold:
+
+- Every required check is green: Verify (typecheck, lint, build), Test (PostgreSQL 17, coverage), CodeQL
+  (both analyses), DCO sign-off and Dependency review. The "Reproducible build" check passes too.
+- Every commit has a DCO sign-off, and the history is readable (a squash on merge is fine).
+- A maintainer reviewed the change (for the maintainer's own pull requests that is the self-review
+  described under "Who reviews"), and every comment is answered.
+- A change to a path in [`.github/CODEOWNERS`](./.github/CODEOWNERS) (authorization, trusted proxies, the
+  `infra/` scripts, the workflows) was read line by line, and the reviewer wrote down in the pull request
+  what they checked.
+
+**Who reviews.** A code owner reviews every pull request. Today there is one maintainer
+([`GOVERNANCE.md`](./GOVERNANCE.md)), so a pull request from the maintainer is reviewed by the author
+against this checklist (the pull request template repeats it) and by CI, and is not seen by a second
+person. This is a known gap, and we say so rather than count it as a two-person review. A pull request
+from anyone else is always reviewed by the maintainer before it is merged, and anyone is welcome to review
+any open pull request: comment on it, even if you cannot approve it.
+
+## Where to start
+
+Issues that suit a first contribution carry the label
+[`good first issue`](https://github.com/Axiumine/c15t/labels/good%20first%20issue). Each has a clear goal and
+says which files to look at. Larger tasks that need help are labelled
+[`help wanted`](https://github.com/Axiumine/c15t/labels/help%20wanted). Comment on an issue before you start,
+so that two people do not do the same work. Reading the code, running the checks from "Testing changes to
+`infra/`" on your own system, and reporting what differs are all useful contributions too.
 
 ## Dependencies
 
