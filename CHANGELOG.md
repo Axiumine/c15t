@@ -16,6 +16,13 @@ their own "Security" heading and name the advisory.
 
 ## [Unreleased]
 
+### Changed
+
+- Test coverage of all hand-written source in `apps/*/src` and `packages/*/src` is now 100% (statements,
+  branches, functions and lines), including the process entry points, and `vitest.config.ts` enforces it, so
+  CI fails when a change leaves code untested. A few unreachable defensive branches were removed instead of
+  being excluded; behaviour is unchanged. Two flaky tests (`admin-create`, `ddl`) are now deterministic.
+
 ## [0.1.0] - 2026-10-30
 
 First release. The project is pre-1.0: minor versions may contain breaking changes.

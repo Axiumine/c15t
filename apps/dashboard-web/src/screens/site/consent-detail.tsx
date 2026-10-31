@@ -64,12 +64,7 @@ export function ConsentDetailDialog({
   onClose: () => void;
 }) {
   return (
-    <Dialog
-      open={record !== null}
-      onOpenChange={(open) => {
-        if (!open) onClose();
-      }}
-    >
+    <Dialog open={record !== null} onOpenChange={() => onClose()}>
       <DialogContent className="max-w-2xl">
         {record === null ? null : (
           <>

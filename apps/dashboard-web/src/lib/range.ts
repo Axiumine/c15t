@@ -10,7 +10,8 @@ export const RANGE_PRESETS = [
 ] as const;
 
 export type RangePreset = (typeof RANGE_PRESETS)[number]['value'];
-export const DEFAULT_RANGE_PRESET: RangePreset = '30d';
+const DEFAULT_PRESET = RANGE_PRESETS[1];
+export const DEFAULT_RANGE_PRESET: RangePreset = DEFAULT_PRESET.value;
 
 /** What lives in the URL: a preset, or a custom `from`/`to` pair of calendar dates. */
 export interface RangeSearch {
@@ -38,10 +39,9 @@ export function resolveRange(search: RangeSearch, now: Date = new Date()): DateR
   if (search.range === 'custom' && search.from !== undefined && search.to !== undefined) {
     return { from: search.from, to: search.to };
   }
-  const preset = RANGE_PRESETS.find((item) => item.value === search.range);
-  const days = (preset ?? RANGE_PRESETS.find((item) => item.value === DEFAULT_RANGE_PRESET))?.days;
+  const preset = RANGE_PRESETS.find((item) => item.value === search.range) ?? DEFAULT_PRESET;
   const to = toIsoDate(now);
-  const from = toIsoDate(new Date(now.getTime() - ((days ?? 30) - 1) * DAY_MS));
+  const from = toIsoDate(new Date(now.getTime() - (preset.days - 1) * DAY_MS));
   return { from, to };
 }
 

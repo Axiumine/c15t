@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Axiumine
 
-import { POLICY_PRESET_RULES, POLICY_PRESETS } from '@consent/shared';
-import { describe, expect, test } from 'vitest';
+import { POLICY_PRESET_RULES, POLICY_PRESETS, type PolicyPreset } from '@consent/shared';
+import { afterEach, describe, expect, test } from 'vitest';
 import { SiteConfigError } from './errors.js';
 import {
   assertTrustedOrigins,
@@ -75,6 +75,30 @@ describe('buildInstanceOptions', () => {
       }),
     ).toThrow(SiteConfigError);
   });
+});
+
+describe('policyRulesFor with a preset that names a rule c15t does not have', () => {
+  // POLICY_PRESET_RULES lists factory names of @c15t/backend. A c15t upgrade that renames one must
+  // fail loudly for the site, not build an instance with a rule missing.
+  const presets = POLICY_PRESET_RULES as Record<PolicyPreset, readonly string[]>;
+  const original = presets['eu-opt-in'];
+  afterEach(() => {
+    presets['eu-opt-in'] = original;
+  });
+
+  test.each(['noSuchRule', 'toString', 'constructor', '__proto__'])(
+    'refuses "%s" and names the site',
+    (name) => {
+      presets['eu-opt-in'] = ['europeOptIn', name];
+      try {
+        policyRulesFor(siteRecord('shop', { policyPreset: 'eu-opt-in' }));
+        expect.unreachable('policyRulesFor accepted an unknown rule');
+      } catch (error) {
+        expect(error).toBeInstanceOf(SiteConfigError);
+        expect((error as SiteConfigError).siteKey).toBe('shop');
+      }
+    },
+  );
 });
 
 describe('assertTrustedOrigins', () => {

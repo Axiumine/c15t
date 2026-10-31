@@ -127,7 +127,10 @@ disposable database, never a production one.
 - Every authorization rule needs a test that proves a `user` cannot read another site's data.
 - Parsers and validators of untrusted input (hosts, CIDRs, site keys, paths, headers, CSV, cursors) also get
   property-based tests with [fast-check](https://fast-check.dev/) in `*.fuzz.test.ts` files.
-- Do not lower the coverage of the code you touch. Do not skip or delete a test to make CI pass.
+- Coverage of the hand-written source is 100% (statements, branches, functions and lines), and CI fails below that
+  (`coverage.thresholds` in `vitest.config.ts`). Cover new code with a test that asserts its behaviour. A
+  `/* v8 ignore */` is allowed only for a guard the type system rules out, with the reason next to it. Do not
+  skip or delete a test to make CI pass.
 
 ## Commits and the Developer Certificate of Origin (DCO)
 

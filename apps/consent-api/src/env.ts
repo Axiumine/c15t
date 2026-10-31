@@ -63,7 +63,7 @@ export function parseEnv(source: Readonly<Record<string, string | undefined>>): 
   const result = envSchema.safeParse(present);
   if (result.success) return result.data;
   throw new EnvError(
-    result.error.issues.map((issue) => `${issue.path.join('.') || '(env)'}: ${issue.message}`),
+    result.error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`),
   );
 }
 

@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Axiumine
 
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { act, renderHook } from '@testing-library/react';
+import { createElement, type ReactNode } from 'react';
 import { expect, test } from 'vitest';
 import {
   ApiError,
@@ -11,7 +14,9 @@ import {
   fieldIssues,
   isUnavailable,
   meQueryOptions,
+  queryKeys,
   shouldRetry,
+  useRevokeSessions,
 } from './api';
 import { apiError, json, mockFetch, route } from './test/harness';
 
@@ -141,4 +146,86 @@ test('the CSV export is a plain same-origin link with the chosen dates', () => {
     '/api/sites/shop/consents.csv?from=2026-03-01&to=2026-03-31',
   );
   expect(consentsCsvHref('a b', { from: '' })).toBe('/api/sites/a%20b/consents.csv');
+});
+
+test('a value that is not an ApiError never leaks its text and carries no field issues', () => {
+  const stray = new Error('select * from secret failed');
+  expect(errorMessage(stray)).toBe('Something went wrong. Try again.');
+  expect(errorMessage('boom')).toBe('Something went wrong. Try again.');
+  expect(fieldIssues(stray)).toEqual([]);
+  expect(isUnavailable(stray)).toBe(false);
+});
+
+test('429 is rate-limited and 409 a conflict', async () => {
+  mockFetch(
+    route('GET /api/me', apiError(429, 'RATE_LIMITED')),
+    route('GET /api/sites', apiError(409, 'CONFLICT', 'That key is already taken')),
+  );
+  const limited = await failureOf(getMe);
+  expect(limited.kind).toBe('rate-limited');
+  expect(errorMessage(limited)).toBe('Too many requests. Wait a moment and try again.');
+  const conflict = await failureOf(() => client.sites.$get());
+  expect(conflict.kind).toBe('conflict');
+  expect(errorMessage(conflict)).toBe('That key is already taken');
+});
+
+test('an aborted request stays an abort: it is not reported as a network failure', async () => {
+  mockFetch(() => {
+    throw new DOMException('The operation was aborted.', 'AbortError');
+  });
+  try {
+    await getMe();
+    throw new Error('expected the call to fail');
+  } catch (error) {
+    expect(error).toBeInstanceOf(DOMException);
+    expect(error).toMatchObject({ name: 'AbortError' });
+  }
+  // Another DOMException is a broken connection like any other.
+  mockFetch(() => {
+    throw new DOMException('Denied', 'SecurityError');
+  });
+  expect(await failureOf(getMe)).toMatchObject({ kind: 'network', status: 0 });
+});
+
+test('the query client ignores errors that are not ApiErrors', async () => {
+  const seen: string[] = [];
+  const queryClient = createQueryClient({
+    onUnauthorized: () => seen.push('unauthorized'),
+    onPasswordChangeRequired: () => seen.push('password'),
+  });
+  await queryClient
+    .fetchQuery({
+      queryKey: ['boom'],
+      queryFn: () => Promise.reject(new Error('boom')),
+      retry: false,
+    })
+    .catch(() => undefined);
+  await queryClient
+    .getMutationCache()
+    .build(queryClient, { mutationFn: () => Promise.reject(new Error('boom')) })
+    .execute(undefined)
+    .catch(() => undefined);
+  expect(seen).toEqual([]);
+});
+
+test('revoking sessions posts to the user and refreshes the user list and the audit log', async () => {
+  const { calls } = mockFetch(
+    route('POST /api/admin/users/u-1/revoke-sessions', json({ ok: true })),
+  );
+  const queryClient = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
+  queryClient.setQueryData(queryKeys.adminUsers, { items: [] });
+  queryClient.setQueryData(queryKeys.adminAudit, { pages: [], pageParams: [] });
+  queryClient.setQueryData(queryKeys.sites, { items: [] });
+  const wrapper = ({ children }: { children: ReactNode }) =>
+    createElement(QueryClientProvider, { client: queryClient }, children);
+  const { result } = renderHook(() => useRevokeSessions(), { wrapper });
+  await act(async () => {
+    await result.current.mutateAsync('u-1');
+  });
+  expect(calls.map((call) => `${call.method} ${call.url.pathname}`)).toEqual([
+    'POST /api/admin/users/u-1/revoke-sessions',
+  ]);
+  expect(queryClient.getQueryState(queryKeys.adminUsers)?.isInvalidated).toBe(true);
+  expect(queryClient.getQueryState(queryKeys.adminAudit)?.isInvalidated).toBe(true);
+  expect(queryClient.getQueryState(queryKeys.sites)?.isInvalidated).toBe(false);
 });

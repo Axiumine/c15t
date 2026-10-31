@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Axiumine
 
-import { describe, expect, test } from 'vitest';
-import { EnvError, parseEnv } from './env.js';
+import { afterEach, describe, expect, test, vi } from 'vitest';
+import { EnvError, loadEnv, parseEnv } from './env.js';
 
 const required = {
   DATABASE_URL_C15T: 'postgres://c15t_api:secret-pw@pg-primary.internal:5432/consent',
@@ -91,6 +91,15 @@ describe('parseEnv', () => {
     expect(issues.join('\n')).not.toContain('hunter2');
   });
 
+  test.each(['not a url', 'postgres://', '//db.internal/app'])(
+    'rejects a database URL that is unparseable or has no host: "%s"',
+    (value) => {
+      const issues = issuesFor({ ...required, DATABASE_URL_C15T: value });
+      expect(issues).toHaveLength(1);
+      expect(issues[0]).toMatch(/^DATABASE_URL_C15T:/);
+    },
+  );
+
   test('rejects a short API key', () => {
     expect(issuesFor({ ...required, C15T_ADMIN_API_KEY: 'short' })[0]).toMatch(
       /^C15T_ADMIN_API_KEY:/,
@@ -114,5 +123,37 @@ describe('parseEnv', () => {
     expect(issuesFor({ ...required, CONSENT_API_DB_PREPARE: 'yes' })[0]).toMatch(
       /^CONSENT_API_DB_PREPARE:/,
     );
+  });
+});
+
+describe('loadEnv', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  test('parses process.env, the only place that reads it', () => {
+    vi.stubEnv('DATABASE_URL_C15T', required.DATABASE_URL_C15T);
+    vi.stubEnv('C15T_ADMIN_API_KEY', required.C15T_ADMIN_API_KEY);
+    vi.stubEnv('CONSENT_API_HOST', '10.1.2.3');
+    vi.stubEnv('CONSENT_API_PORT', '4300');
+    vi.stubEnv('CONSENT_API_TRUSTED_PROXIES', '10.0.0.0/8');
+    vi.stubEnv('CONSENT_API_INSTANCE_POOL_MAX', '3');
+    vi.stubEnv('CONSENT_API_REGISTRY_POOL_MAX', '1');
+    vi.stubEnv('CONSENT_API_DB_PREPARE', 'false');
+    expect(loadEnv()).toEqual({
+      ...required,
+      CONSENT_API_HOST: '10.1.2.3',
+      CONSENT_API_PORT: 4300,
+      CONSENT_API_TRUSTED_PROXIES: ['10.0.0.0/8'],
+      CONSENT_API_INSTANCE_POOL_MAX: 3,
+      CONSENT_API_REGISTRY_POOL_MAX: 1,
+      CONSENT_API_DB_PREPARE: false,
+    });
+  });
+
+  test('throws an EnvError for an invalid process.env', () => {
+    vi.stubEnv('DATABASE_URL_C15T', required.DATABASE_URL_C15T);
+    vi.stubEnv('C15T_ADMIN_API_KEY', 'short');
+    expect(() => loadEnv()).toThrow(EnvError);
   });
 });

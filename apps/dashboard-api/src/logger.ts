@@ -46,7 +46,7 @@ export function describeError(error: unknown): LogFields {
     typeof cause === 'object' && cause !== null ? (cause as { code?: unknown }).code : undefined;
   return {
     errorName: error.name,
-    errorMessage: (error.message.split('\n')[0] ?? '').slice(0, MAX_ERROR_MESSAGE),
+    errorMessage: error.message.replace(/\n[\s\S]*$/, '').slice(0, MAX_ERROR_MESSAGE),
     ...(typeof code === 'string' ? { errorCode: code } : {}),
     ...(typeof causeCode === 'string' ? { causeCode } : {}),
   };

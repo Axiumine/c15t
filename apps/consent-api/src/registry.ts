@@ -253,8 +253,8 @@ export class SiteRegistry {
     if (entry.retired && entry.inflight === 0) this.dispose(entry);
   }
 
+  /** Called once per entry: every caller takes it out of `entries` first, and only live entries are in there. */
   private retire(entry: Entry): void {
-    if (entry.retired) return;
     entry.retired = true;
     this.retiring.add(entry);
     // The next macrotask, not now: a request that has just been handed this entry has not

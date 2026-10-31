@@ -2,7 +2,7 @@
 // Copyright (C) 2026 Axiumine
 
 import { expect, test } from 'vitest';
-import { resolveRange, validateCustomRange } from './range';
+import { DEFAULT_RANGE_PRESET, resolveRange, validateCustomRange } from './range';
 
 const NOW = new Date('2026-03-31T10:00:00Z');
 
@@ -25,4 +25,11 @@ test('custom ranges follow the API limits', () => {
   expect(validateCustomRange('', '2026-01-31')).toBe('Choose both dates');
   expect(validateCustomRange('2026-02-01', '2026-01-31')).toContain('must not be after');
   expect(validateCustomRange('2025-01-01', '2026-03-31')).toContain('at most 366 days');
+});
+
+test('the default preset is the 30 day window that resolveRange falls back to', () => {
+  expect(DEFAULT_RANGE_PRESET).toBe('30d');
+  expect(resolveRange({ range: DEFAULT_RANGE_PRESET }, NOW)).toEqual(resolveRange({}, NOW));
+  // 'custom' without both dates is not a usable range either, so it also falls back.
+  expect(resolveRange({ range: 'custom', to: '2026-01-06' }, NOW)).toEqual(resolveRange({}, NOW));
 });

@@ -143,7 +143,7 @@ export function CreateUserDialog({
 
   return (
     <>
-      <Dialog open={open} onOpenChange={(next) => (next ? undefined : finish())}>
+      <Dialog open={open} onOpenChange={() => finish()}>
         <DialogContent className="max-w-xl">
           <DialogHeader>
             <DialogTitle>New user</DialogTitle>
@@ -182,7 +182,12 @@ export function CreateUserDialog({
               control={control}
               name="siteKeys"
               render={({ field }) => (
-                <SitePicker sites={sites} value={field.value ?? []} onChange={field.onChange} />
+                // `siteKeys` is optional in the schema's input type, but the defaults always set it.
+                <SitePicker
+                  sites={sites}
+                  value={field.value as string[]}
+                  onChange={field.onChange}
+                />
               )}
             />
             <DialogFooter>
@@ -201,13 +206,7 @@ export function CreateUserDialog({
   );
 }
 
-export function EditUserDialog({
-  user,
-  onClose,
-}: {
-  user: UserSummary | null;
-  onClose: () => void;
-}) {
+function EditUserForm({ user, onClose }: { user: UserSummary; onClose: () => void }) {
   const update = useUpdateUser();
   const [formError, setFormError] = useState<string | undefined>(undefined);
   const {
@@ -216,11 +215,10 @@ export function EditUserDialog({
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(userUpdateSchema),
-    defaultValues: { name: user?.name ?? '', role: user?.role ?? ('user' as const) },
+    defaultValues: { name: user.name, role: user.role },
   });
 
   async function submit(values: z.output<typeof userUpdateSchema>) {
-    if (user === null) return;
     const changes = {
       ...(values.name === user.name ? {} : { name: values.name }),
       ...(values.role === user.role ? {} : { role: values.role }),
@@ -238,35 +236,47 @@ export function EditUserDialog({
   }
 
   return (
-    <Dialog open={user !== null} onOpenChange={(next) => (next ? undefined : onClose())}>
+    <form className="grid gap-4" onSubmit={handleSubmit(submit)} noValidate>
+      <FormError message={formError} />
+      <Field id="edit-name" label="Name" error={errors.name?.message}>
+        <Input {...fieldProps('edit-name', errors.name?.message)} {...register('name')} />
+      </Field>
+      <Field id="edit-role" label="Role" error={errors.role?.message}>
+        <Select {...fieldProps('edit-role', errors.role?.message)} {...register('role')}>
+          {ROLES.map((role) => (
+            <option key={role} value={role}>
+              {ROLE_LABELS[role]}
+            </option>
+          ))}
+        </Select>
+      </Field>
+      <DialogFooter>
+        <Button type="button" variant="outline" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button type="submit" disabled={isSubmitting}>
+          Save changes
+        </Button>
+      </DialogFooter>
+    </form>
+  );
+}
+
+export function EditUserDialog({
+  user,
+  onClose,
+}: {
+  user: UserSummary | null;
+  onClose: () => void;
+}) {
+  return (
+    <Dialog open={user !== null} onOpenChange={() => onClose()}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Edit user</DialogTitle>
           <DialogDescription>{user?.email}. The email cannot be changed.</DialogDescription>
         </DialogHeader>
-        <form className="grid gap-4" onSubmit={handleSubmit(submit)} noValidate>
-          <FormError message={formError} />
-          <Field id="edit-name" label="Name" error={errors.name?.message}>
-            <Input {...fieldProps('edit-name', errors.name?.message)} {...register('name')} />
-          </Field>
-          <Field id="edit-role" label="Role" error={errors.role?.message}>
-            <Select {...fieldProps('edit-role', errors.role?.message)} {...register('role')}>
-              {ROLES.map((role) => (
-                <option key={role} value={role}>
-                  {ROLE_LABELS[role]}
-                </option>
-              ))}
-            </Select>
-          </Field>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              Save changes
-            </Button>
-          </DialogFooter>
-        </form>
+        {user === null ? null : <EditUserForm key={user.id} user={user} onClose={onClose} />}
       </DialogContent>
     </Dialog>
   );
@@ -315,7 +325,7 @@ export function UserSitesDialog({
   onClose: () => void;
 }) {
   return (
-    <Dialog open={user !== null} onOpenChange={(next) => (next ? undefined : onClose())}>
+    <Dialog open={user !== null} onOpenChange={() => onClose()}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Assign sites</DialogTitle>
@@ -349,13 +359,7 @@ const banFormSchema = z
   )
   .pipe(banUserSchema);
 
-export function BanUserDialog({
-  user,
-  onClose,
-}: {
-  user: UserSummary | null;
-  onClose: () => void;
-}) {
+function BanUserForm({ user, onClose }: { user: UserSummary; onClose: () => void }) {
   const ban = useBanUser();
   const [formError, setFormError] = useState<string | undefined>(undefined);
   const {
@@ -368,7 +372,6 @@ export function BanUserDialog({
   });
 
   async function submit(values: z.output<typeof banFormSchema>) {
-    if (user === null) return;
     try {
       await ban.mutateAsync({ id: user.id, ban: values });
       onClose();
@@ -378,7 +381,45 @@ export function BanUserDialog({
   }
 
   return (
-    <Dialog open={user !== null} onOpenChange={(next) => (next ? undefined : onClose())}>
+    <form className="grid gap-4" onSubmit={handleSubmit(submit)} noValidate>
+      <FormError message={formError} />
+      <Field id="ban-reason" label="Reason (optional)" error={errors.reason?.message}>
+        <Textarea
+          {...fieldProps('ban-reason', errors.reason?.message)}
+          {...register('reason')}
+          rows={3}
+        />
+      </Field>
+      <Field id="ban-duration" label="Duration">
+        <Select {...fieldProps('ban-duration')} {...register('duration')}>
+          {BAN_DURATIONS.map((item) => (
+            <option key={item.value} value={item.value}>
+              {item.label}
+            </option>
+          ))}
+        </Select>
+      </Field>
+      <DialogFooter>
+        <Button type="button" variant="outline" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button type="submit" variant="destructive" disabled={isSubmitting}>
+          Ban user
+        </Button>
+      </DialogFooter>
+    </form>
+  );
+}
+
+export function BanUserDialog({
+  user,
+  onClose,
+}: {
+  user: UserSummary | null;
+  onClose: () => void;
+}) {
+  return (
+    <Dialog open={user !== null} onOpenChange={() => onClose()}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Ban user</DialogTitle>
@@ -386,33 +427,7 @@ export function BanUserDialog({
             {user?.email} is signed out everywhere and cannot sign in while the ban lasts.
           </DialogDescription>
         </DialogHeader>
-        <form className="grid gap-4" onSubmit={handleSubmit(submit)} noValidate>
-          <FormError message={formError} />
-          <Field id="ban-reason" label="Reason (optional)" error={errors.reason?.message}>
-            <Textarea
-              {...fieldProps('ban-reason', errors.reason?.message)}
-              {...register('reason')}
-              rows={3}
-            />
-          </Field>
-          <Field id="ban-duration" label="Duration">
-            <Select {...fieldProps('ban-duration')} {...register('duration')}>
-              {BAN_DURATIONS.map((item) => (
-                <option key={item.value} value={item.value}>
-                  {item.label}
-                </option>
-              ))}
-            </Select>
-          </Field>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button type="submit" variant="destructive" disabled={isSubmitting}>
-              Ban user
-            </Button>
-          </DialogFooter>
-        </form>
+        {user === null ? null : <BanUserForm key={user.id} user={user} onClose={onClose} />}
       </DialogContent>
     </Dialog>
   );

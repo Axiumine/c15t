@@ -74,7 +74,7 @@ function asJsonError(response: Response): Response {
   }
   const body = JSON.stringify(apiError(code, message));
   headers.set('content-type', 'application/json');
-  return new Response(response.status === 204 ? null : body, { status: response.status, headers });
+  return new Response(body, { status: response.status, headers });
 }
 
 async function isDatabaseFailure(response: Response): Promise<boolean> {

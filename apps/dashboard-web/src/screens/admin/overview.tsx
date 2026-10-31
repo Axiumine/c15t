@@ -37,13 +37,13 @@ const cell = (row: Row, render: (stats: StatsResponse) => string): string => {
 
 function SitesBreakdown({ rows, busy }: { rows: Row[]; busy: boolean }) {
   const ranked = rows
-    .filter((row) => row.stats !== undefined)
-    .sort((a, b) => (b.stats?.totals.consents ?? 0) - (a.stats?.totals.consents ?? 0));
-  const data: BarDatum[] = ranked.map((row) => ({
-    name: row.site.name,
-    value: row.stats?.totals.consents ?? 0,
-    display: formatInteger(row.stats?.totals.consents ?? 0),
-    details: [{ label: 'subjects', value: formatInteger(row.stats?.totals.subjects ?? 0) }],
+    .flatMap((row) => (row.stats === undefined ? [] : [{ site: row.site, stats: row.stats }]))
+    .sort((a, b) => b.stats.totals.consents - a.stats.totals.consents);
+  const data: BarDatum[] = ranked.map(({ site, stats }) => ({
+    name: site.name,
+    value: stats.totals.consents,
+    display: formatInteger(stats.totals.consents),
+    details: [{ label: 'subjects', value: formatInteger(stats.totals.subjects) }],
   }));
   return (
     <ChartFrame
@@ -128,7 +128,7 @@ export function AdminOverviewScreen({
   const rows: Row[] = list.map((site, index) => ({
     site,
     stats: results[index]?.data,
-    failed: results[index]?.isError ?? false,
+    failed: results[index]?.isError === true,
   }));
   const loaded = rows.flatMap((row) => (row.stats === undefined ? [] : [row.stats]));
   const consents = loaded.reduce((sum, stats) => sum + stats.totals.consents, 0);

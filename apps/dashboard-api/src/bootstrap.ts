@@ -33,7 +33,8 @@ export async function createAdmin(
   input: { email: string; name?: string | undefined },
 ): Promise<BootstrapResult> {
   const email = emailSchema.parse(input.email);
-  const name = input.name?.trim() || (email.split('@')[0] ?? email);
+  // `emailSchema` guarantees an `@`, so the part before it is the local part.
+  const name = input.name?.trim() || email.slice(0, email.indexOf('@'));
   const password = generatePassword();
   const userId = await deps.db.transaction(async (tx) => {
     const [existing] = await tx

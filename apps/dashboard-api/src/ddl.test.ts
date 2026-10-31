@@ -13,9 +13,11 @@ import { createPgliteEnvironment, type TestEnvironment } from './testing/environ
  */
 let environment: TestEnvironment;
 
+// PGlite boots a WASM Postgres and applies every migration. The default 10 s hook limit is not
+// enough when the whole suite runs in parallel, so this uses the same budget as the other suites.
 beforeAll(async () => {
   environment = await createPgliteEnvironment();
-});
+}, 120_000);
 afterAll(async () => {
   await environment?.close();
 });
