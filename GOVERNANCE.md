@@ -50,7 +50,8 @@ asks to step down is moved to emeritus status, and their repository access is re
 The project currently has **one maintainer**. That is a real risk to continuity, and we do not claim
 otherwise:
 
-- If the maintainer is unavailable, nobody else can merge, release or answer security reports.
+- If the maintainer is unavailable, no second maintainer is designated to review, merge, release or answer security
+  reports.
 - Releases are produced by CI from tags, with no manual secrets, which makes a hand-over easier.
 - The license is the AGPL-3.0-or-later and everything needed to build, test and run the software is in
   the repository, so anyone can fork the project and continue it.

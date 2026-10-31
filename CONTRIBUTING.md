@@ -211,14 +211,16 @@ workflow or the dependencies are reviewed with extra care and may take longer.
 
 Every change reaches `main` through a pull request. The ruleset on `main` forbids a direct push, a force
 push and deleting the branch, with no bypass for anyone, and requires the CI checks below (except the
-reproducible-build check).
+reproducible-build check). It requires no approving review and no code-owner review, because a sole
+maintainer cannot approve their own pull request. The review rules below are therefore project policy
+that GitHub does not enforce.
 
 **How a review is done.** The reviewer reads the whole diff (not only the lines that changed), reads the
 tests before the code, and runs the change when behaviour is not obvious from the diff. They leave comments
 on the lines concerned and say what is wrong and why. The author answers each comment with a new commit or
 a reason. A review ends with an approval or with a list of changes that are needed. The first answer to a
-pull request usually comes within a week (see [`SUPPORT.md`](./SUPPORT.md)); a security fix is handled
-first (see [`SECURITY.md`](./SECURITY.md)).
+pull request usually comes within a week, as for issues ([`SUPPORT.md`](./SUPPORT.md)), but there is no
+guaranteed time. Vulnerability reports follow the response targets in [`SECURITY.md`](./SECURITY.md).
 
 **What the reviewer checks.**
 
@@ -257,12 +259,13 @@ first (see [`SECURITY.md`](./SECURITY.md)).
   `infra/` scripts, the workflows) was read line by line, and the reviewer wrote down in the pull request
   what they checked.
 
-**Who reviews.** A code owner reviews every pull request. Today there is one maintainer
-([`GOVERNANCE.md`](./GOVERNANCE.md)), so a pull request from the maintainer is reviewed by the author
-against this checklist (the pull request template repeats it) and by CI, and is not seen by a second
-person. This is a known gap, and we say so rather than count it as a two-person review. A pull request
-from anyone else is always reviewed by the maintainer before it is merged, and anyone is welcome to review
-any open pull request: comment on it, even if you cannot approve it.
+**Who reviews.** A code owner is asked to review every pull request. Today there is one maintainer
+([`GOVERNANCE.md`](./GOVERNANCE.md)), so a pull request from the maintainer is self-reviewed against this
+checklist and checked by CI, and is not seen by a second person. The author ticks the review box of the
+pull request template and, for a path in `CODEOWNERS`, writes down in the description what they checked.
+This is a known gap, and we say so rather than count it as a two-person review. A pull request from anyone
+else is reviewed by the maintainer before it is merged, and anyone is welcome to review any open pull
+request: comment on it, even if you cannot approve it.
 
 ## Where to start
 

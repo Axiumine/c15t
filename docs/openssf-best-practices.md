@@ -1599,12 +1599,12 @@ Select: **Met** | URL required: no | N/A allowed: yes
 Justification to paste:
 
 ```text
-Repeated builds of the same commit give byte-identical output. On 2026-10-30 three clean builds of commit a8cc136 (tsc -b for all workspaces plus the Vite build, Node v26.13.0, the same installed dependencies from yarn.lock) were made, two in one directory and one in a second directory, and the SHA-256 sums of all 271 files under dist/ were identical. Versions are pinned (exact versions, yarn.lock, Node 26 via .nvmrc). No CI job repeats the check yet.
+Repeated builds of the same commit give byte-identical output. On 2026-10-30 three clean builds of commit a8cc136 (tsc -b for all workspaces plus the Vite build, Node v26.13.0, the same installed dependencies from yarn.lock) were made, two in one directory and one in a second directory, and the SHA-256 sums of all 271 files under dist/ were identical. Versions are pinned (exact versions, yarn.lock, Node 26 via .nvmrc). Since then the CI job "Reproducible build" repeats the check on every pull request and push to main (scripts/verify-reproducible-build.sh: two clean builds in different directories, time zones and file times; every dist/ file and release file must match).
 ```
 
 Evidence: [package.json](https://github.com/Axiumine/c15t/blob/main/package.json), [yarn.lock](https://github.com/Axiumine/c15t/blob/main/yarn.lock), [.nvmrc](https://github.com/Axiumine/c15t/blob/main/.nvmrc)
 
-Note: Verified by hand on 2026-10-30 with Node v26.13.0 (three clean builds of commit a8cc136, two in one directory and one in a second; the SHA-256 sums of all 271 files under dist/ were identical, as the justification says). It is a manual check: the source tree has changed since, so repeat it after larger changes. No CI job repeats the check; adding one (build twice, diff) would make the claim durable and is the first step toward the gold build_reproducible.
+Note: Verified by hand on 2026-10-30 with Node v26.13.0 (three clean builds of commit a8cc136, two in one directory and one in a second; the SHA-256 sums of all 271 files under dist/ were identical, as the justification says). That was a manual check; scripts/verify-reproducible-build.sh and the CI job "Reproducible build" now repeat it for every change (see gold build_reproducible).
 
 #### Installation system
 
@@ -2144,19 +2144,19 @@ The source repository uses git, hosted on GitHub: https://github.com/Axiumine/c1
 
 Depends on: M1 (section 1).
 
-##### `small_tasks` (MUST): Unmet
+##### `small_tasks` (MUST): Met
 
 > The project MUST clearly identify small tasks that can be performed by new or casual contributors.
 
-Select: **Unmet** | URL required: yes
+Select: **Met** | URL required: yes
 
-Justification to paste (optional for Unmet):
+Justification to paste:
 
 ```text
-No issues are labelled as small tasks for new contributors yet.
+Small tasks are open issues with the label "good first issue" (https://github.com/Axiumine/c15t/labels/good%20first%20issue). Each states the goal, the files to look at, when it is done and its size, and CONTRIBUTING.md ("Where to start") points to the label. Larger tasks that need help carry "help wanted".
 ```
 
-To reach Met: Create issues for small tasks and label them (for example "good first issue"), then link the label filter URL.
+Evidence: [issues labelled good first issue](https://github.com/Axiumine/c15t/issues?q=is%3Aissue+label%3A%22good+first+issue%22), [CONTRIBUTING.md](https://github.com/Axiumine/c15t/blob/main/CONTRIBUTING.md#where-to-start)
 
 ##### `require_2FA` (MUST): Met [M3]
 
@@ -2194,21 +2194,19 @@ Depends on: M3 (section 1).
 
 #### Coding standards
 
-##### `code_review_standards` (MUST): Unmet
+##### `code_review_standards` (MUST): Met
 
 > The project MUST document its code review requirements, including how code review is conducted, what must be checked, and what is required to be acceptable.
 
-Select: **Unmet** | URL required: yes | N/A allowed: yes
+Select: **Met** | URL required: yes | N/A allowed: yes
 
-Justification to paste (optional for Unmet):
+Justification to paste:
 
 ```text
-Code review is only partly documented. CONTRIBUTING.md says a code owner reviews every pull request, that CI must pass and that security-sensitive changes get extra care; the pull request template and docs/security-model.md ("Reviewing a change for security") list some checks. No single section yet states how review is conducted, the full checklist and what makes a change acceptable.
+CONTRIBUTING.md has a "Code review" section (https://github.com/Axiumine/c15t/blob/main/CONTRIBUTING.md#code-review). It says how a review is done, lists what the reviewer checks (scope, tests, security questions from docs/security-model.md, input validation, conventions, infrastructure, dependencies and workflows, documentation), and says what makes a change acceptable (required checks green, DCO sign-off, reviewed, comments answered, extra care for CODEOWNERS paths). It also states the limit: the ruleset on main requires no approving review, and with one maintainer a maintainer's own pull request is self-reviewed against the checklist, which is not counted as a two-person review (see two_person_review).
 ```
 
-Evidence: [CONTRIBUTING.md](https://github.com/Axiumine/c15t/blob/main/CONTRIBUTING.md), [docs/security-model.md](https://github.com/Axiumine/c15t/blob/main/docs/security-model.md)
-
-To reach Met: Add a Code review section to CONTRIBUTING.md (how review is done, checklist, security questions from docs/security-model.md, approval rules) and link it.
+Evidence: [CONTRIBUTING.md](https://github.com/Axiumine/c15t/blob/main/CONTRIBUTING.md#code-review), [docs/security-model.md](https://github.com/Axiumine/c15t/blob/main/docs/security-model.md), [.github/PULL_REQUEST_TEMPLATE.md](https://github.com/Axiumine/c15t/blob/main/.github/PULL_REQUEST_TEMPLATE.md)
 
 ##### `two_person_review` (MUST): Unmet
 
@@ -2228,21 +2226,21 @@ To reach Met: Needs a second reviewer.
 
 #### Working build system
 
-##### `build_reproducible` (MUST): Unmet
+##### `build_reproducible` (MUST): Met
 
 > The project MUST have a reproducible build. If no building occurs (e.g., scripting languages where the source code is used directly instead of being compiled), select "not applicable" (N/A).
 
-Select: **Unmet** | URL required: yes | N/A allowed: yes
+Select: **Met** | URL required: yes | N/A allowed: yes
 
-Justification to paste (optional for Unmet):
+Justification to paste:
 
 ```text
-Builds were checked to be repeatable on one machine (see silver build_repeatable), but there is no documented, CI-checked reproducible build that independent parties can redo.
+scripts/verify-reproducible-build.sh clones the commit twice into directories that differ in name and length, runs yarn install --immutable, yarn build and scripts/release-package.sh in each with a different time zone and different file times, and compares the SHA-256 of every dist/ file and every release file (source, consent-api, dashboard-api and dashboard-web tarballs, three SBOMs and SHA256SUMS). They must be identical. The CI job "Reproducible build" runs it on every pull request and push to main; on ubuntu-24.04 it compared 279 files (271 under dist/, 8 release files) and all matched. Tarballs are normalized by scripts/release-package.sh (sorted entries, fixed owner, commit time as modification time, gzip -n). Limit: both builds use the same pinned Node.js 26, Yarn, lockfile and operating system; other Node.js versions or CPU architectures are not covered.
 ```
 
-Evidence: [package.json](https://github.com/Axiumine/c15t/blob/main/package.json), [yarn.lock](https://github.com/Axiumine/c15t/blob/main/yarn.lock)
+Evidence: [scripts/verify-reproducible-build.sh](https://github.com/Axiumine/c15t/blob/main/scripts/verify-reproducible-build.sh), [.github/workflows/ci.yml](https://github.com/Axiumine/c15t/blob/main/.github/workflows/ci.yml), [CONTRIBUTING.md](https://github.com/Axiumine/c15t/blob/main/CONTRIBUTING.md#reproducible-build)
 
-To reach Met: Add scripts/verify-reproducible-build.sh (it does not exist yet) and a CI job that builds twice (and from a second directory), compares sha256sum of every dist/ file, and document it in CONTRIBUTING.md; also verify the release tarball. scripts/release-package.sh already normalizes the tarballs (sorted entries, fixed owner, commit time as modification time) but nothing checks that two runs agree. Then switch to Met and paste the URL.
+Note: Checked locally (Debian, Node 26.13.0) and in CI (run 41213471034 on the pull request): 279 files identical. A deliberate change of one file in the second build makes the script fail, so the check can fail.
 
 #### Automated test suite
 

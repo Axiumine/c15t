@@ -40,13 +40,16 @@ command -v cyclonedx-yarn > /dev/null 2>&1 ||
   die 'cyclonedx-yarn is not on PATH (npm ci --prefix .github/ci-tools; add its node_modules/.bin to PATH)'
 
 commit=$(git rev-parse --verify HEAD)
-version=$(node -e "process.stdout.write(JSON.parse(require('node:fs').readFileSync('package.json', 'utf8')).version)")
+# The version of the commit that is built, not of a working tree that may have uncommitted changes.
+version=$(git show "${commit}:package.json" |
+  node -e "process.stdout.write(JSON.parse(require('node:fs').readFileSync(0, 'utf8')).version)")
 tag="v${version}"
 log "commit ${commit}, release files for ${tag}"
 
 work=$(mktemp -d "${TMPDIR:-/tmp}/c15t-repro.XXXXXXXX")
 cleanup() {
-  if [[ $keep -eq 1 ]]; then
+  local status=$?
+  if [[ $keep -eq 1 || $status -ne 0 ]]; then
     log "kept ${work}"
   else
     rm -rf -- "$work"
@@ -58,6 +61,17 @@ trap cleanup EXIT
 export YARN_NODE_LINKER=node-modules
 export YARN_ENABLE_TELEMETRY=0
 export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+
+# step LOGNAME COMMAND...: runs the command with its output in ${work}/LOGNAME.log. Yarn and tsc report
+# their errors on stdout, so a failing step shows the end of that log instead of failing silently.
+step() {
+  local logfile="${work}/${1}.log"
+  shift
+  if ! "$@" > "$logfile" 2>&1; then
+    tail -n 80 -- "$logfile" >&2
+    die "'$*' failed in $(pwd) (full log: ${logfile})"
+  fi
+}
 
 # build NAME DIRECTORY TIMEZONE MTIME
 #   A clone of the commit in DIRECTORY, built with that time zone and with the modification time
@@ -78,11 +92,11 @@ build() {
     cd "$dir"
     export TZ="$zone"
     log "build ${name}: yarn install (TZ=${zone}, ${dir})"
-    yarn install --immutable > /dev/null
+    step "${name}-install" yarn install --immutable
     log "build ${name}: yarn build"
-    yarn build > /dev/null
+    step "${name}-build" yarn build
     log "build ${name}: release-package.sh"
-    bash scripts/release-package.sh "$tag" release-out > /dev/null
+    step "${name}-package" bash scripts/release-package.sh "$tag" release-out
   )
 }
 
