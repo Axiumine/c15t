@@ -25,6 +25,11 @@ their own "Security" heading and name the advisory.
 - `docs/assurance-case.md` (threat model, trust boundaries, design principles and common weaknesses, each tied to code and a
   test, with the known gaps) and `docs/cryptography.md` (where each algorithm is chosen and who can change it).
   `docs/security-model.md` now records that c15t 3.1.0 `GET` and `PATCH /subjects/:id` need no key.
+- `scripts/verify-reproducible-build.sh` and the CI job "Reproducible build": two clean builds of the same commit,
+  from different directories, time zones and file times, must give byte-identical `dist/` trees and release files
+  (tarballs, SBOMs, `SHA256SUMS`). `CONTRIBUTING.md` documents it.
+- `CONTRIBUTING.md`: a "Code review" section (how a review is done, what is checked, what makes a change
+  acceptable, who reviews) and a "Where to start" section for new contributors.
 
 ### Changed
 

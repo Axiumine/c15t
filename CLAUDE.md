@@ -99,6 +99,7 @@ yarn db:pull-c15t        # drizzle-kit pull, schemaFilter ['c15t'] -> packages/d
 yarn admin:create --email you@example.com   # bootstrap first admin, prints a one-time password
 yarn spdx                # add the SPDX licence header to new source files; yarn spdx:check only verifies
 yarn build && infra/deploy.sh               # yarn workspaces foreach -Apt run build; systemd restart
+scripts/verify-reproducible-build.sh       # two clean builds of HEAD in different dirs/time zones; every dist/ and release file must match (CI job "Reproducible build")
 ```
 
 Run `yarn typecheck && yarn lint && yarn test` before you call a task done.

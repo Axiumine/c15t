@@ -14,6 +14,7 @@
 - [ ] New source files carry the SPDX header (`node scripts/add-spdx-headers.mjs`).
 - [ ] Documentation is updated (README, `docs/`, `CLAUDE.md` where the rules changed).
 - [ ] `CHANGELOG.md` has an entry under "Unreleased" for user-visible changes.
+- [ ] I read my own diff against the "Code review" checklist in `CONTRIBUTING.md`.
 - [ ] No secrets, tokens or personal data in the diff, and no new hard-coded addresses or ports.
 - [ ] If I added or upgraded a dependency: the version is pinned exactly, the license is AGPL-compatible,
       and `yarn.lock` is committed.
