@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Axiumine
 
+import type { Database } from '@consent/db';
 import { consentRecordSchema, statsResponseSchema } from '@consent/shared';
 import { beforeAll, expect, test } from 'vitest';
 import { tenantScope } from './authz.js';
@@ -10,7 +11,9 @@ import {
   consentCsvStream,
   consentStats,
   derivePurposes,
+  isNaiveTimestamp,
   listConsents,
+  toConsentRecord,
 } from './c15t-read.js';
 import { HttpError } from './errors.js';
 import type { ConsentFixture } from './testing/environment.js';
@@ -221,6 +224,35 @@ describeEnvironments('c15t-read', ({ env }) => {
     ]);
   });
 
+  test('a purpose that was neither granted nor denied has an opt-in rate of 0, not NaN', async () => {
+    const tenant = `${env().prefix}-tc`;
+    // A receipt whose category carries no boolean `value` (the cast writes `value: null`).
+    await env().seedConsents([
+      {
+        tenantId: tenant,
+        subjectId: sub('c1'),
+        domain: 'c.example.test',
+        givenAt: '2026-03-02 10:00:00',
+        choice: { analytics: null as unknown as boolean, measurement: true },
+      },
+    ]);
+    const stats = await consentStats(db, tenantScope([tenant]), {
+      from: new Date('2026-03-01T00:00:00Z'),
+      to: new Date('2026-03-03T00:00:00Z'),
+    });
+    expect(stats.totals).toEqual({ consents: 1, subjects: 1 });
+    expect(stats.purposes).toEqual([
+      { purpose: 'analytics', granted: 0, denied: 0, optInRate: 0 },
+      { purpose: 'measurement', granted: 1, denied: 0, optInRate: 1 },
+    ]);
+    // The same rows are invisible to a scope that does not list this tenant.
+    const foreign = await consentStats(db, tenantScope([tenantA]), {
+      from: new Date('2026-03-02T09:00:00Z'),
+      to: new Date('2026-03-02T11:00:00Z'),
+    });
+    expect(foreign.purposes.map((row) => row.purpose)).not.toContain('analytics');
+  });
+
   test('stats respect the range and never see other tenants', async () => {
     const narrow = await consentStats(db, tenantScope([tenantA]), {
       from: new Date('2026-03-02T00:00:00Z'),
@@ -279,4 +311,80 @@ test('derivePurposes copes with malformed data', () => {
     marketing: false,
   });
   expect(derivePurposes(null, JSON.stringify(['p1']), codes)).toEqual({ marketing: true });
+});
+
+test('isNaiveTimestamp accepts only real UTC timestamps in the stored shape', () => {
+  expect(isNaiveTimestamp('2026-03-01 12:00:00')).toBe(true);
+  expect(isNaiveTimestamp('2026-03-01T12:00:00.123456')).toBe(true);
+  // Wrong shape: text, a zone suffix, a missing part, too many fraction digits.
+  for (const value of [
+    '',
+    'forged',
+    '2026-03-01',
+    '2026-03-01T12:00:00Z',
+    '2026-03-01 12:00',
+    '2026-03-01 12:00:00.1234567',
+    ' 2026-03-01 12:00:00',
+  ]) {
+    expect(isNaiveTimestamp(value)).toBe(false);
+  }
+  // Right shape, impossible date: JavaScript would roll these over, Postgres would answer 22008.
+  expect(isNaiveTimestamp('2026-02-31 00:00:00')).toBe(false);
+  expect(isNaiveTimestamp('2026-13-01 00:00:00')).toBe(false);
+  expect(isNaiveTimestamp('2026-03-01 24:00:00')).toBe(false);
+});
+
+test('toConsentRecord keeps an absent validUntil null and converts a present one to UTC ISO', () => {
+  const row: Parameters<typeof toConsentRecord>[0] = {
+    id: 'c1',
+    subjectId: 's1',
+    externalId: null,
+    domain: 'a.example.test',
+    givenAt: '2026-03-01 12:00:00',
+    validUntil: null,
+    purposeIds: null,
+    choice: { categories: { marketing: { value: true } } },
+    consentAction: 'all',
+    jurisdiction: 'GDPR',
+    jurisdictionModel: 'opt-in',
+    countryCode: 'DE',
+    regionCode: null,
+    uiSource: 'banner',
+    ipAddress: null,
+    userAgent: null,
+  };
+  const none = toConsentRecord(row, new Map());
+  expect(none.validUntil).toBeNull();
+  expect(none.givenAt).toBe('2026-03-01T12:00:00.000Z');
+  expect(none.purposes).toEqual({ marketing: true });
+  const dated = toConsentRecord({ ...row, validUntil: '2027-03-01 12:00:00' }, new Map());
+  expect(dated.validUntil).toBe('2027-03-01T12:00:00.000Z');
+});
+
+/** A `Database` whose n-th `select()` chain resolves to `results[n]`, whatever is chained on it. */
+function databaseAnswering(results: readonly (readonly unknown[])[]): Database {
+  let call = 0;
+  const chain = (rows: readonly unknown[]): unknown =>
+    new Proxy(() => undefined, {
+      get: (_target, property) =>
+        property === 'then'
+          ? (resolve: (value: unknown) => void) => resolve(rows)
+          : () => chain(rows),
+    });
+  return { select: () => chain(results[call++] ?? []) } as unknown as Database;
+}
+
+test('stats of a result set without a totals row are zero, not a crash', async () => {
+  const stats = await consentStats(databaseAnswering([[], [], [], []]), tenantScope(['any']), {
+    from: new Date('2026-03-01T00:00:00Z'),
+    to: new Date('2026-03-03T00:00:00Z'),
+  });
+  expect(stats.totals).toEqual({ consents: 0, subjects: 0 });
+  expect(stats.volume).toEqual([
+    { date: '2026-03-01', consents: 0 },
+    { date: '2026-03-02', consents: 0 },
+  ]);
+  expect(stats.purposes).toEqual([]);
+  expect(stats.jurisdictions).toEqual([]);
+  expect(statsResponseSchema.parse(stats)).toEqual(stats);
 });

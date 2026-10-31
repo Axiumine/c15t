@@ -34,12 +34,7 @@ export function OneTimePasswordDialog({
   onClose: () => void;
 }) {
   return (
-    <Dialog
-      open={secret !== null}
-      onOpenChange={(open) => {
-        if (!open) onClose();
-      }}
-    >
+    <Dialog open={secret !== null}>
       <DialogContent dismissible={false}>
         {secret === null ? null : (
           <>

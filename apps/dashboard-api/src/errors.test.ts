@@ -113,6 +113,24 @@ test('HTTP exceptions map to the platform codes', async () => {
   expect((await run(() => new HTTPException(404))).status).toBe(404);
 });
 
+test('a status without a platform code is a generic 500 for Better Auth errors and HTTP exceptions', async () => {
+  lines.length = 0;
+  // 418 and 422 have no entry in the status table: they must not leak through as their own code.
+  const teapot = await run(() => new HTTPException(418, { message: 'short and stout' }));
+  expect(teapot.status).toBe(500);
+  expect(teapot.body.error).toEqual({ code: 'INTERNAL_ERROR', message: 'Internal server error' });
+  expect(teapot.text).not.toContain('stout');
+
+  const unprocessable = await run(
+    () => new APIError('UNPROCESSABLE_ENTITY', { message: 'hash is $scrypt$secret' }),
+  );
+  expect(unprocessable.status).toBe(500);
+  expect(unprocessable.body.error.code).toBe('INTERNAL_ERROR');
+  expect(unprocessable.text).not.toContain('scrypt');
+  // Both were logged as unhandled errors.
+  expect(lines.filter((line) => line.includes('unhandled error'))).toHaveLength(2);
+});
+
 test('an unexpected error is a generic 500 and the log has no stack, SQL or parameters', async () => {
   lines.length = 0;
   const secret = new Error(

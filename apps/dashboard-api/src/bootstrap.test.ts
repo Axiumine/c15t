@@ -86,4 +86,16 @@ describeEnvironments('admin:create bootstrap', ({ env }) => {
       .where(eq(userTable.id, result.userId));
     expect(row?.name).toBe(`${env().prefix}-nameless`);
   });
+
+  test('a blank name is replaced by the part of the address before the @', async () => {
+    const result = await createAdmin(
+      { db: t.db, auth: t.auth },
+      { email: `${env().prefix}-blank@example.test`, name: '   ' },
+    );
+    const [row] = await t.db.primary
+      .select()
+      .from(userTable)
+      .where(eq(userTable.id, result.userId));
+    expect(row?.name).toBe(`${env().prefix}-blank`);
+  });
 });

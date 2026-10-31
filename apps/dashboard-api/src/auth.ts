@@ -88,7 +88,8 @@ export function createAuth({ db, env, logger }: AuthOptions) {
     logger: {
       level: 'warn',
       log: (level, message) => {
-        const line = message.split('\n')[0]?.slice(0, 300) ?? '';
+        // First line only, like `describeError`: a stack or SQL parameters may follow it.
+        const line = message.replace(/\n[\s\S]*$/, '').slice(0, 300);
         if (level === 'error') logger.error('better-auth', { detail: line });
         else if (level === 'warn') logger.warn('better-auth', { detail: line });
       },

@@ -107,8 +107,9 @@ function SiteDialog({ action, onClose }: { action: Action | null; onClose: () =>
     onClose();
   }
 
+  // These dialogs have no Radix trigger, so a change request always means "dismissed".
   return (
-    <Dialog open={open} onOpenChange={(next) => (next ? undefined : onClose())}>
+    <Dialog open={open} onOpenChange={() => onClose()}>
       <DialogContent className="max-w-xl">
         <DialogHeader>
           <DialogTitle>{action?.kind === 'edit' ? 'Edit site' : 'New site'}</DialogTitle>
@@ -134,14 +135,20 @@ function SiteDialog({ action, onClose }: { action: Action | null; onClose: () =>
 function StatusDialog({ site, onClose }: { site: Site | null; onClose: () => void }) {
   const update = useUpdateSite();
   const disabling = site?.status === 'active';
+  const confirm =
+    site === null
+      ? undefined
+      : () =>
+          update.mutate(
+            { siteKey: site.key, changes: { status: disabling ? 'disabled' : 'active' } },
+            { onSuccess: onClose },
+          );
   return (
     <ConfirmDialog
       open={site !== null}
-      onOpenChange={(open) => {
-        if (!open) {
-          update.reset();
-          onClose();
-        }
+      onOpenChange={() => {
+        update.reset();
+        onClose();
       }}
       title={disabling ? `Disable ${site?.name}?` : `Enable ${site?.name}?`}
       description={
@@ -153,13 +160,7 @@ function StatusDialog({ site, onClose }: { site: Site | null; onClose: () => voi
       destructive={disabling}
       pending={update.isPending}
       error={update.error}
-      onConfirm={() => {
-        if (site === null) return;
-        update.mutate(
-          { siteKey: site.key, changes: { status: disabling ? 'disabled' : 'active' } },
-          { onSuccess: onClose },
-        );
-      }}
+      onConfirm={() => confirm?.()}
     />
   );
 }

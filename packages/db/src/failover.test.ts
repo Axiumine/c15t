@@ -58,6 +58,13 @@ describe('isFailoverError', () => {
 });
 
 describe('dbErrorCode and isUniqueViolation', () => {
+  test('a thrown non-object has no code, and neither has its absence', () => {
+    expect(dbErrorCode('boom')).toBeUndefined();
+    expect(dbErrorCode(null)).toBeUndefined();
+    expect(dbErrorCode(undefined)).toBeUndefined();
+    expect(dbErrorCode(42)).toBeUndefined();
+  });
+
   test('dbErrorCode finds the first string code in the chain', () => {
     expect(dbErrorCode(wrapped(withCode('23505')))).toBe('23505');
     expect(dbErrorCode(new Error('x'))).toBeUndefined();

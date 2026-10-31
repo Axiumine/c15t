@@ -3,9 +3,18 @@
 
 import { createRequire } from 'node:module';
 import { type Column, getTableColumns, getTableName } from 'drizzle-orm';
-import type { PgTable } from 'drizzle-orm/pg-core';
+import { getTableConfig, type PgTable } from 'drizzle-orm/pg-core';
 import { describe, expect, test } from 'vitest';
-import { account, authSchema, rateLimit, session, user, verification } from './schema.js';
+import {
+  account,
+  authSchema,
+  rateLimit,
+  session,
+  site,
+  siteMember,
+  user,
+  verification,
+} from './schema.js';
 
 /*
  * Drift guard: Better Auth's Drizzle adapter reads and writes columns by the TypeScript key of
@@ -52,6 +61,40 @@ const OUR_TABLES: Record<string, PgTable> = { user, session, account, verificati
 
 test('authSchema exposes exactly the Better Auth tables', () => {
   expect(authSchema).toEqual(OUR_TABLES);
+});
+
+describe('foreign keys', () => {
+  // Foreign keys are lazy callbacks in Drizzle: resolving them shows where each one points.
+  function foreignKeys(table: PgTable) {
+    return getTableConfig(table).foreignKeys.map((fk) => {
+      const { columns, foreignColumns, foreignTable } = fk.reference();
+      return {
+        from: columns.map((column) => column.name),
+        to: `${getTableName(foreignTable)}.${foreignColumns.map((column) => column.name).join(',')}`,
+        onDelete: fk.onDelete,
+      };
+    });
+  }
+
+  test('session and account rows die with their user', () => {
+    expect(foreignKeys(session)).toEqual([
+      { from: ['user_id'], to: 'user.id', onDelete: 'cascade' },
+    ]);
+    expect(foreignKeys(account)).toEqual([
+      { from: ['user_id'], to: 'user.id', onDelete: 'cascade' },
+    ]);
+  });
+
+  test('memberships die with their user but block deleting a site', () => {
+    expect(foreignKeys(siteMember)).toEqual([
+      { from: ['user_id'], to: 'user.id', onDelete: 'cascade' },
+      { from: ['site_id'], to: 'site.id', onDelete: 'restrict' },
+    ]);
+  });
+
+  test('the site registry itself references nothing', () => {
+    expect(foreignKeys(site)).toEqual([]);
+  });
 });
 
 describe('app schema vs Better Auth', async () => {

@@ -10,7 +10,12 @@ import {
   statsResponseSchema,
 } from '@consent/shared';
 import { eq } from 'drizzle-orm';
+import { Hono } from 'hono';
 import { afterAll, beforeAll, expect, test } from 'vitest';
+import type { Auth } from './auth.js';
+import { accessibleSiteKeys, accessibleSites, createAuthz, type SessionUser } from './authz.js';
+import { createErrorHandler } from './errors.js';
+import { silentLogger } from './logger.js';
 import { cookieHeader, createTestApp, type TestApp, type TestUser } from './testing/harness.js';
 import { describeEnvironments } from './testing/suite.js';
 
@@ -145,6 +150,30 @@ describeEnvironments('authz', ({ env }) => {
     const rows = (await csv.text()).trim().split('\r\n');
     expect(rows).toHaveLength(4);
     expect(rows.join('\n')).not.toContain('-two-');
+  });
+
+  const sessionUser = (user: TestUser): SessionUser => ({
+    id: user.id,
+    name: `Test ${user.role}`,
+    email: user.email,
+    role: user.role,
+    mustChangePassword: false,
+  });
+
+  test('the accessible site keys are the active assigned sites for a user, every site for an admin', async () => {
+    const mine = (keys: readonly string[]) => keys.filter((key) => key.startsWith(env().prefix));
+    // Ordered by site name, then key: `Site <prefix>-off` < `-s1` < `-s2`.
+    expect(mine(await accessibleSiteKeys(t.db.primary, sessionUser(admin)))).toEqual([
+      siteOff.key,
+      site1.key,
+      site2.key,
+    ]);
+    // Alice is a member of site1 and of the disabled site: the disabled one stays hidden.
+    expect(await accessibleSiteKeys(t.db.primary, sessionUser(alice))).toEqual([site1.key]);
+    expect(await accessibleSiteKeys(t.db.primary, sessionUser(bob))).toEqual([site2.key]);
+    expect(await accessibleSiteKeys(t.db.primary, sessionUser(carol))).toEqual([]);
+    const rows = await accessibleSites(t.db.primary, sessionUser(alice));
+    expect(rows.map((row) => row.id)).toEqual([site1.id]);
   });
 
   const siteReadRoutes = (key: string) => [
@@ -508,4 +537,33 @@ describeEnvironments('authz', ({ env }) => {
     // Another client IP is unaffected.
     expect(await t.signIn(probe)).not.toBe('');
   });
+});
+
+test('a role the platform does not know gets no access at all, on every guard', async () => {
+  const session = (role: unknown) => ({
+    user: { id: 'u-odd', name: 'Odd', email: 'odd@example.test', role, banned: false },
+  });
+  const appFor = (role: unknown) => {
+    const auth = { api: { getSession: async () => session(role) } } as unknown as Auth;
+    const authz = createAuthz({ auth, db: { primary: undefined as never } });
+    return new Hono()
+      .get('/session', authz.requireSession, (c) => c.json({ ok: true }))
+      .get('/me', authz.requireSessionAllowingPasswordChange, (c) => c.json({ ok: true }))
+      .get('/admin', authz.requireAdmin, (c) => c.json({ ok: true }))
+      .get('/sites/:siteKey', authz.requireSiteAccess, (c) => c.json({ ok: true }))
+      .onError(createErrorHandler(silentLogger));
+  };
+
+  for (const role of ['superuser', 'Admin', '', null, undefined, 1]) {
+    const app = appFor(role);
+    for (const path of ['/session', '/me', '/admin', '/sites/any-site']) {
+      const response = await app.request(path);
+      expect(response.status, `${String(role)} ${path}`).toBe(403);
+      expect(apiErrorSchema.parse(await response.json()).error.code).toBe('FORBIDDEN');
+    }
+  }
+  // Control: a known role passes the same guards, so the 403 above is about the role alone.
+  const known = appFor('user');
+  expect((await known.request('/session')).status).toBe(200);
+  expect((await known.request('/admin')).status).toBe(403);
 });

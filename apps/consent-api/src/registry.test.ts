@@ -347,3 +347,42 @@ describe('SiteRegistry.evict', () => {
     await registry.close();
   });
 });
+
+describe('SiteRegistry shutdown and bounds', () => {
+  test('a lookup that finishes after close builds nothing and finds nothing', async () => {
+    const { registry, store, factory } = setup(siteRecord('shop'));
+    const gate = deferred();
+    store.onFind = async () => {
+      store.onFind = undefined;
+      await gate.promise;
+    };
+    const lookup = run(registry, 'shop');
+    await vi.waitFor(() => expect(store.finds).toBe(1));
+
+    await registry.close();
+    gate.resolve();
+
+    expect((await lookup).found).toBe(false);
+    expect(factory).not.toHaveBeenCalled();
+    expect(registry.size).toBe(0);
+  });
+
+  test('the memory of unknown sites is bounded: a full one is emptied before it remembers the next', async () => {
+    const { registry, store } = setup();
+    for (let i = 0; i < 1_000; i++) await run(registry, `miss-${i}`);
+    expect(store.finds).toBe(1_000);
+    await run(registry, 'miss-0');
+    expect(store.finds).toBe(1_000);
+
+    // The 1001st unknown key finds the memory full.
+    await run(registry, 'miss-1000');
+    expect(store.finds).toBe(1_001);
+    // Everything remembered before it is forgotten, so the database is asked again ...
+    await run(registry, 'miss-0');
+    expect(store.finds).toBe(1_002);
+    // ... while the key that triggered the reset is remembered.
+    await run(registry, 'miss-1000');
+    expect(store.finds).toBe(1_002);
+    await registry.close();
+  });
+});

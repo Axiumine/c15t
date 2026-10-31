@@ -126,20 +126,17 @@ export class SiteChangeListener {
   private async runSession(): Promise<number | undefined> {
     let session: ListenerSession | undefined;
     try {
-      let lose: (reason: unknown) => void = () => {};
-      const lost = new Promise<unknown>((resolve) => {
-        lose = resolve;
-      });
+      const lost = Promise.withResolvers<unknown>();
       session = await this.options.driver.open({
         onNotify: (payload) => this.notified(payload),
-        onClose: (reason) => lose(reason),
+        onClose: (reason) => lost.resolve(reason),
       });
       if (this.stopped) return undefined;
       const startedAt = Date.now();
       this.current = 'listening';
       this.log.info('listening for site changes', { channel: SITE_CHANNEL });
       this.safely('resync', () => this.options.onResync());
-      const reason = await this.watch(session, lost);
+      const reason = await this.watch(session, lost.promise);
       if (!this.stopped) this.log.warn('site listener lost', errorFields(reason));
       return Date.now() - startedAt;
     } catch (error) {

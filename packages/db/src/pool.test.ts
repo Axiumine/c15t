@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Axiumine
 
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 import { createDatabase } from './client.js';
 import { createPool, POOL_MAX_CEILING } from './pool.js';
 
@@ -18,6 +18,17 @@ describe('createPool', () => {
     expect(sql.options.max).toBe(5);
     expect(sql.options.connection.application_name).toBe('test');
     expect(sql.options.connection.TimeZone).toBe('UTC');
+    await sql.end({ timeout: 0 });
+  });
+
+  test('notices from the server are swallowed instead of printed', async () => {
+    const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    const sql = createPool({ url, role: 'primary', applicationName: 'test' });
+    expect(
+      sql.options.onnotice({ severity: 'NOTICE', message: 'relation exists' }),
+    ).toBeUndefined();
+    expect(log).not.toHaveBeenCalled();
+    log.mockRestore();
     await sql.end({ timeout: 0 });
   });
 

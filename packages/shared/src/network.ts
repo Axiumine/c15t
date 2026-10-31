@@ -55,15 +55,17 @@ function parseIpv6Value(input: string): bigint | null {
   if (!input.includes(':') || input.includes('%')) return null;
   const text = expandEmbeddedIpv4(input);
   if (text === null) return null;
-  const halves = text.split('::');
-  if (halves.length > 2) return null;
-  const head = parseGroups(halves[0] ?? '');
+  // At most one "::" may stand in for a run of zero groups.
+  const gap = text.indexOf('::');
+  const tailText = text.slice(gap + 2);
+  if (gap !== -1 && tailText.includes('::')) return null;
+  const head = parseGroups(gap === -1 ? text : text.slice(0, gap));
   if (head === null) return null;
   let groups = head;
-  if (halves.length === 1) {
+  if (gap === -1) {
     if (head.length !== 8) return null;
   } else {
-    const tail = parseGroups(halves[1] ?? '');
+    const tail = parseGroups(tailText);
     if (tail === null || head.length + tail.length > 7) return null;
     groups = [...head, ...new Array<number>(8 - head.length - tail.length).fill(0), ...tail];
   }

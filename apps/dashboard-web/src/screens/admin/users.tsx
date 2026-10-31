@@ -151,7 +151,6 @@ function ConfirmActions({ pending, onClose }: { pending: Pending | null; onClose
   const reset = useResetPassword(reveal);
   const unban = useUnbanUser();
   const revoke = useRevokeSessions();
-  const kind = pending?.kind;
   const user = pending?.user;
 
   const config = {
@@ -177,8 +176,11 @@ function ConfirmActions({ pending, onClose }: { pending: Pending | null; onClose
       destructive: true,
     },
   } as const;
+  const kind = pending?.kind;
   const active =
-    kind === 'reset' || kind === 'unban' || kind === 'revoke' ? config[kind] : undefined;
+    user !== undefined && (kind === 'reset' || kind === 'unban' || kind === 'revoke')
+      ? { ...config[kind], userId: user.id }
+      : undefined;
 
   function close() {
     reset.reset();
@@ -191,17 +193,14 @@ function ConfirmActions({ pending, onClose }: { pending: Pending | null; onClose
     <>
       <ConfirmDialog
         open={active !== undefined}
-        onOpenChange={(open) => (open ? undefined : close())}
+        onOpenChange={() => close()}
         title={active?.title ?? ''}
         description={active?.description ?? ''}
         confirmLabel={active?.label ?? ''}
         destructive={active?.destructive ?? false}
         pending={active?.mutation.isPending ?? false}
         error={active?.mutation.error}
-        onConfirm={() => {
-          if (user === undefined || active === undefined) return;
-          active.mutation.mutate(user.id, { onSuccess: close });
-        }}
+        onConfirm={() => active?.mutation.mutate(active.userId, { onSuccess: close })}
       />
       <OneTimePasswordDialog secret={secret} onClose={clear} />
     </>
@@ -241,21 +240,13 @@ export function AdminUsersScreen() {
       />
       {body}
       <CreateUserDialog open={creating} onClose={() => setCreating(false)} sites={allSites} />
-      <EditUserDialog
-        key={`edit-${pending?.kind === 'edit' ? pending.user.id : 'none'}`}
-        user={pending?.kind === 'edit' ? pending.user : null}
-        onClose={close}
-      />
+      <EditUserDialog user={pending?.kind === 'edit' ? pending.user : null} onClose={close} />
       <UserSitesDialog
         user={pending?.kind === 'sites' ? pending.user : null}
         sites={allSites}
         onClose={close}
       />
-      <BanUserDialog
-        key={`ban-${pending?.kind === 'ban' ? pending.user.id : 'none'}`}
-        user={pending?.kind === 'ban' ? pending.user : null}
-        onClose={close}
-      />
+      <BanUserDialog user={pending?.kind === 'ban' ? pending.user : null} onClose={close} />
       <ConfirmActions pending={pending} onClose={close} />
     </div>
   );

@@ -7,6 +7,10 @@ export default defineConfig({
   test: {
     passWithNoTests: true,
     coverage: {
+      // Every hand-written source file is covered at 100% (statements, branches, functions, lines), so a
+      // gap fails the run. Write the test; use `/* v8 ignore */` only for a guard the type system rules
+      // out, with the reason next to it (none exists today).
+      thresholds: { statements: 100, branches: 100, functions: 100, lines: 100 },
       // Count every hand-written source file of the apps and packages, including entry points and
       // modules that no test imports. Without `include`, v8 reports only the files a test loaded, so
       // the percentage would flatter the code base.

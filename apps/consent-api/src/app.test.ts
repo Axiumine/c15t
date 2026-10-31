@@ -510,6 +510,11 @@ describe('errors are JSON', () => {
     [500, 'text/html', '<html><body>oops</body></html>', 'INTERNAL_ERROR'],
     [502, 'text/html', '<h1>Bad gateway</h1>', 'INTERNAL_ERROR'],
     [400, 'text/plain', 'bad', 'BAD_REQUEST'],
+    [401, 'text/plain', 'who are you', 'UNAUTHORIZED'],
+    [403, 'text/html', '<h1>Forbidden</h1>', 'FORBIDDEN'],
+    [409, 'text/plain', 'conflict', 'CONFLICT'],
+    [429, 'text/html', '<h1>Slow down</h1>', 'RATE_LIMITED'],
+    [503, 'text/html', '<h1>Unavailable</h1>', 'SERVICE_UNAVAILABLE'],
   ])('rewrites a %s %s body as JSON', async (status, contentType, text, code) => {
     const h = harness(siteRecord('shop'));
     h.respondWith(

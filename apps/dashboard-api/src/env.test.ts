@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Axiumine
 
-import { expect, test } from 'vitest';
-import { EnvError, parseCliEnv, parseEnv } from './env.js';
+import { expect, test, vi } from 'vitest';
+import { EnvError, loadCliEnv, loadEnv, parseCliEnv, parseEnv } from './env.js';
 
 const valid = {
   DATABASE_URL_DASHBOARD: 'postgres://dashboard:pw@pg-primary.internal:5432/consent',
@@ -114,4 +114,37 @@ test('the CLI only needs the database URL, the secret and the public URL', () =>
       BETTER_AUTH_URL: valid.BETTER_AUTH_URL,
     }).BETTER_AUTH_URL,
   ).toBe('https://dashboard.example.com');
+});
+
+test('a source that is not an object is reported as the environment itself', () => {
+  expect(problems(null as unknown as Record<string, string>)).toEqual([
+    expect.stringMatching(/^\(env\): /),
+  ]);
+});
+
+test('loadEnv and loadCliEnv read the process environment', () => {
+  vi.stubEnv('DATABASE_URL_DASHBOARD', valid.DATABASE_URL_DASHBOARD);
+  vi.stubEnv('DATABASE_URL_DASHBOARD_REPLICA', undefined);
+  vi.stubEnv('BETTER_AUTH_SECRET', valid.BETTER_AUTH_SECRET);
+  vi.stubEnv('BETTER_AUTH_URL', valid.BETTER_AUTH_URL);
+  vi.stubEnv('DASHBOARD_API_HOST', '10.0.0.9');
+  vi.stubEnv('DASHBOARD_API_PORT', '4321');
+  try {
+    expect(loadEnv()).toMatchObject({
+      DASHBOARD_API_HOST: '10.0.0.9',
+      DASHBOARD_API_PORT: 4321,
+      DATABASE_URL_DASHBOARD: valid.DATABASE_URL_DASHBOARD,
+    });
+    // The CLI schema keeps only what the admin CLI needs.
+    expect(loadCliEnv()).toEqual({
+      DATABASE_URL_DASHBOARD: valid.DATABASE_URL_DASHBOARD,
+      BETTER_AUTH_SECRET: valid.BETTER_AUTH_SECRET,
+      BETTER_AUTH_URL: valid.BETTER_AUTH_URL,
+    });
+    vi.stubEnv('BETTER_AUTH_SECRET', 'short');
+    expect(() => loadEnv()).toThrow(EnvError);
+    expect(() => loadCliEnv()).toThrow(/BETTER_AUTH_SECRET/);
+  } finally {
+    vi.unstubAllEnvs();
+  }
 });

@@ -66,6 +66,7 @@ function build(options: Partial<ConstructorParameters<typeof SiteChangeListener>
 
 afterEach(() => {
   vi.useRealTimers();
+  vi.restoreAllMocks();
 });
 
 describe('SiteChangeListener', () => {
@@ -191,6 +192,68 @@ describe('SiteChangeListener', () => {
     driver.sessions[1]?.handlers.onClose(new Error('reset'));
     await vi.advanceTimersByTimeAsync(100);
     expect(driver.opens).toBe(3);
+    await listener.stop();
+  });
+
+  test('uses 500 ms doubling up to 30 s, with random jitter, when no backoff is configured', async () => {
+    vi.useFakeTimers();
+    // 0.5 is the middle of the jitter range: no jitter.
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    const driver = new FakeDriver();
+    driver.outcomes = ['fail', 'fail', 'fail', 'fail', 'fail', 'fail', 'fail'];
+    const listener = new SiteChangeListener({ driver, onChange: () => {}, onResync: () => {} });
+    listener.start();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(driver.opens).toBe(1);
+
+    // Seven failures: 500, 1000, 2000, 4000, 8000, 16000, and 32000 capped at 30000.
+    let opens = 1;
+    for (const delay of [500, 1_000, 2_000, 4_000, 8_000, 16_000, 30_000]) {
+      await vi.advanceTimersByTimeAsync(delay - 1);
+      expect(driver.opens).toBe(opens);
+      await vi.advanceTimersByTimeAsync(1);
+      opens += 1;
+      expect(driver.opens).toBe(opens);
+    }
+    expect(listener.state).toBe('listening');
+    await listener.stop();
+  });
+
+  test('the jitter keeps the wait within 20% of the backoff', async () => {
+    vi.useFakeTimers();
+    const driver = new FakeDriver();
+    driver.outcomes = ['fail'];
+    const listener = new SiteChangeListener({
+      driver,
+      onChange: () => {},
+      onResync: () => {},
+      backoffInitialMs: 1_000,
+      random: () => 0,
+    });
+    listener.start();
+    await vi.advanceTimersByTimeAsync(0);
+    // random() = 0 is the shortest wait: 80%.
+    await vi.advanceTimersByTimeAsync(799);
+    expect(driver.opens).toBe(1);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(driver.opens).toBe(2);
+    await listener.stop();
+  });
+
+  test('a session that cannot be closed does not stop the reconnect', async () => {
+    const { driver, listener, resyncs } = build();
+    listener.start();
+    await vi.waitFor(() => expect(listener.state).toBe('listening'));
+    const first = driver.sessions[0];
+    if (first === undefined) throw new Error('no session');
+    first.close = async () => {
+      throw new Error('socket hang up');
+    };
+
+    first.handlers.onClose(new Error('reset'));
+    await vi.waitFor(() => expect(driver.sessions).toHaveLength(2));
+    await vi.waitFor(() => expect(resyncs()).toBe(2));
+    expect(listener.state).toBe('listening');
     await listener.stop();
   });
 
