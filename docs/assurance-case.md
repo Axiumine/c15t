@@ -58,7 +58,7 @@ Line numbers are left out on purpose, because they go stale.
 In scope: consent-api, dashboard-api, dashboard-web, the `c15t` and `app` database schemas and their
 roles, the nginx and systemd files in [`infra/`](../infra), and the build and release pipeline. The
 platform runs on one operator-controlled server behind Cloudflare, with a PostgreSQL cluster (README D7,
-D9). It was written against release 0.1.0. When the code changes, the questions at the end of
+D9). It was written against release 0.2.0. When the code changes, the questions at the end of
 `security-model.md` ("Reviewing a change for security") apply.
 
 ### 1.2 Assets
