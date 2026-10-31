@@ -133,11 +133,12 @@ Then, once:
    sudo ln -s ../sites-available/c15t-dashboard.conf /etc/nginx/sites-enabled/
    sudo nginx -t && sudo systemctl reload nginx
    ```
-   `sites-available` and `sites-enabled` are a Debian and Ubuntu convention. If `/etc/nginx` on your distribution has
-   no such directories (RHEL family, Fedora, Arch, Alpine), copy the file to `/etc/nginx/conf.d/c15t-dashboard.conf`
-   instead, and skip the `ln`: the stock `nginx.conf` includes `conf.d/*.conf`, which `deploy.sh` needs anyway for
-   `c15t-upstreams.conf`. `uninstall` does not remove that copy; delete it before you run `uninstall` (step 2 of
-   "Uninstall"), or `nginx -t` fails and it puts everything back.
+   If your `/etc/nginx` has no `sites-available` and `sites-enabled` (they are a Debian and Ubuntu convention), copy
+   the file to `/etc/nginx/conf.d/c15t-dashboard.conf` and skip the `ln`. First check that `nginx.conf` contains
+   `include /etc/nginx/conf.d/*.conf;`: `deploy.sh` needs that directory loaded for `c15t-upstreams.conf` too. (The
+   RHEL family and Fedora ship it; if your nginx uses another directory, add the include.) `uninstall` does not
+   remove that copy; delete it before you run `uninstall` (step 2 of "Uninstall"), or `nginx -t` fails and it puts
+   everything back.
 3. Add each website (README, "Adding a website"): its vhost gets `set $c15t_site <siteKey>;` and `include snippets/c15t.conf;`.
 4. Optional but recommended: the Cloudflare firewall allowlist and its boot unit (README, "5. nginx (once)").
 
