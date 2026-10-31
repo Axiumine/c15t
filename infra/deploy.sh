@@ -2,11 +2,23 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # Copyright (C) 2026 Axiumine
 
-# Deploys the platform: build a release, migrate, switch `current`, reload nginx, restart, check health.
+# Installs, deploys and uninstalls the platform: build a release, migrate, switch `current`, reload
+# nginx, restart, check health.
 #
+#   infra/deploy.sh install [--dry-run]                           prepare the host (once; safe to repeat)
 #   infra/deploy.sh [--dry-run] [--plan-only] [--skip-migrate]    build and activate the commit at C15T_REF (HEAD)
 #   infra/deploy.sh rollback [RELEASE_ID]                         activate the previous (or the named) release
+#   infra/deploy.sh uninstall [--dry-run] [--purge-config] [--remove-cloudflare]
+#                                                                 remove what install and deploy put on the host
 #   infra/deploy.sh -h | --help
+#
+# install: creates the system user, /etc/c15t-platform (0750) with empty 0600 env files, /opt/c15t-platform,
+# copies infra/systemd/* into the systemd directory (also the way to refresh them after an upgrade), runs
+# daemon-reload and enables the two services and cloudflare-ips.timer. It never overwrites an env file,
+# never starts the services, does not touch nginx or the database, and changes nothing that already
+# exists except a unit file that differs from infra/systemd: that one is replaced, with a warning, and
+# the previous copy is kept next to it as <unit>.c15t-saved (put your own changes in a drop-in).
+# Then: fill in the env files, prepare the database (docs/database-setup.md), run `infra/deploy.sh`.
 #
 # Steps (README D7, CLAUDE.md "Hosting"):
 #   1. copy the source into releases/<git sha, or a UTC timestamp when the tree is not a git repo>
@@ -21,27 +33,63 @@
 #   7. keep the newest C15T_KEEP_RELEASES releases (always including current and previous)
 # The database migrations of step 3 are NOT reverted by a rollback.
 #
+# uninstall, in this order (it stops at the first problem, and every step can be repeated):
+#   0. checks first, changes nothing: absolute paths, the deploy lock (it refuses to run while a deploy
+#      holds it), and that no c15t service is running whose unit file uninstall would not remove
+#   1. nginx: move the c15t files away (upstreams, the three snippets, the sites-enabled link of the
+#      dashboard vhost), run `nginx -t`, and only if it passes delete them and reload nginx. If it fails
+#      (for example a website vhost still includes snippets/c15t.conf) the files are put back, nginx is
+#      untouched and the command stops with the list of files that still include them
+#   2. stop and disable the services and the timer, delete the unit files, daemon-reload
+#   3. only with --remove-cloudflare: unload the nftables table c15t_cloudflare, delete its file and the
+#      ufw script (and, in step 1 and 2, the real_ip file and c15t-cloudflare-nft.service; see below)
+#   4. delete releases/, current, previous and the lock and log files of /opt/c15t-platform, then the
+#      directory itself when it is empty. Only when deploy.sh made them (.deploy.lock, deploy.log or a
+#      releases/*/.release-ok is there), so a mistyped C15T_APP_DIR cannot reach another application
+#   5. only with --purge-config: delete the env files in /etc/c15t-platform
+# It NEVER touches PostgreSQL or consent data, never removes the c15t user (it prints the command), keeps
+# the env files (they hold secrets) unless --purge-config is given, and leaves
+# sites-available/c15t-dashboard.conf and the include lines in your website vhosts alone.
+#
+# The Cloudflare files are host-wide: other websites on the same server may rely on them. So by default
+# uninstall KEEPS the nginx real_ip file (conf.d/cloudflare-realip.conf), the nftables allowlist (its file,
+# the loaded table inet c15t_cloudflare, and c15t-cloudflare-nft.service while there is a file for it to
+# load) and the ufw script, and says so. The refresh timer is still removed (it runs from
+# /opt/c15t-platform/current), so those lists are no longer updated. --remove-cloudflare removes them too,
+# which has two effects: ports 80 and 443 are no longer limited to Cloudflare, and nginx no longer restores
+# the visitor IP from CF-Connecting-IP, for every site on the host. Run uninstall again with that flag
+# later if you change your mind.
+#
+# A second run finds nothing and changes nothing. --dry-run (or DRY_RUN=1) creates, writes and runs
+# nothing that changes the host.
+#
 # Run as the deploy user with sudo rights, or as root. Privileged steps (reading the 0600 env files,
 # writing /etc/nginx, nginx -t, systemctl) go through sudo; the build runs as the invoking user.
 # /opt/c15t-platform must be writable by that user and traversable by user c15t and by nginx.
 #
 # Environment (all optional):
-#   DRY_RUN=1                 print what would happen, change nothing (same as --dry-run)
-#   C15T_ROOT                 prefix for the three directories below (tests); default empty
+#   DRY_RUN=1                 print what would happen, change nothing (same as --dry-run). Only 0 and 1 are accepted
+#   C15T_ROOT                 prefix for the directories below (tests); default empty
 #   C15T_APP_DIR              default $C15T_ROOT/opt/c15t-platform   (releases/, current)
 #   C15T_ENV_DIR              default $C15T_ROOT/etc/c15t-platform   (consent-api.env, dashboard-api.env)
 #   C15T_NGINX_DIR            default $C15T_ROOT/etc/nginx           (conf.d/, snippets/)
-#   C15T_SYSTEMD_DIR          default $C15T_ROOT/etc/systemd/system  (only compared with infra/systemd)
+#   C15T_SYSTEMD_DIR          default $C15T_ROOT/etc/systemd/system  (install and uninstall write it, deploy compares it)
+#   C15T_NFT_DIR              default $C15T_ROOT/etc/nftables.d      (uninstall --remove-cloudflare removes c15t-cloudflare.nft)
+#                             install and uninstall refuse a directory setting that is relative, contains .. or has
+#                             fewer than two path components
+#   C15T_USER, C15T_GROUP     the service user and group `install` creates, default c15t. The unit files
+#                             name c15t, so change them too if you change these (meant for tests)
 #   C15T_SRC_DIR              source tree, default: the repository this script is in
 #   C15T_REF                  git ref to deploy, default HEAD
 #   C15T_RELEASE_ID           release directory name, default: short git sha or timestamp
 #   C15T_KEEP_RELEASES        default 5
-#   C15T_SERVICES             default "c15t-consent-api c15t-dashboard-api"
+#   C15T_SERVICES             default "c15t-consent-api c15t-dashboard-api". install and uninstall accept only
+#                             names that start with c15t-, so they can never touch another service
 #   C15T_HEALTH_TIMEOUT       seconds to wait per health check, default 45
 #   CONSENT_API_HEALTH_PATH   default /status        DASHBOARD_API_HEALTH_PATH   default /api/health
 #   C15T_SUDO                 command prefix for privileged steps; "" for none (default: none as root, else sudo)
 #   C15T_NODE_BIN             the node the services run, default /usr/bin/node (its major version is checked)
-#   YARN_BIN, NGINX_BIN, SYSTEMCTL_BIN, CURL_BIN, GIT_BIN   tool names or paths
+#   YARN_BIN, NGINX_BIN, SYSTEMCTL_BIN, CURL_BIN, GIT_BIN, NFT_BIN, USERADD_BIN   tool names or paths
 #
 # Host and port are read from the env files and never guessed: CONSENT_API_HOST and CONSENT_API_PORT
 # from consent-api.env, DASHBOARD_API_HOST and DASHBOARD_API_PORT from dashboard-api.env. Both files
@@ -60,6 +108,9 @@ C15T_APP_DIR=${C15T_APP_DIR:-$C15T_ROOT/opt/c15t-platform}
 C15T_ENV_DIR=${C15T_ENV_DIR:-$C15T_ROOT/etc/c15t-platform}
 C15T_NGINX_DIR=${C15T_NGINX_DIR:-$C15T_ROOT/etc/nginx}
 C15T_SYSTEMD_DIR=${C15T_SYSTEMD_DIR:-$C15T_ROOT/etc/systemd/system}
+C15T_NFT_DIR=${C15T_NFT_DIR:-$C15T_ROOT/etc/nftables.d}
+C15T_USER=${C15T_USER:-c15t}
+C15T_GROUP=${C15T_GROUP:-$C15T_USER}
 C15T_SRC_DIR=${C15T_SRC_DIR:-$(cd "$SCRIPT_DIR/.." && pwd)}
 C15T_REF=${C15T_REF:-HEAD}
 C15T_RELEASE_ID=${C15T_RELEASE_ID:-}
@@ -74,8 +125,12 @@ NGINX_BIN=${NGINX_BIN:-nginx}
 SYSTEMCTL_BIN=${SYSTEMCTL_BIN:-systemctl}
 CURL_BIN=${CURL_BIN:-curl}
 GIT_BIN=${GIT_BIN:-git}
+NFT_BIN=${NFT_BIN:-nft}
+USERADD_BIN=${USERADD_BIN:-useradd}
 PLAN_ONLY=0
 SKIP_MIGRATE=0
+PURGE_CONFIG=0
+REMOVE_CLOUDFLARE=0
 COMMAND=deploy
 ROLLBACK_TARGET=""
 PREVIOUS_TARGET=""
@@ -117,9 +172,16 @@ run() {
 
 priv() { run "${SUDO[@]}" "$@"; }
 
+# priv_exists PATH: does PATH exist? Always really asks (also under --dry-run), through sudo, because
+# /etc/c15t-platform is not traversable by the deploy user.
+priv_exists() { "${SUDO[@]}" test -e "$1" || "${SUDO[@]}" test -L "$1"; }
+
 WORK=""
 PARTIAL_REL=""
+declare -a MOVED_AWAY=()   # uninstall: "file<TAB>hidden name" of nginx files renamed away and not deleted yet
 cleanup() {
+  # An uninstall that was interrupted between "move the nginx files away" and "nginx -t passed".
+  if ((${#MOVED_AWAY[@]})); then restore_moved_away || true; fi
   [[ -n $WORK && -d $WORK ]] && rm -rf "$WORK"
   if [[ -n $PARTIAL_REL && -d $PARTIAL_REL ]]; then
     warn "removing the unfinished release $PARTIAL_REL"
@@ -129,18 +191,36 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# set_command NAME: one command per run. `install uninstall` must not quietly mean "uninstall".
+set_command() {
+  [[ $COMMAND == deploy ]] || die "only one command at a time: $COMMAND and $1 were both given (see --help)"
+  COMMAND=$1
+}
+
 while (($#)); do
   case $1 in
     --dry-run) DRY_RUN=1 ;;
     --plan-only) PLAN_ONLY=1 ;;
     --skip-migrate) SKIP_MIGRATE=1 ;;
-    rollback) COMMAND=rollback; if [[ ${2-} != "" && $2 != -* ]]; then ROLLBACK_TARGET=$2; shift; fi ;;
+    rollback) set_command rollback; if [[ ${2-} != "" && $2 != -* ]]; then ROLLBACK_TARGET=$2; shift; fi ;;
+    install) set_command install ;;
+    uninstall) set_command uninstall ;;
+    --purge-config) PURGE_CONFIG=1 ;;
+    --remove-cloudflare) REMOVE_CLOUDFLARE=1 ;;
     -h | --help) usage; exit 0 ;;
     *) die "unknown argument: $1 (see --help)" ;;
   esac
   shift
 done
+# ((DRY_RUN)) treats a word such as "true" as 0, which would turn a requested dry run into a real one.
+[[ $DRY_RUN == 0 || $DRY_RUN == 1 ]] || die "DRY_RUN must be 0 or 1 (got: $DRY_RUN)"
 ((PLAN_ONLY && SKIP_MIGRATE)) && die "--plan-only and --skip-migrate cannot be combined"
+if ((PURGE_CONFIG || REMOVE_CLOUDFLARE)) && [[ $COMMAND != uninstall ]]; then
+  die "--purge-config and --remove-cloudflare belong to the uninstall command"
+fi
+if ((PLAN_ONLY || SKIP_MIGRATE)) && [[ $COMMAND != deploy ]]; then
+  die "--plan-only and --skip-migrate belong to a deploy"
+fi
 [[ $C15T_KEEP_RELEASES =~ ^[1-9][0-9]*$ ]] || die "C15T_KEEP_RELEASES must be a positive integer"
 [[ $C15T_HEALTH_TIMEOUT =~ ^[0-9]+$ ]] || die "C15T_HEALTH_TIMEOUT must be an integer"
 WORK=$(mktemp -d)
@@ -307,7 +387,7 @@ bootstrap_realip() {
   [[ -e $C15T_NGINX_DIR/conf.d/cloudflare-realip.conf ]] && return 0
   log "starting cloudflare-ips.service once: cloudflare-realip.conf is missing"
   priv "$SYSTEMCTL_BIN" start cloudflare-ips.service ||
-    warn "cloudflare-ips.service failed (journalctl -u cloudflare-ips -n 30). Until it succeeds nginx has no real_ip config and the visitor IP is wrong. Is the unit installed (README: Production, step 3)?"
+    warn "cloudflare-ips.service failed (journalctl -u cloudflare-ips -n 30). Until it succeeds nginx has no real_ip config and the visitor IP is wrong. Is the unit installed (infra/deploy.sh install)?"
 }
 
 stage_source() { # stage_source ID: copy the source tree into releases/<id>
@@ -513,9 +593,9 @@ warn_unit_drift() { # warn_unit_drift REL
     [[ -f $f ]] || continue
     name=$(basename "$f")
     if [[ ! -f $C15T_SYSTEMD_DIR/$name ]]; then
-      warn "$name is not installed in $C15T_SYSTEMD_DIR (README: Production)"
+      warn "$name is not installed in $C15T_SYSTEMD_DIR (run: infra/deploy.sh install)"
     elif ! cmp -s "$f" "$C15T_SYSTEMD_DIR/$name"; then
-      warn "$name differs from the installed unit. Copy it, then systemctl daemon-reload, then restart."
+      warn "$name differs from the installed unit. Run infra/deploy.sh install (copies it and runs daemon-reload), then restart the service."
     fi
   done
 }
@@ -613,7 +693,469 @@ do_rollback() {
   fi
 }
 
+# ---- install and uninstall: shared checks -----------------------------------------------------
+
+# The units install and uninstall manage: these three, plus the C15T_SERVICES (names must start with
+# c15t-, so a mistyped C15T_SERVICES can never make either command touch another service's unit).
+KNOWN_UNITS=(cloudflare-ips.timer cloudflare-ips.service c15t-cloudflare-nft.service)
+declare -a SERVICE_UNITS=()
+
+require_bash44() {
+  ((BASH_VERSINFO[0] > 4 || (BASH_VERSINFO[0] == 4 && BASH_VERSINFO[1] >= 4))) || die "bash 4.4 or newer is required"
+}
+
+# load_service_units: SERVICE_UNITS from C15T_SERVICES, split on blanks without pathname expansion.
+load_service_units() {
+  local -a words=()
+  local w
+  read -r -a words <<<"$C15T_SERVICES"
+  ((${#words[@]})) || die "refusing to $COMMAND: C15T_SERVICES is empty"
+  for w in "${words[@]}"; do
+    w=${w%.service}
+    [[ $w =~ ^c15t-[A-Za-z0-9][A-Za-z0-9._-]*$ ]] ||
+      die "refusing to $COMMAND: the C15T_SERVICES entry '$w' is not a c15t service (the name must be c15t-<name>)"
+    SERVICE_UNITS+=("$w.service")
+  done
+}
+
+is_known_unit() {
+  local u
+  for u in "${KNOWN_UNITS[@]}" "${SERVICE_UNITS[@]}"; do
+    [[ $1 == "$u" ]] && return 0
+  done
+  return 1
+}
+
+# require_plain_dir NAME VALUE: a directory setting must be absolute, at least two levels deep and free
+# of "..". Everything install and uninstall create or delete hangs below these directories.
+require_plain_dir() {
+  [[ $2 =~ ^/[^/]+/[^/]+ && $2 != *..* && $2 != *[[:cntrl:]]* ]] ||
+    die "refusing to $COMMAND: $1 ($2) must be an absolute path with at least two components, without .. and without control characters"
+}
+
+# ---- install ----------------------------------------------------------------------------------
+
+# do_install: the host preparation of README "Production" steps 1 to 3. Safe to repeat: it creates what
+# is missing, never overwrites an env file, never changes a directory that exists, refreshes the unit
+# files when infra/systemd changed (keeping a copy of one that differs), and starts nothing but
+# cloudflare-ips.timer (which waits for its schedule).
+do_install() {
+  local src=$C15T_SRC_DIR/infra/systemd owner f name dest s changed=0
+  require_bash44
+  load_service_units
+  [[ $C15T_USER =~ ^[a-z_][a-z0-9_-]{0,31}$ && $C15T_GROUP =~ ^[a-z_][a-z0-9_-]{0,31}$ ]] ||
+    die "refusing to install: C15T_USER ($C15T_USER) and C15T_GROUP ($C15T_GROUP) must be plain lower-case account names"
+  require_plain_dir C15T_APP_DIR "$APP_DIR"
+  require_plain_dir C15T_ENV_DIR "$C15T_ENV_DIR"
+  require_plain_dir C15T_SYSTEMD_DIR "$C15T_SYSTEMD_DIR"
+  for s in install cmp cp "$SYSTEMCTL_BIN"; do command -v "$s" >/dev/null 2>&1 || die "missing tool: $s"; done
+  "${SUDO[@]}" true || die "cannot run privileged commands (${SUDO[*]:-none}): run as root or set up sudo"
+  compgen -G "$src/*.service" >/dev/null || die "no unit files in $src (run install from a checkout or an unpacked source tarball)"
+  [[ -d $C15T_SYSTEMD_DIR ]] || die "$C15T_SYSTEMD_DIR does not exist (is this a systemd host?)"
+  owner=${SUDO_USER:-$(id -un)}
+
+  if id -u "$C15T_USER" >/dev/null 2>&1; then
+    log "user $C15T_USER exists"
+  else
+    command -v "$USERADD_BIN" >/dev/null 2>&1 || die "missing tool: $USERADD_BIN"
+    log "creating the system user $C15T_USER"
+    priv "$USERADD_BIN" --system --home-dir /nonexistent --shell /usr/sbin/nologin "$C15T_USER"
+  fi
+  if priv_exists "$C15T_ENV_DIR"; then
+    log "exists: $C15T_ENV_DIR"
+  else
+    priv install -d -o "$C15T_USER" -g "$C15T_GROUP" -m 0750 -- "$C15T_ENV_DIR"
+  fi
+  if [[ -d $APP_DIR ]]; then
+    log "exists: $APP_DIR"
+  else
+    priv install -d -o "$owner" -m 0755 -- "$APP_DIR"
+  fi
+  for f in "$ENV_CONSENT" "$ENV_DASHBOARD"; do
+    if priv_exists "$f"; then
+      log "kept, never overwritten: $f"
+    else
+      priv install -m 0600 -o "$C15T_USER" -g "$C15T_GROUP" /dev/null "$f"
+      log "created $f (empty, mode 0600): fill it in before the first deploy"
+    fi
+  done
+  for f in "$src"/*.service "$src"/*.timer; do
+    [[ -f $f ]] || continue
+    name=$(basename "$f")
+    if ! is_known_unit "$name"; then
+      log "skipped $f: not one of the platform's units"
+      continue
+    fi
+    dest=$C15T_SYSTEMD_DIR/$name
+    if [[ -f $dest ]] && cmp -s "$f" "$dest"; then
+      log "unchanged: $dest"
+      continue
+    fi
+    if [[ -e $dest || -L $dest ]]; then
+      warn "$dest differs from $f (edited by you, or left by an older release). It is replaced; the previous copy is kept as $dest.c15t-saved. Changes belong in a drop-in: systemctl edit $name"
+      priv cp -p -- "$dest" "$dest.c15t-saved"
+    fi
+    priv install -m 0644 -- "$f" "$dest"
+    log "installed $dest"
+    changed=1
+  done
+  if ((changed)); then priv "$SYSTEMCTL_BIN" daemon-reload; fi
+  priv "$SYSTEMCTL_BIN" enable "${SERVICE_UNITS[@]}"
+  priv "$SYSTEMCTL_BIN" enable --now cloudflare-ips.timer
+  log "installed. Next: 1. fill in $ENV_CONSENT and $ENV_DASHBOARD (README Configuration)"
+  log "                2. prepare the database (docs/database-setup.md)"
+  log "                3. run infra/deploy.sh (the first deploy installs the nginx snippets and starts the services)"
+  log "                4. add the dashboard vhost (README: nginx)"
+}
+
+# ---- uninstall --------------------------------------------------------------------------------
+
+SAW_UFW_SCRIPT=0
+declare -a UNINSTALL_UNITS=()   # in stop order: the timer first (so it cannot fire), the firewall unit last
+declare -a KEPT_CLOUDFLARE=()   # Cloudflare files that exist and are kept (the default)
+KEEP_NFT_UNIT=0                 # c15t-cloudflare-nft.service stays: it loads the allowlist file at boot
+
+# remove_file PATH: delete a file or symlink through sudo (nothing else), and say so.
+remove_file() {
+  priv rm -f -- "$1"
+  if ((DRY_RUN)); then return 0; fi
+  log "removed $1"
+}
+
+hidden_name() { printf '%s/.%s.c15t-removed' "$(dirname "$1")" "$(basename "$1")"; }
+
+# restore_moved_away: put the renamed nginx files back (their hidden names are never matched by an nginx include glob).
+restore_moved_away() {
+  local pair
+  for pair in "${MOVED_AWAY[@]}"; do
+    "${SUDO[@]}" mv -f -- "${pair#*$'\t'}" "${pair%%$'\t'*}" || warn "could not put ${pair%%$'\t'*} back; it is at ${pair#*$'\t'}"
+  done
+  MOVED_AWAY=()
+}
+
+# recover_interrupted PATH...: an uninstall that was killed (SIGKILL, power loss) between "move away" and
+# "delete" leaves a hidden .NAME.c15t-removed file and a nginx without NAME. Put it back before anything
+# else; if NAME exists again (a deploy ran since), the hidden copy is stale and goes.
+recover_interrupted() {
+  local f h
+  for f in "$@"; do
+    h=$(hidden_name "$f")
+    priv_exists "$h" || continue
+    if priv_exists "$f"; then
+      log "removing the leftover $h of an interrupted uninstall"
+      priv rm -f -- "$h"
+    else
+      log "putting $f back: an earlier uninstall was interrupted after it moved the file away"
+      priv mv -- "$h" "$f"
+    fi
+  done
+}
+
+# still_including: files below the nginx directory that mention a c15t snippet (website vhosts and the
+# like), apart from the files uninstall removes itself and the dashboard vhost in sites-available. One per
+# line. Read through sudo: nginx directories are not always readable for the deploy user.
+still_including() {
+  local conf=$C15T_NGINX_DIR f
+  [[ -d $conf ]] || return 0
+  while IFS= read -r f; do
+    case $f in */.*.c15t-removed | "$conf"/snippets/c15t.conf | "$conf"/snippets/c15t-dashboard-*.conf | "$conf"/sites-available/c15t-dashboard.conf) continue ;; esac
+    printf '%s\n' "$f"
+  done < <("${SUDO[@]}" grep -rlE 'snippets/c15t(-dashboard-(headers|locations))?\.conf' -- "$conf" 2>/dev/null || true)
+}
+
+# service_running UNIT: is it active, starting, reloading or stopping?
+service_running() {
+  local state
+  state=$("${SUDO[@]}" "$SYSTEMCTL_BIN" is-active "$1" 2>/dev/null) || true
+  case $state in active | activating | reloading | deactivating) return 0 ;; esac
+  return 1
+}
+
+unit_file_exists() { [[ -e $C15T_SYSTEMD_DIR/$1 || -L $C15T_SYSTEMD_DIR/$1 ]]; }
+
+uninstall_preflight() {
+  local u have_units=0
+  require_bash44
+  command -v flock >/dev/null 2>&1 || die "missing tool: flock"
+  load_service_units
+  UNINSTALL_UNITS=(cloudflare-ips.timer cloudflare-ips.service "${SERVICE_UNITS[@]}")
+  # uninstall deletes below these directories, so a mistyped value must not reach a system directory.
+  require_plain_dir C15T_APP_DIR "$APP_DIR"
+  require_plain_dir C15T_ENV_DIR "$C15T_ENV_DIR"
+  require_plain_dir C15T_NGINX_DIR "$C15T_NGINX_DIR"
+  require_plain_dir C15T_SYSTEMD_DIR "$C15T_SYSTEMD_DIR"
+  require_plain_dir C15T_NFT_DIR "$C15T_NFT_DIR"
+  # priv_exists cannot tell "no such file" from "sudo refused", so find out now.
+  "${SUDO[@]}" true || die "cannot run privileged commands (${SUDO[*]:-none}): run as root or set up sudo"
+  # The boot unit of the allowlist belongs to the Cloudflare files: it stays unless --remove-cloudflare, but
+  # only while it has something to load (the file) or is loaded. An inert copy that install put there goes
+  # with the rest. (Stopping a loaded one would delete the table, which is what --remove-cloudflare is for.)
+  if ((!REMOVE_CLOUDFLARE)); then
+    if priv_exists "$C15T_NFT_DIR/c15t-cloudflare.nft"; then
+      KEEP_NFT_UNIT=1
+    elif ((!DRY_RUN)) && service_running c15t-cloudflare-nft.service; then
+      KEEP_NFT_UNIT=1
+    fi
+  fi
+  if ((!KEEP_NFT_UNIT)); then UNINSTALL_UNITS+=(c15t-cloudflare-nft.service); fi
+  for u in "${UNINSTALL_UNITS[@]}"; do if unit_file_exists "$u"; then have_units=1; fi; done
+  if ((have_units)) && ! command -v "$SYSTEMCTL_BIN" >/dev/null 2>&1; then
+    if ((DRY_RUN)); then
+      warn "$SYSTEMCTL_BIN not found: a real run would stop here, because it cannot stop the services whose unit files exist"
+    else
+      die "$SYSTEMCTL_BIN not found, but c15t unit files exist in $C15T_SYSTEMD_DIR, so the services cannot be stopped. Nothing was changed."
+    fi
+  fi
+  local config=kept
+  if ((PURGE_CONFIG)); then config="env files deleted (--purge-config)"; fi
+  log "uninstall: app dir $APP_DIR, config dir $C15T_ENV_DIR ($config), nginx dir $C15T_NGINX_DIR. The database is not touched."
+  if ((REMOVE_CLOUDFLARE)); then
+    log "--remove-cloudflare: ports 80 and 443 stop being limited to Cloudflare, and nginx stops restoring the visitor IP from CF-Connecting-IP, for EVERY site on this host"
+  else
+    log "the Cloudflare real_ip file and nftables allowlist are not removed: other sites on this host may rely on them (--remove-cloudflare removes them)"
+  fi
+}
+
+# acquire_uninstall_lock: the lock a deploy holds for its whole run. deploy.sh creates .deploy.lock before
+# it does anything else, so no file means no deploy to wait for. Nothing is created here (not even by a
+# dry run), and the file is only opened for reading: flock does not need more.
+acquire_uninstall_lock() {
+  local lock=$APP_DIR/.deploy.lock
+  [[ -f $lock ]] || return 0
+  if ! exec 9<"$lock"; then
+    if ((DRY_RUN)); then warn "cannot open $lock, so a running deploy would not be noticed"; return 0; fi
+    die "cannot open $lock, so a running deploy would not be noticed. Nothing was changed."
+  fi
+  flock -n 9 || die "a deploy (or another uninstall) is running and holds $lock. Nothing was changed; run uninstall again when it has finished."
+}
+
+# refuse_orphan_services: a service that runs without a unit file in C15T_SYSTEMD_DIR would not be
+# stopped by uninstall, and would run on after /opt/c15t-platform is deleted under it.
+refuse_orphan_services() {
+  local u
+  if ((DRY_RUN)); then log "[dry-run] check that no c15t service is running without a unit file in $C15T_SYSTEMD_DIR"; return 0; fi
+  for u in "${SERVICE_UNITS[@]}"; do
+    if unit_file_exists "$u"; then continue; fi
+    if service_running "$u"; then
+      die "$u is running, but its unit file is not in $C15T_SYSTEMD_DIR, so uninstall would not stop it and would delete $APP_DIR under it. Stop it (systemctl stop $u) or set C15T_SYSTEMD_DIR, then run uninstall again. Nothing was changed."
+    fi
+  done
+}
+
+uninstall_nginx() {
+  local conf=$C15T_NGINX_DIR f pair offenders
+  local -a found=() gone=()
+  local -a paths=(
+    "$conf/conf.d/c15t-upstreams.conf"
+    "$conf/snippets/c15t.conf"
+    "$conf/snippets/c15t-dashboard-headers.conf"
+    "$conf/snippets/c15t-dashboard-locations.conf"
+    "$conf/sites-enabled/c15t-dashboard.conf"
+  )
+  if ((REMOVE_CLOUDFLARE)); then paths+=("$conf/conf.d/cloudflare-realip.conf"); fi
+  recover_interrupted "${paths[@]}"
+  for f in "${paths[@]}"; do
+    if [[ $f == "$conf"/sites-enabled/* && -f $f && ! -L $f ]]; then
+      # install put a link here (README: ln -s). A regular file may be the only copy of the vhost.
+      warn "$f is a regular file, not a link to sites-available. uninstall does not delete it; remove or move it yourself (it includes c15t snippets, so nginx -t will stop the run until you do)"
+      continue
+    fi
+    if [[ -f $f || -L $f ]]; then found+=("$f"); fi
+  done
+  if ((${#found[@]} == 0)); then
+    log "nginx: none of the c15t files to remove exist in $conf"
+    return 0
+  fi
+  offenders=$(still_including)
+  if ((DRY_RUN)); then
+    for f in "${found[@]}"; do log "[dry-run] remove $f"; done
+    log "[dry-run] ${SUDO[*]} $NGINX_BIN -t, then reload nginx; the files are put back if the test fails"
+    if [[ -n $offenders ]]; then
+      warn "these files still include a c15t snippet, so a real run stops at nginx -t until you remove those lines:"
+      while IFS= read -r f; do printf '    %s\n' "$f"; done <<<"$offenders"
+    fi
+    return 0
+  fi
+  command -v "$NGINX_BIN" >/dev/null 2>&1 || die "nginx ($NGINX_BIN) not found, so the configuration cannot be tested. Nothing was changed."
+  nginx_test || die "nginx -t already fails before uninstall changed anything. Fix the nginx configuration first. Nothing was changed."
+  for f in "${found[@]}"; do
+    "${SUDO[@]}" mv -f -- "$f" "$(hidden_name "$f")" || { restore_moved_away; die "could not move $f away. Nothing was changed."; }
+    MOVED_AWAY+=("$f"$'\t'"$(hidden_name "$f")")
+  done
+  if ! nginx_test; then
+    restore_moved_away
+    if [[ -n $offenders ]]; then
+      log "these files still include a c15t snippet. Remove those lines (or the vhosts), then run uninstall again:"
+      while IFS= read -r f; do printf '    %s\n' "$f" >&2; done <<<"$offenders"
+    fi
+    die "nginx -t rejects the configuration without the c15t files. They are back in place, nginx was not reloaded and nothing else was changed."
+  fi
+  # The test passed: this is the point of no return. From here the files are deleted, never put back
+  # (a half-restored set would be worse than none), so the interrupt handler must not restore them.
+  gone=("${MOVED_AWAY[@]}")
+  MOVED_AWAY=()
+  for pair in "${gone[@]}"; do
+    "${SUDO[@]}" rm -f -- "${pair#*$'\t'}" || warn "could not delete ${pair#*$'\t'}"
+    log "removed ${pair%%$'\t'*}"
+  done
+  priv "$SYSTEMCTL_BIN" reload nginx || warn "nginx reload failed (is nginx running?). The configuration passed nginx -t, so the next start is fine."
+}
+
+uninstall_services() {
+  local u
+  local -a present=()
+  for u in "${UNINSTALL_UNITS[@]}"; do
+    if unit_file_exists "$u"; then present+=("$u"); fi
+  done
+  if ((${#present[@]} == 0)); then
+    log "systemd: no c15t unit files in $C15T_SYSTEMD_DIR"
+  fi
+  for u in "${present[@]}"; do
+    if [[ $u == cloudflare-ips.service ]]; then   # a oneshot without [Install]: stop it, nothing to disable
+      log "stopping $u"
+      priv "$SYSTEMCTL_BIN" stop "$u" || die "could not stop $u. The units are still installed; fix that and run uninstall again."
+    else
+      log "stopping and disabling $u"
+      priv "$SYSTEMCTL_BIN" disable --now "$u" || die "could not stop and disable $u. The unit files and /opt are still in place; fix that and run uninstall again."
+    fi
+  done
+  # Never delete the application from under a process. (A dry run stopped nothing, so it cannot ask.)
+  if ((!DRY_RUN)); then
+    for u in "${SERVICE_UNITS[@]}"; do
+      if service_running "$u"; then die "$u is still running after it was stopped. $APP_DIR is kept. Stop it by hand and run uninstall again."; fi
+    done
+  fi
+  if ((${#present[@]} == 0)); then return 0; fi
+  for u in "${present[@]}"; do remove_file "$C15T_SYSTEMD_DIR/$u"; done
+  priv "$SYSTEMCTL_BIN" daemon-reload || warn "systemctl daemon-reload failed; run it by hand"
+  priv "$SYSTEMCTL_BIN" reset-failed "${present[@]}" 2>/dev/null || true
+}
+
+uninstall_nft() {
+  local f
+  if ((!REMOVE_CLOUDFLARE)); then
+    for f in "$C15T_NGINX_DIR/conf.d/cloudflare-realip.conf" "$C15T_NFT_DIR/c15t-cloudflare.nft" "$C15T_ENV_DIR/cloudflare-ufw.sh"; do
+      if priv_exists "$f"; then KEPT_CLOUDFLARE+=("$f"); fi
+    done
+    if ((KEEP_NFT_UNIT)) && unit_file_exists c15t-cloudflare-nft.service; then KEPT_CLOUDFLARE+=("$C15T_SYSTEMD_DIR/c15t-cloudflare-nft.service"); fi
+    if ((${#KEPT_CLOUDFLARE[@]})); then log "Cloudflare: kept ${#KEPT_CLOUDFLARE[@]} file(s) that other sites may rely on (listed at the end)"; fi
+    return 0
+  fi
+  if ((DRY_RUN)); then
+    log "[dry-run] ${SUDO[*]} $NFT_BIN delete table inet c15t_cloudflare   (only when it is loaded)"
+  elif command -v "$NFT_BIN" >/dev/null 2>&1 && "${SUDO[@]}" "$NFT_BIN" list table inet c15t_cloudflare >/dev/null 2>&1; then
+    log "unloading the nftables table inet c15t_cloudflare: ports 80 and 443 are no longer limited to Cloudflare"
+    priv "$NFT_BIN" delete table inet c15t_cloudflare ||
+      warn "could not delete the table; it stays until the next reboot, or run: nft delete table inet c15t_cloudflare"
+  fi
+  if priv_exists "$C15T_ENV_DIR/cloudflare-ufw.sh"; then SAW_UFW_SCRIPT=1; fi
+  for f in "$C15T_NFT_DIR/c15t-cloudflare.nft" "$C15T_ENV_DIR/cloudflare-ufw.sh"; do
+    if priv_exists "$f"; then remove_file "$f"; fi
+  done
+}
+
+# app_dir_is_ours: did deploy.sh make this directory? It writes .deploy.lock and deploy.log, and a
+# .release-ok into every release it builds. Without any of them the contents belong to someone else.
+app_dir_is_ours() {
+  [[ -f $APP_DIR/.deploy.lock || -f $APP_DIR/deploy.log ]] && return 0
+  compgen -G "$RELEASES_DIR/*/$MARKER" >/dev/null
+}
+
+uninstall_app() {
+  local f
+  [[ -d $APP_DIR ]] || { log "app: $APP_DIR does not exist"; return 0; }
+  if app_dir_is_ours; then
+    # The two links first, the lock last: it is what makes a second uninstall or a deploy wait.
+    for f in current previous .current.new .previous.new; do
+      [[ -e $APP_DIR/$f || -L $APP_DIR/$f ]] || continue
+      if [[ -L $APP_DIR/$f ]]; then remove_file "$APP_DIR/$f"; else warn "kept $APP_DIR/$f: it is not a symlink, so deploy.sh did not make it"; fi
+    done
+    if [[ -L $RELEASES_DIR ]]; then
+      warn "$RELEASES_DIR is a symlink: only the link is removed, its target ($(readlink "$RELEASES_DIR")) is left alone"
+      remove_file "$RELEASES_DIR"
+    elif [[ -d $RELEASES_DIR ]]; then
+      # --one-file-system: a mount somewhere below a release (a cache, a bind mount) must survive.
+      priv rm -rf --one-file-system -- "$RELEASES_DIR"
+      if ((!DRY_RUN)); then log "removed $RELEASES_DIR"; fi
+    elif [[ -e $RELEASES_DIR ]]; then
+      warn "kept $RELEASES_DIR: it is not a directory, so deploy.sh did not make it"
+    fi
+    for f in deploy.log .deploy.lock; do
+      [[ -e $APP_DIR/$f || -L $APP_DIR/$f ]] || continue
+      if [[ -f $APP_DIR/$f ]]; then remove_file "$APP_DIR/$f"; else warn "kept $APP_DIR/$f: it is not a file, so deploy.sh did not make it"; fi
+    done
+  else
+    log "app: kept the contents of $APP_DIR: none of .deploy.lock, deploy.log or releases/*/$MARKER is there, so deploy.sh did not make them. Is C15T_APP_DIR the directory you deployed to?"
+  fi
+  if ((DRY_RUN)); then log "[dry-run] rmdir $APP_DIR (only when it is empty)"; return 0; fi
+  if "${SUDO[@]}" rmdir -- "$APP_DIR" 2>/dev/null; then
+    log "removed $APP_DIR"
+  else
+    log "kept $APP_DIR: it holds files that deploy.sh did not create"
+  fi
+}
+
+uninstall_config() {
+  local f rest
+  local -a present=()
+  for f in consent-api.env dashboard-api.env cloudflare-ips.env; do
+    if priv_exists "$C15T_ENV_DIR/$f"; then present+=("$f"); fi
+  done
+  if ((!PURGE_CONFIG)); then
+    if ((${#present[@]})); then log "kept the env files in $C15T_ENV_DIR (secrets): ${present[*]}"; fi
+    return 0
+  fi
+  for f in "${present[@]}"; do remove_file "$C15T_ENV_DIR/$f"; done
+  priv_exists "$C15T_ENV_DIR" || return 0
+  if ((DRY_RUN)); then log "[dry-run] rmdir $C15T_ENV_DIR (only when it is empty)"; return 0; fi
+  if "${SUDO[@]}" rmdir -- "$C15T_ENV_DIR" 2>/dev/null; then
+    log "removed $C15T_ENV_DIR"
+  else
+    rest=$("${SUDO[@]}" ls -A -- "$C15T_ENV_DIR" 2>/dev/null | tr '\n' ' ') || true
+    log "kept $C15T_ENV_DIR: it holds other files: ${rest% }"
+  fi
+}
+
+uninstall_report() {
+  local u f uid vhost=$C15T_NGINX_DIR/sites-available/c15t-dashboard.conf
+  if ((DRY_RUN)); then log "dry run finished: nothing was changed"; else log "uninstall finished"; fi
+  log "left in place on purpose:"
+  log "  PostgreSQL: the databases, the schemas c15t and app, and the roles c15t_api and dashboard (consent records are legal proof; docs/installation.md explains how to drop them)"
+  uid=$(id -u "$C15T_USER" 2>/dev/null) || uid=0   # unknown, or root: no userdel hint
+  if ((uid != 0)); then log "  the system user $C15T_USER: sudo userdel $C15T_USER"; fi
+  if ((!PURGE_CONFIG)) && priv_exists "$C15T_ENV_DIR"; then
+    log "  $C15T_ENV_DIR (secrets): infra/deploy.sh uninstall --purge-config deletes the env files"
+  fi
+  if [[ -e $vhost ]]; then log "  $vhost (your per-host values): sudo rm $vhost"; fi
+  for u in "${KNOWN_UNITS[@]}" "${SERVICE_UNITS[@]}"; do
+    if [[ -d $C15T_SYSTEMD_DIR/$u.d ]]; then log "  $C15T_SYSTEMD_DIR/$u.d (a drop-in of yours): sudo rm -r $C15T_SYSTEMD_DIR/$u.d"; fi
+    if [[ -e $C15T_SYSTEMD_DIR/$u.c15t-saved ]]; then log "  $C15T_SYSTEMD_DIR/$u.c15t-saved (your earlier edit of the unit, saved by install): sudo rm $C15T_SYSTEMD_DIR/$u.c15t-saved"; fi
+  done
+  if ((${#KEPT_CLOUDFLARE[@]})); then
+    log "  the Cloudflare files, because other sites on this host may rely on them (infra/deploy.sh uninstall --remove-cloudflare removes them):"
+    for f in "${KEPT_CLOUDFLARE[@]}"; do log "    $f"; done
+    log "    kept means: nginx still restores the visitor IP from Cloudflare, and ports 80 and 443 stay limited to Cloudflare while the nftables table is loaded (and, with c15t-cloudflare-nft.service, after a reboot)."
+    log "    The refresh timer is gone, so these lists are no longer updated: Cloudflare adds ranges now and then, and a missing range blocks real visitors. Keep them current yourself, or remove them when no site needs them."
+  fi
+  if ((SAW_UFW_SCRIPT)); then log "  ufw rules you created from cloudflare-ufw.sh: ufw status numbered, then ufw delete"; fi
+}
+
+do_uninstall() {
+  cd / || true   # do not stand inside the tree that is about to be deleted (the script itself may live in it)
+  uninstall_preflight
+  acquire_uninstall_lock
+  refuse_orphan_services
+  uninstall_nginx
+  uninstall_services
+  uninstall_nft
+  uninstall_app
+  uninstall_config
+  uninstall_report
+}
+
 case $COMMAND in
   deploy) do_deploy ;;
   rollback) do_rollback ;;
+  install) do_install ;;
+  uninstall) do_uninstall ;;
 esac

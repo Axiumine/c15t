@@ -46,6 +46,14 @@ jobs:
       - name: Build
         run: yarn build
 
+      # infra/deploy.sh install and uninstall, and the Cloudflare IP updater, against a temporary
+      # directory with stand-ins for systemctl, nginx, nft and curl: no Docker, no root, no network.
+      # (nginx-snippet.test.sh needs Docker and is run by hand, see CONTRIBUTING.md.)
+      - name: Test the infra scripts
+        run: |
+          bash infra/test/uninstall.test.sh
+          bash infra/test/update-cloudflare-ips.test.sh
+
   # The real-database suites fail loudly instead of skipping when their variables are missing
   # (a green run must mean the database was exercised), so there is no database-free run of
   # `yarn test`: every test runs here, against a real PostgreSQL server.

@@ -16,12 +16,15 @@ their own "Security" heading and name the advisory.
 
 ## [Unreleased]
 
-### Security
+### Added
 
-- Resolved `minimatch` to 11.0.1 for the `@ts-morph/common` that `@c15t/cli` pulls in
-  ([GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249), a denial of service through glob
-  parts amplification; fixed only in 11.x). The affected code is the migration CLI, a development tool: it is
-  not part of any release asset. Dependabot cannot open this update itself because the dependency is transitive.
+- `infra/deploy.sh install` and `uninstall` (both with `--dry-run`; `--purge-config` and `--remove-cloudflare` for uninstall;
+  uninstall keeps the host-wide Cloudflare real_ip file and nftables allowlist unless `--remove-cloudflare` is given),
+  tested by `infra/test/uninstall.test.sh` in CI, and `docs/installation.md` with the install, upgrade, rollback, uninstall
+  and release-verification steps.
+- `docs/assurance-case.md` (threat model, trust boundaries, design principles and common weaknesses, each tied to code and a
+  test, with the known gaps) and `docs/cryptography.md` (where each algorithm is chosen and who can change it).
+  `docs/security-model.md` now records that c15t 3.1.0 `GET` and `PATCH /subjects/:id` need no key.
 
 ### Changed
 
@@ -29,6 +32,13 @@ their own "Security" heading and name the advisory.
   branches, functions and lines), including the process entry points, and `vitest.config.ts` enforces it, so
   CI fails when a change leaves code untested. A few unreachable defensive branches were removed instead of
   being excluded; behaviour is unchanged. Two flaky tests (`admin-create`, `ddl`) are now deterministic.
+
+### Security
+
+- Resolved `minimatch` to 11.0.1 for the `@ts-morph/common` that `@c15t/cli` pulls in
+  ([GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249), a denial of service through glob
+  parts amplification; fixed only in 11.x). The affected code is the migration CLI, a development tool: it is
+  not part of any release asset. Dependabot cannot open this update itself because the dependency is transitive.
 
 ## [0.1.0] - 2026-10-30
 

@@ -5,6 +5,8 @@ written for operators and reviewers. The design reasoning is in the [README](../
 D1 to D11), the coding rules are in [`CLAUDE.md`](../CLAUDE.md), and vulnerabilities are reported as
 described in [`SECURITY.md`](../SECURITY.md).
 
+See also the [assurance case](./assurance-case.md) and [`cryptography.md`](./cryptography.md).
+
 ## Assets
 
 | Asset | Why it matters |
@@ -127,12 +129,15 @@ Please read this section before you rely on the platform.
 
 | Gap | Consequence | What you can do |
 |---|---|---|
-| The origin is reachable without Cloudflare (the firewall and Authenticated Origin Pulls are the operator's job, README D7) | Anyone can forge `CF-Connecting-IP` and `CF-IPCountry`, and so the recorded IP and jurisdiction. | Restrict ports 80 and 443 to Cloudflare ranges and enable Authenticated Origin Pulls. |
+| The origin is reachable without Cloudflare (the firewall and Authenticated Origin Pulls are the operator's job, README D7) | Anyone who reaches the origin can send any `CF-IPCountry` and `cf-region-code`, and so choose the jurisdiction. Their `CF-Connecting-IP` is ignored: nginx `real_ip` trusts only Cloudflare ranges, and consent-api strips the header. The recorded IP is then their own address. | Restrict ports 80 and 443 to Cloudflare ranges and enable Authenticated Origin Pulls. |
 | Consent saves are not authenticated. In c15t 3.1.0 `trustedOrigins` only sets CORS response headers (browsers enforce them, other clients ignore them) and no route checks the `Origin` | Anyone who can reach a site's public endpoint can submit fake consent records, with or without an `Origin` header. The platform does not prove that a record came from a real visitor. | Use Cloudflare rate limiting and treat counts as indicative. |
 | No tamper evidence | A database administrator, or an attacker with write access to the primary, can change consent records. There is no signing or hash chain. | Restrict database access, keep backups and database auditing. |
 | No application-level encryption | Records are protected by Postgres permissions and by disk or backup encryption only. | Encrypt disks and backups. |
 | No built-in multi-factor authentication for dashboard accounts | A stolen password gives access to that user's sites. | Put Cloudflare Access (Zero Trust) in front of the dashboard (README, Security notes). |
-| Subject IDs are unique across the whole database, not per site (c15t behaviour) | A conflicting save returns `409 SUBJECT_CONFLICT`. IDs should be treated as non-secret. | Do not use predictable subject IDs. |
+| Subject IDs are unique across the whole database, not per site (c15t behaviour) | A conflicting save returns `409 SUBJECT_CONFLICT`. | Do not use predictable subject IDs. |
+| c15t's `GET /subjects/:id` and `PATCH /subjects/:id` need no API key (checked in `@c15t/backend` 3.1.0, `dist/http/routes/subject.js`). The subject ID is chosen by the client (`sub_` plus base58, any length) | The ID works as a bearer secret. Anyone who knows an ID and reaches that site's endpoint can read the subject's choices and `externalId`. They can also set or replace its `externalId` unless it is already verified (verified needs the API key or an identity token, and the platform configures no identity token). A different site answers 404. The platform adds no check of its own. | Treat subject IDs as secrets: generate long random ones, and keep them out of URLs, logs and analytics. See the [assurance case](./assurance-case.md#44-residual-risks-what-is-not-protected). |
+| The audit triggers on `app.admin_audit` are owned by the `dashboard` role, which dashboard-api uses | The log is append-only for the application's own statements. Code running as dashboard-api, or a database administrator, can drop or disable the triggers. | Restrict database access, ship the log to an external store if you need proof. |
+| Both services run as the same system user `c15t` | `InaccessiblePaths` hides the env files, but a process of the same user can probably read the other service's environment from `/proc/<pid>/environ` (reasoned from the unit files, not tested). A compromised service may then reach the other service's secrets and database role. | Use a separate system user per service, if your threat model needs it. |
 | Public consent endpoints can be flooded | Denial of service or database growth by volume traffic. | Cloudflare rate limits and firewall rules. |
 | A compromised server or root user | Secrets under `/etc/c15t-platform/` and the database are exposed. systemd hardening limits damage but is not a sandbox against root. | Standard host hardening. |
 | XSS in the dashboard is mitigated by the CSP, not eliminated | A script injection bug could act with the victim's session. | Keep the CSP strict, and report any bypass. |
