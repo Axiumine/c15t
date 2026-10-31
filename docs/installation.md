@@ -34,7 +34,7 @@ behind nginx (README D7).
 
 ## Requirements
 
-- A Linux server with systemd, nginx 1.25.1 or newer, `bash` 4.4 or newer, `flock`, `tar`, `curl`, `sudo` (or root).
+- A Linux server with systemd, nginx 1.25.1 or newer (the examples use the Debian and Ubuntu `/etc/nginx` layout; see "Then, once" below for others), `bash` 4.4 or newer, `flock`, `tar`, `curl`, `sudo` (or root).
 - Node.js 26 at `/usr/bin/node`, and Yarn 4 through Corepack: `npm install -g corepack && corepack enable`.
   The build downloads the dependencies from the npm registry, pinned by `yarn.lock`.
 - A PostgreSQL database prepared as described in [database-setup.md](./database-setup.md), reachable from the server.
@@ -133,6 +133,11 @@ Then, once:
    sudo ln -s ../sites-available/c15t-dashboard.conf /etc/nginx/sites-enabled/
    sudo nginx -t && sudo systemctl reload nginx
    ```
+   `sites-available` and `sites-enabled` are a Debian and Ubuntu convention. If `/etc/nginx` on your distribution has
+   no such directories (RHEL family, Fedora, Arch, Alpine), copy the file to `/etc/nginx/conf.d/c15t-dashboard.conf`
+   instead, and skip the `ln`: the stock `nginx.conf` includes `conf.d/*.conf`, which `deploy.sh` needs anyway for
+   `c15t-upstreams.conf`. `uninstall` does not remove that copy; delete it before you run `uninstall` (step 2 of
+   "Uninstall"), or `nginx -t` fails and it puts everything back.
 3. Add each website (README, "Adding a website"): its vhost gets `set $c15t_site <siteKey>;` and `include snippets/c15t.conf;`.
 4. Optional but recommended: the Cloudflare firewall allowlist and its boot unit (README, "5. nginx (once)").
 
