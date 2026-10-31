@@ -61,7 +61,7 @@ Website server code ----------------------------------------> consent-api (CONSE
 - The firewall allowlist (nftables table `inet c15t_cloudflare`) is what keeps other hosts away from ports
   80 and 443. It is loaded into the kernel only after `CF_NFT_APPLY=1`, and it survives a reboot only after
   `systemctl enable --now c15t-cloudflare-nft.service` (or an `include` line in `/etc/nftables.conf`). Until
-  then the origin is open at every boot (README D7 and section 5). The `cloudflare-ips` unit runs as root
+  then the origin is open at every boot (README D7 and [nginx.md](./nginx.md)). The `cloudflare-ips` unit runs as root
   with a systemd sandbox; `/run` stays writable for it because `nginx -t` opens `/run/nginx.pid`.
 - consent-api reads the TCP peer address. When the peer is not in `CONSENT_API_TRUSTED_PROXIES`, it deletes
   `X-Forwarded-*`, `CF-*` and `Forwarded` before the request reaches c15t. Visitor overrides for country,

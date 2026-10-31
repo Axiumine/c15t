@@ -18,6 +18,9 @@ so that you know where to read.
 | Dashboard structure (React SPA plus Hono API) | README D10 |
 | Roles, the `app` data model, screens and API | README "Roles and permissions", "Data model", "Dashboard" |
 | Configuration and environment variables | README "Configuration" and `env.example` |
+| Install, upgrade, roll back and uninstall on a server | [`installation.md`](./installation.md) |
+| The nginx files, the Cloudflare `real_ip` file and the firewall allowlist | [`nginx.md`](./nginx.md) |
+| What the AGPL means if you self-host, and the third-party licenses | [`licensing.md`](./licensing.md) |
 | Threats and trust boundaries | [`security-model.md`](./security-model.md) |
 | Rules the code must follow | [`CLAUDE.md`](../CLAUDE.md) |
 | Database roles, schemas and grants | [`database-setup.md`](./database-setup.md) |

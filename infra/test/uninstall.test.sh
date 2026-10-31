@@ -134,7 +134,7 @@ fresh_host() {
     chmod 0600 "$T/etc/c15t-platform/$f"
   done
   echo '#!/bin/sh' >"$T/etc/c15t-platform/cloudflare-ufw.sh"
-  # Real files of the repository, installed where deploy.sh and the README put them.
+  # Real files of the repository, installed where deploy.sh and docs/nginx.md put them.
   cp "$SRC/infra/nginx/c15t.conf" "$T/etc/nginx/snippets/c15t.conf"
   cp "$SRC/infra/nginx/dashboard-headers.conf" "$T/etc/nginx/snippets/c15t-dashboard-headers.conf"
   cp "$SRC/infra/nginx/dashboard-locations.conf" "$T/etc/nginx/snippets/c15t-dashboard-locations.conf"
