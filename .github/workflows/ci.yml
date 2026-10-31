@@ -54,6 +54,27 @@ jobs:
           bash infra/test/uninstall.test.sh
           bash infra/test/update-cloudflare-ips.test.sh
 
+  # Two clean builds of the same commit, from different directories, in different time zones and with
+  # different file times, must give byte-identical dist/ trees and release files. The script clones the
+  # commit twice and installs from the lockfile in each clone, so this job needs no install of its own.
+  reproducible:
+    name: Reproducible build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up toolchain
+        uses: ./.github/actions/setup
+        with:
+          install: "false"
+
+      - name: Build twice and compare
+        run: bash scripts/verify-reproducible-build.sh
+
   # The real-database suites fail loudly instead of skipping when their variables are missing
   # (a green run must mean the database was exercised), so there is no database-free run of
   # `yarn test`: every test runs here, against a real PostgreSQL server.
