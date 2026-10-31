@@ -57,11 +57,14 @@ and do not switch to Plug'n'Play: Vite, drizzle-kit and the c15t CLI need `node_
 ### Testing changes to `infra/`
 
 The nginx snippets, `update-cloudflare-ips.sh` and `deploy.sh` are shell and nginx configuration, so
-`yarn test` does not cover them. Run the matching script when you change them (both are plain scripts, not
+`yarn test` does not cover them. Run the matching script when you change them (they are plain scripts, not
 yarn commands):
 
 - `infra/test/update-cloudflare-ips.test.sh` runs `infra/nginx/update-cloudflare-ips.sh` against fixtures
   and stand-ins for `curl`, `nginx`, `systemctl` and `nft`. It needs no Docker, no root and no network.
+- `infra/test/uninstall.test.sh` runs `infra/deploy.sh install` and `uninstall` against a temporary directory
+  tree, with stand-ins for `systemctl`, `nginx`, `nft` and `useradd`. It needs no Docker, no root and no
+  network. CI runs it and the previous script.
 - `infra/test/nginx-snippet.test.sh` checks the real nginx snippets (`c15t.conf`, the dashboard locations
   and headers) against a throwaway nginx container. It needs Docker Compose, `curl` and `ss`. The container
   is test-only: production has no Docker.

@@ -32,7 +32,7 @@ so that you know where to read.
 | `packages/db` | Drizzle schema and migrations for the `app` schema, pool helpers with Patroni failover handling, generated read types for the `c15t` schema. |
 | `packages/shared` | zod schemas, enums and the network validation shared by the API and the web app. |
 | `packages/config` | Shared `tsconfig` and Biome configuration. |
-| `infra` | nginx snippets and vhosts, systemd units, the PostgreSQL bootstrap script, `deploy.sh`, the Cloudflare IP updater, and the test harnesses for the nginx snippets and the updater (`infra/test`). |
+| `infra` | nginx snippets and vhosts, systemd units, the PostgreSQL bootstrap script, `deploy.sh` (deploy, rollback, install, uninstall), the Cloudflare IP updater, and the test harnesses for the nginx snippets, the updater and install/uninstall (`infra/test`). |
 | `scripts` | Repository tooling: SPDX headers, the CI database bootstrap, the DCO check, and the release packaging and release notes scripts (with their tests). |
 
 ## Dependency direction

@@ -651,6 +651,9 @@ Still open:
 - [`SECURITY.md`](./SECURITY.md): private vulnerability reporting and supported versions
 - [`CODE_OF_CONDUCT.md`](./CODE_OF_CONDUCT.md), [`GOVERNANCE.md`](./GOVERNANCE.md), [`SUPPORT.md`](./SUPPORT.md), [`CHANGELOG.md`](./CHANGELOG.md)
 - [`docs/security-model.md`](./docs/security-model.md): the threat model, including what is not protected
+- [`docs/assurance-case.md`](./docs/assurance-case.md): why the security requirements are met (threat model, trust boundaries, design principles, common weaknesses), with the known gaps
+- [`docs/cryptography.md`](./docs/cryptography.md): where each cryptographic algorithm is chosen and who can change it
+- [`docs/installation.md`](./docs/installation.md): install, upgrade, roll back and uninstall, and how to verify a release
 - [`docs/dependency-policy.md`](./docs/dependency-policy.md): how dependencies are chosen, updated and patched
 - [`docs/scorecard.md`](./docs/scorecard.md) and [`docs/openssf-best-practices.md`](./docs/openssf-best-practices.md): the OpenSSF Scorecard and Best Practices status, with evidence
 
