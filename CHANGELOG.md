@@ -16,6 +16,13 @@ their own "Security" heading and name the advisory.
 
 ## [Unreleased]
 
+### Security
+
+- Resolved `minimatch` to 11.0.1 for the `@ts-morph/common` that `@c15t/cli` pulls in
+  ([GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249), a denial of service through glob
+  parts amplification; fixed only in 11.x). The affected code is the migration CLI, a development tool: it is
+  not part of any release asset. Dependabot cannot open this update itself because the dependency is transitive.
+
 ### Changed
 
 - Test coverage of all hand-written source in `apps/*/src` and `packages/*/src` is now 100% (statements,

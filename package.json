@@ -48,6 +48,7 @@
   "resolutions": {
     "@c15t/cli/postcss": "8.5.32",
     "@c15t/cli/zod": "4.6.7",
+    "@ts-morph/common/minimatch": "11.0.1",
     "drizzle-kit/@esbuild-kit/esm-loader": "npm:tsx@4.23.15"
   }
 }
