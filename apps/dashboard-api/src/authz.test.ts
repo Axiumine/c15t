@@ -298,6 +298,15 @@ describeEnvironments('authz', ({ env }) => {
       ['POST', `/api/admin/users/${bob.id}/revoke-sessions`],
       ['GET', '/api/admin/audit'],
     ];
+    // A new admin route that is not in the list above has no proof of its 403: fail by name.
+    const pattern = (path: string) =>
+      path.replaceAll(site1.key, ':siteKey').replaceAll(alice.id, ':id').replaceAll(bob.id, ':id');
+    const listed = new Set(calls.map(([method, path]) => `${method} ${pattern(path)}`));
+    const registered = t.app.routes
+      .filter((route) => route.method !== 'ALL' && route.path.startsWith('/api/admin/'))
+      .map((route) => `${route.method} ${route.path}`);
+    const missing = [...new Set(registered)].filter((route) => !listed.has(route));
+    expect(missing, `admin routes missing from the 403 list: ${missing.join(', ')}`).toEqual([]);
     for (const [method, path, body] of calls) {
       const response = await send(method, path, aliceCookie, body);
       expect(response.status, `${method} ${path}`).toBe(403);
