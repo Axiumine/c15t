@@ -10,6 +10,7 @@ Evidence and copy-ready answers for the OpenSSF Best Practices badge of this pro
 | Repository | https://github.com/Axiumine/c15t |
 | License | AGPL-3.0-or-later |
 | Prepared | 2026-10-30, against the criteria in `criteria/criteria.yml` and `config/locales/en.yml` of https://github.com/coreinfrastructure/best-practices-badge (main) |
+| Refreshed | 2026-10-31, against the live form of project 16093 (`updated_at` 2026-10-31T09:26:58Z): the status and the pasted text of every criterion equal the live values, except `achieve_passing` and `achieve_silver`, whose live justification is empty |
 
 The criteria are numbered by the site itself: 67 for passing, 55 for silver (the criteria that silver adds or tightens), 23 for gold. Silver and gold repeat some passing ids (for example `contribution_requirements`) with stricter wording, so each is answered again at its own level.
 
@@ -26,18 +27,20 @@ The criteria are numbered by the site itself: 67 for passing, 55 for silver (the
 | ID | What to do | Where | Criteria that depend on it |
 |---|---|---|---|
 | M0 | Silver and gold only: earn the passing badge first (every passing criterion Met or N/A). Silver needs passing, gold needs silver. | bestpractices.dev project 16093 | `s:achieve_passing` |
-| M1 | Make the repository public with the full commit history on default branch `main`, and push it (not a single squashed snapshot). The working tree this document was checked against has no `.git` directory, so nothing about the history is verified here: the git and `commits/main` statements are true only once the history is pushed. Check the repository description and topics. | GitHub, Axiumine/c15t | `p:maintained`, `p:repo_public`, `p:repo_track`, `p:repo_interim`, `p:repo_distributed`, `g:repo_distributed` |
+| M1 | Make the repository public with the full commit history on default branch `main`, and push it (not a single squashed snapshot). Done: the repository is public, and the live `maintained` answer gives 2026-10-30 as the first public commit. Check the repository description and topics. | GitHub, Axiumine/c15t | `p:maintained`, `p:repo_public`, `p:repo_track`, `p:repo_interim`, `p:repo_distributed`, `g:repo_distributed` |
 | M2 | Enable private vulnerability reporting. Without it the link in SECURITY.md (`/security/advisories/new`) is a 404 for reporters. | Settings, Code security, Private vulnerability reporting | `p:vulnerability_report_private` |
 | M3 | Turn on two-factor authentication for the maintainer account `giovannimanzoni` with a TOTP app, passkey or hardware key (not SMS), and require 2FA for all members of the Axiumine organization. | Account Settings, Password and authentication; Organization Settings, Authentication security | `g:require_2FA`, `g:secure_2FA` |
 | M4 | Recommended, no criterion depends on it directly: protect `main` with a ruleset (pull request required, required status checks `Verify (typecheck, lint, build)`, `Test (PostgreSQL 17, coverage)`, `DCO sign-off`, `Analyze (javascript-typescript)`, `Analyze (actions)` and `Dependency review`, no force push, no deletion). With one maintainer do not require an approving review, review from code owners (`require_code_owner_review`) or approval of the most recent push (`require_last_push_approval`), or the maintainer cannot approve their own pull request and no merge goes through: the live `main protection` ruleset has required approvals 0 and both options off, and they are enabled when a second maintainer joins. Add a second ruleset (live name `release tags immutable`) for tags matching `v*` that restricts updates and deletions (do not restrict creations, or nobody can push a release tag); see M6 for what that means for a tag pushed too early. The check names above are the `name:` of the jobs in `.github/workflows`; `DCO sign-off` and `Dependency review` run on pull requests only, so they are not shown on `main` pushes. | Settings, Rules, Rulesets | none directly |
 | M5 | Enable Dependency graph, Dependabot alerts, Dependabot security updates, Secret scanning and Push protection. Do not also switch on CodeQL "default setup": the workflow `codeql.yml` already provides code scanning. Keep the setting "Require actions to be pinned to a full-length commit SHA" (Settings, Actions, General) **off**: it is incompatible with this repository, because `release.yml` must call the SLSA generator reusable workflow by the tag `v2.1.0` (its authors do not support a commit SHA), so the `provenance` job, and with it every release, would fail. Pinning of every other action is kept by review and by the Scorecard Pinned-Dependencies check (docs/dependency-policy.md). | Settings, Code security; Settings, Actions, General | `p:vulnerabilities_fixed_60_days`, `p:no_leaked_credentials`, `s:dependency_monitoring` |
-| M6 | Cut the first release, in this order. (1) Set `version` in the root package.json to `0.1.0` (it is `0.0.0` today). (2) Move the "Unreleased" entries of CHANGELOG.md to `## [0.1.0] - <date>` and update the compare links. (3) Merge both changes to `main` through a pull request and wait for CI to pass on `main`. (4) Only then tag that exact commit `v0.1.0` and push the tag. `release.yml` (the first job and `scripts/release-package.sh`) aborts when the tag is not a semantic version, when the tag differs from the package.json `version`, or when the tagged commit is not reachable from `main`. If the recommended `v*` tag ruleset (M4) is on, a pushed tag can be neither moved nor deleted, so a tag pushed before the version bump was merged cannot be repaired by re-tagging: fix the cause on `main` and release the next patch version (`v0.1.1`). Then wait for `release.yml`, and check the release page lists the tarballs, `SHA256SUMS`, the `.sigstore.json` bundles, the `.intoto.jsonl` provenance and the CycloneDX SBOMs. Run the `cosign verify-blob` command from SECURITY.md once against a real asset. | git tag, GitHub Releases | `p:version_unique`, `p:version_semver`, `p:version_tags`, `p:release_notes`, `p:delivery_mitm`, `p:delivery_unsigned`, `s:signed_releases` |
+| M6 | Cut the first release, in this order. (1) Set `version` in the root package.json to `0.1.0` (it was `0.0.0` before the first release). (2) Move the "Unreleased" entries of CHANGELOG.md to `## [0.1.0] - <date>` and update the compare links. (3) Merge both changes to `main` through a pull request and wait for CI to pass on `main`. (4) Only then tag that exact commit `v0.1.0` and push the tag. `release.yml` (the first job and `scripts/release-package.sh`) aborts when the tag is not a semantic version, when the tag differs from the package.json `version`, or when the tagged commit is not reachable from `main`. If the recommended `v*` tag ruleset (M4) is on, a pushed tag can be neither moved nor deleted, so a tag pushed before the version bump was merged cannot be repaired by re-tagging: fix the cause on `main` and release the next patch version (`v0.1.1`). Then wait for `release.yml`, and check the release page lists the tarballs, `SHA256SUMS`, the `.sigstore.json` bundles, the `.intoto.jsonl` provenance and the CycloneDX SBOMs. Run the `cosign verify-blob` command from SECURITY.md once against a real asset. Done: `v0.1.0` exists (tag on commit 10e051b, https://github.com/Axiumine/c15t/releases/tag/v0.1.0), and the live `signed_releases` answer says `cosign verify-blob` and `slsa-verifier` were run against its assets and passed. | git tag, GitHub Releases | `p:version_unique`, `p:version_semver`, `p:version_tags`, `p:release_notes`, `p:delivery_mitm`, `p:delivery_unsigned`, `s:signed_releases` |
 | M7 | Enable Issues, and confirm that the issue forms (bug report, feature request) show up under "New issue". Discussions are optional. | Settings, General, Features | `p:discussion`, `p:report_process`, `p:report_tracker`, `p:report_archive`, `s:report_tracker` |
 | M8 | Before the first push scan the tree (and the history if you push existing history) for secrets, for example with gitleaks. What is published is decided by `.gitignore`, which keeps these local: the real environment files (`.env`, `.env.*`), editor and agent tooling (`.idea`, `.vscode`, `.claude/`, `.gitnexus`, `AGENTS.md`) and personal scratch notes (`/db-setup.md`, `/todo.md`; the published setup guide is `docs/database-setup.md`). `CLAUDE.md` is committed on purpose: it holds the engineering rules that CONTRIBUTING.md links to. `.gitignore` only affects files that were never committed, so if you push existing history, scan it for any of these paths as well. | local shell | `p:no_leaked_credentials` |
 | M9 | On the day you paste, open the issue list and the security advisories: every bug report and enhancement request of the last 12 months must have a maintainer reply, and any vulnerability report must have been answered within 14 days. If not, answer them, or change the status and text of the criteria marked M9. | GitHub, Issues and Security tabs | `p:report_responses`, `p:enhancement_responses`, `p:vulnerability_report_response`, `s:regression_tests_added50` |
-| M10 | After the first push wait for the workflows `CI`, `CodeQL` and `Scorecard supply-chain security` to run on `main` and make sure they are green (`Dependency review` and `DCO` run on pull requests only: open one pull request to see them pass). Read the real figure from the CI run: the `Test` job log prints the text summary and the artifact `coverage` holds `lcov.info` and `coverage-summary.json`. Only if statement coverage is at least 80% switch `test_statement_coverage80` to Met (and paste the measured figure and the run URL); never paste a figure that was not measured. Confirm that code scanning shows no open medium or higher alert. | GitHub, Actions and Security tabs | `p:test_most`, `p:static_analysis_fixed`, `s:test_statement_coverage80`, `g:test_statement_coverage90`, `g:test_branch_coverage80`, `g:dynamic_analysis` |
+| M10 | After the first push wait for the workflows `CI`, `CodeQL` and `Scorecard supply-chain security` to run on `main` and make sure they are green (`Dependency review` and `DCO` run on pull requests only: open one pull request to see them pass). Read the real figure from the CI run: the `Test` job log prints the text summary and the artifact `coverage` holds `lcov.info` and `coverage-summary.json`. Only if statement coverage is at least 80% switch `test_statement_coverage80` to Met (and paste the measured figure and the run URL); never paste a figure that was not measured. Confirm that code scanning shows no open medium or higher alert. Done: the figure was read from CI run https://github.com/Axiumine/c15t/actions/runs/41186970266 on commit 5feb34c (100% of statements 2553/2553, branches 1475/1475, functions 789/789, lines 2228/2228), so the coverage criteria are Met; the live `static_analysis_fixed` answer reports no open CodeQL alert on `main`. | GitHub, Actions and Security tabs | `p:test_most`, `p:static_analysis_fixed`, `s:test_statement_coverage80`, `g:test_statement_coverage90`, `g:test_branch_coverage80`, `g:dynamic_analysis` |
 
 The prefix of a criterion above is its level: `p` passing, `s` silver, `g` gold.
+
+Status on 2026-10-31: the live form answers every criterion that depends on M0 to M10 as Met or N/A, so these actions count as done; the rows for M1, M6 and M10 record the facts that changed. The `[M…]` marks on the criteria below are kept to show which action an answer depends on.
 
 ## 2. Summary
 
@@ -55,7 +58,7 @@ The prefix of a criterion above is its level: `p` passing, `s` silver, `g` gold.
 | Reporting: Bug-reporting process | 5 | 0 | 5 | 0 | 0 |
 | Reporting: Vulnerability report process | 3 | 1 | 1 | 0 | 1 |
 | Quality: Working build system | 3 | 3 | 0 | 0 | 0 |
-| Quality: Automated test suite | 4 | 3 | 0 | 1 | 0 |
+| Quality: Automated test suite | 4 | 3 | 1 | 0 | 0 |
 | Quality: New functionality testing | 3 | 3 | 0 | 0 | 0 |
 | Quality: Warning flags | 3 | 3 | 0 | 0 | 0 |
 | Security: Secure development knowledge | 2 | 2 | 0 | 0 | 0 |
@@ -64,8 +67,8 @@ The prefix of a criterion above is its level: `p` passing, `s` silver, `g` gold.
 | Security: Publicly known vulnerabilities fixed | 2 | 1 | 1 | 0 | 0 |
 | Security: Other security issues | 1 | 0 | 1 | 0 | 0 |
 | Analysis: Static code analysis | 4 | 3 | 1 | 0 | 0 |
-| Analysis: Dynamic code analysis | 4 | 2 | 0 | 0 | 2 |
-| **Total Passing** | **67** | **39** | **21** | **1** | **6** |
+| Analysis: Dynamic code analysis | 4 | 1 | 0 | 1 | 2 |
+| **Total Passing** | **67** | **38** | **22** | **1** | **6** |
 
 ### Silver
 
@@ -82,18 +85,18 @@ The prefix of a criterion above is its level: `p` passing, `s` silver, `g` gold.
 | Reporting: Vulnerability report process | 2 | 1 | 0 | 0 | 1 |
 | Quality: Coding standards | 2 | 2 | 0 | 0 | 0 |
 | Quality: Working build system | 4 | 3 | 0 | 0 | 1 |
-| Quality: Installation system | 3 | 1 | 0 | 1 | 1 |
+| Quality: Installation system | 3 | 2 | 0 | 0 | 1 |
 | Quality: Externally-maintained components | 4 | 3 | 1 | 0 | 0 |
-| Quality: Automated test suite | 3 | 1 | 0 | 1 | 1 |
+| Quality: Automated test suite | 3 | 1 | 1 | 0 | 1 |
 | Quality: New functionality testing | 2 | 2 | 0 | 0 | 0 |
 | Quality: Warning flags | 1 | 1 | 0 | 0 | 0 |
 | Security: Secure development knowledge | 1 | 1 | 0 | 0 | 0 |
 | Security: Use basic good cryptographic practices | 7 | 5 | 0 | 2 | 0 |
 | Security: Secure release | 2 | 0 | 1 | 1 | 0 |
-| Security: Other security issues | 3 | 2 | 0 | 1 | 0 |
+| Security: Other security issues | 3 | 3 | 0 | 0 | 0 |
 | Analysis: Static code analysis | 1 | 1 | 0 | 0 | 0 |
 | Analysis: Dynamic code analysis | 1 | 0 | 0 | 0 | 1 |
-| **Total Silver** | **55** | **37** | **4** | **9** | **5** |
+| **Total Silver** | **55** | **39** | **5** | **6** | **5** |
 
 ### Gold
 
@@ -105,20 +108,20 @@ The prefix of a criterion above is its level: `p` passing, `s` silver, `g` gold.
 | Change Control: Public version-controlled source repository | 4 | 0 | 3 | 1 | 0 |
 | Quality: Coding standards | 2 | 0 | 0 | 2 | 0 |
 | Quality: Working build system | 1 | 0 | 0 | 1 | 0 |
-| Quality: Automated test suite | 4 | 2 | 0 | 2 | 0 |
+| Quality: Automated test suite | 4 | 2 | 2 | 0 | 0 |
 | Security: Use basic good cryptographic practices | 2 | 1 | 0 | 1 | 0 |
 | Security: Secured delivery against man-in-the-middle (MITM) attacks | 1 | 1 | 0 | 0 | 0 |
 | Security: Other security issues | 2 | 1 | 0 | 1 | 0 |
 | Analysis: Dynamic code analysis | 2 | 0 | 1 | 1 | 0 |
-| **Total Gold** | **23** | **7** | **4** | **12** | **0** |
+| **Total Gold** | **23** | **7** | **6** | **10** | **0** |
 
 Columns: **Met** = Met as soon as the files in the repository exist. **Met after manual action** = Met only once a step from section 1 is done (the step is named in the criterion). Unmet and N/A as in the form.
 
 Where this leaves the badges:
 
-- **Passing**: attainable. 60 criteria Met (21 of them after manual actions), 6 N/A, 1 Unmet. Every Unmet passing criterion is SUGGESTED or SHOULD level, so none blocks the badge.
-- **Silver**: not attainable yet. 9 criteria are Unmet; the blocking ones are `access_continuity` (one maintainer), `test_statement_coverage80` (no figure read from a CI run yet), `assurance_case` (the section is not written yet) and `installation_common`. The rest are SHOULD or SUGGESTED.
-- **Gold**: not attainable for now. 12 of 23 criteria are Unmet, among them `bus_factor` (needs 2 people), `contributors_unassociated` (needs 2 significant contributors from different organizations), `two_person_review` (needs a second reviewer), `build_reproducible`, `test_statement_coverage90`, `test_branch_coverage80` and `security_review`.
+- **Passing**: awarded (the live form shows 100%, badge level `passing`, achieved 2026-10-30). 60 criteria Met (22 of them after manual actions), 6 N/A, 1 Unmet. The one Unmet passing criterion, `dynamic_analysis_enable_assertions`, is SUGGESTED, so it does not block the badge.
+- **Silver**: not awarded yet, 98% on the live form. 44 criteria Met (5 of them after manual actions), 5 N/A, 6 Unmet. The one Unmet MUST criterion is `access_continuity` (one maintainer; it needs a second person) and it blocks the badge. The other five Unmet are SHOULD or SUGGESTED and do not block it: `bus_factor`, `internationalization`, `crypto_algorithm_agility`, `crypto_used_network` and `version_tags_signed`.
+- **Gold**: not attainable for now, 61% on the live form. 13 of 23 criteria are Met (6 of them after manual actions) and 10 are Unmet. Nine of the Unmet are MUST: `achieve_silver` (blocked by silver `access_continuity`), `bus_factor` (needs 2 people), `contributors_unassociated` (needs 2 significant contributors from different organizations), `small_tasks`, `code_review_standards`, `two_person_review` (needs a second reviewer), `build_reproducible`, `crypto_used_network` and `security_review`; the tenth, `dynamic_analysis_enable_assertions`, is SHOULD. `test_statement_coverage90` and `test_branch_coverage80` are Met since CI measures 100%.
 
 ## 3. Identification (project fields, not criteria)
 
@@ -172,7 +175,7 @@ Select: **Met** | URL required: no
 Justification to paste:
 
 ```text
-The README https://github.com/Axiumine/c15t#readme explains how to obtain the software (clone the repository, see Getting started), how to give feedback (GitHub Issues with bug and feature forms, see SUPPORT.md) and how to contribute (CONTRIBUTING.md).
+The project site is the GitHub repository https://github.com/Axiumine/c15t . Obtain: git clone https://github.com/Axiumine/c15t.git (README Getting started, step 1) or download the signed release files from https://github.com/Axiumine/c15t/releases . Feedback (bug reports and enhancements): GitHub Issues with a bug report form and a feature request form, described in SUPPORT.md and CONTRIBUTING.md. Contribute: CONTRIBUTING.md, linked from the README. https://github.com/Axiumine/c15t#readme
 ```
 
 Evidence: [README.md](https://github.com/Axiumine/c15t/blob/main/README.md), [SUPPORT.md](https://github.com/Axiumine/c15t/blob/main/SUPPORT.md), [CONTRIBUTING.md](https://github.com/Axiumine/c15t/blob/main/CONTRIBUTING.md)
@@ -200,7 +203,7 @@ Select: **Met** | URL required: yes
 Justification to paste:
 
 ```text
-CONTRIBUTING.md lists the requirements for acceptable contributions: yarn typecheck, yarn lint (Biome) and yarn test must pass, new behavior needs tests, new files need the SPDX header, commits need a DCO sign-off; the coding standard is the strict TypeScript and Biome configuration in packages/config. https://github.com/Axiumine/c15t/blob/main/CONTRIBUTING.md
+CONTRIBUTING.md states what an acceptable contribution is: it follows the strict TypeScript and Biome configuration (packages/config), passes yarn typecheck, yarn lint and yarn test, adds tests, carries the SPDX header and a DCO sign-off. https://github.com/Axiumine/c15t/blob/main/CONTRIBUTING.md
 ```
 
 Evidence: [CONTRIBUTING.md](https://github.com/Axiumine/c15t/blob/main/CONTRIBUTING.md), [packages/config/biome.json](https://github.com/Axiumine/c15t/blob/main/packages/config/biome.json), [packages/config/tsconfig.base.json](https://github.com/Axiumine/c15t/blob/main/packages/config/tsconfig.base.json)
@@ -332,7 +335,7 @@ Select: **Met** | URL required: no
 Justification to paste:
 
 ```text
-The project is actively maintained: the maintainer commits regularly, CI, CodeQL and Dependabot run on the repository, and reports are handled as described in SUPPORT.md and SECURITY.md. https://github.com/Axiumine/c15t/commits/main
+The project is actively developed and maintained in public by one maintainer. The repository is new (first public commit on 2026-10-30). CI, CodeQL and OpenSSF Scorecard run on main, and Dependabot is configured and has already opened update pull requests. Bug and vulnerability reports are handled as described in SUPPORT.md and SECURITY.md. https://github.com/Axiumine/c15t/commits/main
 ```
 
 Evidence: [GOVERNANCE.md](https://github.com/Axiumine/c15t/blob/main/GOVERNANCE.md), [SUPPORT.md](https://github.com/Axiumine/c15t/blob/main/SUPPORT.md)
@@ -380,7 +383,7 @@ Select: **Met** | URL required: no
 Justification to paste:
 
 ```text
-Development happens in the public repository: every commit and every pull request branch is visible, not only releases. https://github.com/Axiumine/c15t/commits/main
+Development happens on the public main branch, not in release snapshots: every change arrives as a commit or pull request that anyone can read and review, with its CI results. Release v0.1.0 was cut from main. https://github.com/Axiumine/c15t/commits/main
 ```
 
 Evidence: [CONTRIBUTING.md](https://github.com/Axiumine/c15t/blob/main/CONTRIBUTING.md)
@@ -396,7 +399,7 @@ Select: **Met** | URL required: no
 Justification to paste:
 
 ```text
-The project uses git, hosted on GitHub.
+The source repository uses git, hosted on GitHub: https://github.com/Axiumine/c15t
 ```
 
 Depends on: M1 (section 1).
@@ -412,7 +415,7 @@ Select: **Met** | URL required: no
 Justification to paste:
 
 ```text
-Each release has a unique SemVer tag vMAJOR.MINOR.PATCH; the release workflow (.github/workflows/release.yml, scripts/release-package.sh) refuses a tag that is not a semantic version, does not match the version in package.json, or points at a commit that is not on main. A deployment is additionally identified by its git commit SHA (infra/deploy.sh builds releases/<git sha>).
+Each release has a unique SemVer identifier, the git tag vMAJOR.MINOR.PATCH. The first release is v0.1.0 (package.json version 0.1.0, tag on commit 10e051b). The release workflow refuses a tag that is not a semantic version, differs from the package.json version or is not on main. https://github.com/Axiumine/c15t/releases/tag/v0.1.0
 ```
 
 Evidence: [.github/workflows/release.yml](https://github.com/Axiumine/c15t/blob/main/.github/workflows/release.yml), [scripts/release-package.sh](https://github.com/Axiumine/c15t/blob/main/scripts/release-package.sh), [infra/deploy.sh](https://github.com/Axiumine/c15t/blob/main/infra/deploy.sh), [CHANGELOG.md](https://github.com/Axiumine/c15t/blob/main/CHANGELOG.md)
@@ -428,7 +431,7 @@ Select: **Met** | URL required: no
 Justification to paste:
 
 ```text
-Releases use Semantic Versioning (vMAJOR.MINOR.PATCH); CHANGELOG.md states that the project adheres to SemVer. https://github.com/Axiumine/c15t/blob/main/CHANGELOG.md
+The project uses Semantic Versioning: CHANGELOG.md states it, release v0.1.0 follows MAJOR.MINOR.PATCH, and before 1.0.0 minor versions may contain breaking changes. https://github.com/Axiumine/c15t/blob/main/CHANGELOG.md
 ```
 
 Evidence: [CHANGELOG.md](https://github.com/Axiumine/c15t/blob/main/CHANGELOG.md)
@@ -444,7 +447,7 @@ Select: **Met** | URL required: no
 Justification to paste:
 
 ```text
-Every release is a git tag v<MAJOR>.<MINOR>.<PATCH> on a commit of main whose package.json version matches; pushing the tag starts the release workflow. https://github.com/Axiumine/c15t/tags
+Each release is identified by a git tag. The tag v0.1.0 exists, and a repository ruleset keeps v* tags from being moved or deleted. https://github.com/Axiumine/c15t/tags
 ```
 
 Evidence: [.github/workflows/release.yml](https://github.com/Axiumine/c15t/blob/main/.github/workflows/release.yml), [CHANGELOG.md](https://github.com/Axiumine/c15t/blob/main/CHANGELOG.md)
@@ -462,7 +465,7 @@ Select: **Met** | URL required: yes | N/A allowed: yes
 Justification to paste:
 
 ```text
-Each release has human-written release notes: CHANGELOG.md (Keep a Changelog format, one section per version) and the GitHub Release page, which the release workflow fills from the version section of CHANGELOG.md (scripts/release-notes.sh), followed by instructions to verify the assets. https://github.com/Axiumine/c15t/blob/main/CHANGELOG.md
+Each release has human-readable release notes taken from the matching CHANGELOG.md section (Keep a Changelog format, not a raw git log). The release page of v0.1.0 shows them. https://github.com/Axiumine/c15t/releases/tag/v0.1.0
 ```
 
 Evidence: [CHANGELOG.md](https://github.com/Axiumine/c15t/blob/main/CHANGELOG.md), [.github/workflows/release.yml](https://github.com/Axiumine/c15t/blob/main/.github/workflows/release.yml), [scripts/release-notes.sh](https://github.com/Axiumine/c15t/blob/main/scripts/release-notes.sh)
@@ -478,7 +481,7 @@ Select: **N/A** | URL required: no | N/A allowed: yes
 Justification to paste:
 
 ```text
-No publicly known run-time vulnerability with a CVE has been fixed in any release so far. A security fix gets its own Security heading in CHANGELOG.md that names the advisory and CVE (see SECURITY.md).
+The release notes of v0.1.0 list no vulnerability fixes: no publicly known run-time vulnerability with a CVE has been fixed in this project. A security fix will get its own Security heading in CHANGELOG.md that names the advisory (the GitHub Security Advisory carries the CVE; see SECURITY.md).
 ```
 
 Evidence: [CHANGELOG.md](https://github.com/Axiumine/c15t/blob/main/CHANGELOG.md), [SECURITY.md](https://github.com/Axiumine/c15t/blob/main/SECURITY.md)
@@ -512,7 +515,7 @@ Select: **Met** | URL required: no
 Justification to paste:
 
 ```text
-GitHub Issues is the issue tracker: https://github.com/Axiumine/c15t/issues
+GitHub Issues is the issue tracker for individual issues: https://github.com/Axiumine/c15t/issues
 ```
 
 Evidence: [.github/ISSUE_TEMPLATE/config.yml](https://github.com/Axiumine/c15t/blob/main/.github/ISSUE_TEMPLATE/config.yml)
@@ -528,7 +531,7 @@ Select: **Met** | URL required: no
 Justification to paste:
 
 ```text
-The maintainer acknowledges every bug report (SUPPORT.md: new issues are looked at within a week); at the time of writing no bug report from the last 12 months is unanswered. https://github.com/Axiumine/c15t/issues?q=is%3Aissue
+At the time of writing no bug report has been submitted (the repository was published on 2026-10-30 and its only pull requests are Dependabot updates), so none is unanswered. SUPPORT.md states the policy: new issues are usually looked at within a week. https://github.com/Axiumine/c15t/issues?q=is%3Aissue
 ```
 
 Evidence: [SUPPORT.md](https://github.com/Axiumine/c15t/blob/main/SUPPORT.md)
@@ -544,7 +547,7 @@ Select: **Met** | URL required: no
 Justification to paste:
 
 ```text
-The maintainer responds to enhancement requests (accept, decline or discuss); at the time of writing no enhancement request from the last 12 months is unanswered. https://github.com/Axiumine/c15t/issues?q=is%3Aissue
+At the time of writing no enhancement request has been submitted (the repository was published on 2026-10-30 and its only pull requests are Dependabot updates), so none is unanswered. SUPPORT.md and CONTRIBUTING.md describe the process (feature request form, discussion before large changes). https://github.com/Axiumine/c15t/issues?q=is%3Aissue
 ```
 
 Evidence: [SUPPORT.md](https://github.com/Axiumine/c15t/blob/main/SUPPORT.md), [.github/ISSUE_TEMPLATE/feature_request.yml](https://github.com/Axiumine/c15t/blob/main/.github/ISSUE_TEMPLATE/feature_request.yml)
@@ -684,28 +687,26 @@ Select: **Met** | URL required: no
 Justification to paste:
 
 ```text
-The suite is invoked with yarn test (which runs vitest run), the standard script name in a Yarn/Node project.
+The test suite is invoked in the standard way for a Yarn/Node project: yarn test. https://github.com/Axiumine/c15t/blob/main/package.json
 ```
 
 Evidence: [package.json](https://github.com/Axiumine/c15t/blob/main/package.json)
 
-##### `test_most` (SUGGESTED): Unmet [M10]
+##### `test_most` (SUGGESTED): Met [M10]
 
 > It is SUGGESTED that the test suite cover most (or ideally all) the code branches, input fields, and functionality.
 
-Select: **Unmet** | URL required: no
+Select: **Met** | URL required: no
 
-Justification to paste (optional for Unmet):
+Justification to paste:
 
 ```text
-The suite targets the security-critical paths (authorization, tenant isolation, env validation, failover handling, migrations, every API route) but no coverage figure has been read from a CI run yet (CI produces the coverage report on every run, artifact "coverage"), so this is not claimed as Met.
+Measured by CI on main (job "Test (PostgreSQL 17, coverage)", commit 5feb34c): the automated test suite covers 100% of statements (2553/2553), 100% of branches (1475/1475), 100% of functions (789/789) and 100% of lines (2228/2228), counted over all 121 non-test source files of apps/*/src and packages/*/src (coverage.include in vitest.config.ts), entry points included. Entry points are covered with mocked collaborators, not against a real listening socket. coverage.thresholds in vitest.config.ts makes the job fail below 100%. https://github.com/Axiumine/c15t/actions/runs/41186970266
 ```
 
-Evidence: [.github/workflows/ci.yml](https://github.com/Axiumine/c15t/blob/main/.github/workflows/ci.yml)
+Evidence: [.github/workflows/ci.yml](https://github.com/Axiumine/c15t/blob/main/.github/workflows/ci.yml), [vitest.config.ts](https://github.com/Axiumine/c15t/blob/main/vitest.config.ts)
 
 Depends on: M10 (section 1).
-
-To reach Met: SUGGESTED, so it does not block the badge. @vitest/coverage-v8 is a pinned devDependency (5.0.5) and ci.yml always produces the coverage report, so nothing needs to be added. After the first CI run on main, read the real statement and branch percentages from the `coverage` artifact (see silver test_statement_coverage80); flip to Met only if they show that most statements and branches are covered, and never claim a figure that was not measured.
 
 ##### `test_continuous_integration` (SUGGESTED): Met
 
@@ -716,7 +717,7 @@ Select: **Met** | URL required: no
 Justification to paste:
 
 ```text
-GitHub Actions (.github/workflows/ci.yml) runs typecheck, lint, the SPDX header check, the test suites (with a PostgreSQL service container, with coverage) and the build on every pull request and every push to main. https://github.com/Axiumine/c15t/blob/main/.github/workflows/ci.yml
+Continuous integration runs typecheck, lint, tests and the build on every pull request and every push to main of a central repository. https://github.com/Axiumine/c15t/blob/main/.github/workflows/ci.yml
 ```
 
 Evidence: [.github/workflows/ci.yml](https://github.com/Axiumine/c15t/blob/main/.github/workflows/ci.yml)
@@ -760,7 +761,7 @@ Select: **Met** | URL required: no
 Justification to paste:
 
 ```text
-The test policy is part of the instructions for change proposals: CONTRIBUTING.md and the pull request template (.github/PULL_REQUEST_TEMPLATE.md) both require tests for new behavior.
+The instructions for change proposals (CONTRIBUTING.md and .github/PULL_REQUEST_TEMPLATE.md) state that tests must be added for major new functionality.
 ```
 
 Evidence: [CONTRIBUTING.md](https://github.com/Axiumine/c15t/blob/main/CONTRIBUTING.md), [.github/PULL_REQUEST_TEMPLATE.md](https://github.com/Axiumine/c15t/blob/main/.github/PULL_REQUEST_TEMPLATE.md)
@@ -790,7 +791,7 @@ Select: **Met** | URL required: no | N/A allowed: yes
 Justification to paste:
 
 ```text
-yarn lint (biome check on 265 files when last run, 2026-10-30) reports no errors and no warnings, and the TypeScript build has noEmitOnError set; CI fails on any compiler or linter error, so code is not merged with open diagnostics.
+yarn lint (biome check on 268 files at the current main commit, 2026-10-30) reports no errors and no warnings, yarn typecheck passes, and the TypeScript build has noEmitOnError set. CI runs both on every pull request and every push to main, and the main branch ruleset requires the 'Verify (typecheck, lint, build)' check before merging, so code is not merged with open compiler or linter errors.
 ```
 
 Evidence: [packages/config/tsconfig.base.json](https://github.com/Axiumine/c15t/blob/main/packages/config/tsconfig.base.json), [.github/workflows/ci.yml](https://github.com/Axiumine/c15t/blob/main/.github/workflows/ci.yml)
@@ -804,7 +805,7 @@ Select: **Met** | URL required: no | N/A allowed: yes
 Justification to paste:
 
 ```text
-The project is maximally strict where practical: TypeScript strict plus noUncheckedIndexedAccess, exactOptionalPropertyTypes, noPropertyAccessFromIndexSignature, noUnused* and erasableSyntaxOnly, and Biome rules for any, unused code and non-null assertions at error level. https://github.com/Axiumine/c15t/blob/main/packages/config/tsconfig.base.json
+Warnings are maximally strict where practical: TypeScript strict with noUncheckedIndexedAccess, exactOptionalPropertyTypes, noPropertyAccessFromIndexSignature, noUnused*, noImplicitReturns and erasableSyntaxOnly, and Biome rules for any, unused code and non-null assertions at error level. https://github.com/Axiumine/c15t/blob/main/packages/config/tsconfig.base.json
 ```
 
 Evidence: [packages/config/tsconfig.base.json](https://github.com/Axiumine/c15t/blob/main/packages/config/tsconfig.base.json), [packages/config/biome.json](https://github.com/Axiumine/c15t/blob/main/packages/config/biome.json)
@@ -926,7 +927,7 @@ Select: **Met** | URL required: no | N/A allowed: yes
 Justification to paste:
 
 ```text
-The default security mechanisms do not depend on algorithms with known serious weaknesses (no SHA-1, no CBC-mode ciphers in the code); password hashing is scrypt and TLS is limited to 1.2/1.3 in the reference nginx config.
+The default security mechanisms do not depend on algorithms or modes with known serious weaknesses: the code contains no SHA-1, MD5 or CBC use, passwords are hashed by Better Auth with its default scrypt (the repository has no custom cryptography, see docs/security-model.md), and the reference nginx config limits TLS to 1.2 and 1.3.
 ```
 
 Evidence: [apps/dashboard-api/src/password.ts](https://github.com/Axiumine/c15t/blob/main/apps/dashboard-api/src/password.ts), [infra/nginx/dashboard.conf](https://github.com/Axiumine/c15t/blob/main/infra/nginx/dashboard.conf)
@@ -984,7 +985,7 @@ Select: **Met** | URL required: no
 Justification to paste:
 
 ```text
-Source and release assets are delivered only over HTTPS from github.com (https://github.com/Axiumine/c15t/releases); release assets are additionally signed with Sigstore cosign and carry SLSA provenance, so tampering is detectable.
+Everything is delivered from github.com over HTTPS: git clone https://github.com/Axiumine/c15t and the release files of v0.1.0 at https://github.com/Axiumine/c15t/releases/tag/v0.1.0 . The project operates no mirror, download page or package feed over plain HTTP, and no document tells users to fetch anything over http://. Release files are also signed with keyless cosign and carry SLSA provenance; SECURITY.md has the verification commands.
 ```
 
 Evidence: [SECURITY.md](https://github.com/Axiumine/c15t/blob/main/SECURITY.md), [.github/workflows/release.yml](https://github.com/Axiumine/c15t/blob/main/.github/workflows/release.yml)
@@ -1000,7 +1001,7 @@ Select: **Met** | URL required: no
 Justification to paste:
 
 ```text
-No hash is retrieved over HTTP. SHA256SUMS is published on the HTTPS GitHub Release page together with a cosign signature bundle; the verification steps are in SECURITY.md (Verifying releases).
+No cryptographic hash is retrieved or published over HTTP: SHA256SUMS is a release asset on github.com (HTTPS) and is itself signed with cosign (SHA256SUMS.sigstore.json); no document or script tells users to fetch a checksum over http://. Verification commands: SECURITY.md, "Verifying releases". https://github.com/Axiumine/c15t/releases/tag/v0.1.0
 ```
 
 Evidence: [SECURITY.md](https://github.com/Axiumine/c15t/blob/main/SECURITY.md), [.github/workflows/release.yml](https://github.com/Axiumine/c15t/blob/main/.github/workflows/release.yml)
@@ -1018,7 +1019,7 @@ Select: **Met** | URL required: no
 Justification to paste:
 
 ```text
-There is no known unpatched vulnerability of medium or higher severity. SECURITY.md sets 60 days (30 for critical and high) as the fix target, and docs/dependency-policy.md sets 7 days (critical), 14 days (high) and 60 days (medium) for vulnerable dependencies. https://github.com/Axiumine/c15t/security
+No vulnerability of medium or higher severity has been publicly known for more than 60 days: the repository was first published on 2026-10-30, and GitHub shows no published security advisories, no open Dependabot alerts and no open secret-scanning alerts. The first CodeQL alerts, raised the same day, are in developer scripts and tests (see static_analysis_fixed). SECURITY.md sets 60 days (30 for critical and high) as the fix target, and docs/dependency-policy.md sets 7 days (critical), 14 days (high) and 60 days (medium) for vulnerable dependencies. https://github.com/Axiumine/c15t/security
 ```
 
 Evidence: [SECURITY.md](https://github.com/Axiumine/c15t/blob/main/SECURITY.md), [docs/dependency-policy.md](https://github.com/Axiumine/c15t/blob/main/docs/dependency-policy.md)
@@ -1050,7 +1051,7 @@ Select: **Met** | URL required: no
 Justification to paste:
 
 ```text
-The repository holds no valid private credential: the real environment files are git-ignored, env.example contains only empty placeholders and commented defaults, production secrets live in /etc/c15t-platform/*.env outside the tree, and the tests generate throwaway values at run time (the only fixed password, in ci.yml, belongs to a PostgreSQL service container that exists for the duration of one CI job). GitHub secret scanning with push protection is enabled.
+The repository holds no valid private credential: the real .env files (.env, .env.*) are git-ignored, env.example has only empty placeholders and commented defaults, and production secrets live in /etc/c15t-platform/*.env outside the tree. CI database secrets are generated per run (openssl rand) and masked; the one fixed password in ci.yml belongs to a PostgreSQL service container that exists for one CI job. Test files contain only dummy literals for mocks and throwaway test databases, none valid for a real system. GitHub secret scanning with push protection is enabled and shows no alerts, and a gitleaks scan found nothing.
 ```
 
 Evidence: [.gitignore](https://github.com/Axiumine/c15t/blob/main/.gitignore), [env.example](https://github.com/Axiumine/c15t/blob/main/env.example), [docs/security-model.md](https://github.com/Axiumine/c15t/blob/main/docs/security-model.md)
@@ -1084,7 +1085,7 @@ Select: **Met** | URL required: no | N/A allowed: yes
 Justification to paste:
 
 ```text
-CodeQL runs its security-extended query suite for JavaScript/TypeScript (injection, XSS, path traversal, insecure randomness, hard-coded credentials) and for GitHub Actions workflows (script injection); see .github/workflows/codeql.yml.
+CodeQL with its security queries for JavaScript/TypeScript (injection, XSS, path traversal, insecure randomness, hard-coded credentials) runs in .github/workflows/codeql.yml.
 ```
 
 Evidence: [.github/workflows/codeql.yml](https://github.com/Axiumine/c15t/blob/main/.github/workflows/codeql.yml)
@@ -1098,7 +1099,7 @@ Select: **Met** | URL required: no | N/A allowed: yes
 Justification to paste:
 
 ```text
-No medium or higher severity finding is open in code scanning at the time of writing; SECURITY.md sets 60 days (30 for critical and high) as the maximum time to fix a confirmed vulnerability. https://github.com/Axiumine/c15t/security/code-scanning
+The first CodeQL scan of main (2026-10-30) raised 8 alerts, all in scripts, tests or the release workflow and none in the deployed services. Seven were fixed in pull request #4 (https://github.com/Axiumine/c15t/pull/4) and are closed; the eighth (actions/unpinned-tag: the SLSA generator, which its authors only support by tag) was dismissed with a written reason. No CodeQL alert is open on main. SECURITY.md sets 60 days (30 for critical and high). https://github.com/Axiumine/c15t/security/code-scanning
 ```
 
 Evidence: [SECURITY.md](https://github.com/Axiumine/c15t/blob/main/SECURITY.md)
@@ -1130,7 +1131,7 @@ Select: **Met** | URL required: no
 Justification to paste:
 
 ```text
-Property-based tests with fast-check (13 files named *.fuzz.test.ts, hundreds of random inputs per property) attack the parsers and validators that face untrusted input: request guard, site keys, CIDR and host parsing, CSV export, pagination cursors, password generation. They run with yarn test in CI on every pull request and every push to main, and a release can only be cut from a commit on main, so they run before every release. This varies inputs but is not a coverage-guided fuzzer or a web scanner.
+Property-based tests with fast-check (13 *.fuzz.test.ts files) vary the inputs of the parsers and validators that face untrusted data, together with the PostgreSQL integration tests. They run with yarn test in CI on every pull request and every push to main (CI is green on commit 10e051b, the v0.1.0 commit), and the ruleset requires that check before merging. release.yml only accepts a tag on a commit reachable from main, so a release is always built from code these tests have run on. The first release, v0.1.0, was built from main after these tests passed. This is input-varying testing, not a coverage-guided fuzzer or a web scanner.
 ```
 
 Evidence: [apps/consent-api/src/request-guard.fuzz.test.ts](https://github.com/Axiumine/c15t/blob/main/apps/consent-api/src/request-guard.fuzz.test.ts), [packages/shared/src/network.fuzz.test.ts](https://github.com/Axiumine/c15t/blob/main/packages/shared/src/network.fuzz.test.ts), [apps/dashboard-api/src/csv.fuzz.test.ts](https://github.com/Axiumine/c15t/blob/main/apps/dashboard-api/src/csv.fuzz.test.ts), [.github/workflows/ci.yml](https://github.com/Axiumine/c15t/blob/main/.github/workflows/ci.yml)
@@ -1144,24 +1145,24 @@ Select: **N/A** | URL required: no | N/A allowed: yes
 Justification to paste:
 
 ```text
-The project is written in TypeScript and runs on Node.js, which are memory-safe; there is no C or C++ code and no native addon of its own.
+The project is written in TypeScript on Node.js, which are memory-safe; it contains no C or C++ code.
 ```
 
 Evidence: [package.json](https://github.com/Axiumine/c15t/blob/main/package.json)
 
-##### `dynamic_analysis_enable_assertions` (SUGGESTED): Met
+##### `dynamic_analysis_enable_assertions` (SUGGESTED): Unmet
 
 > It is SUGGESTED that the project use a configuration for at least some dynamic analysis (such as testing or fuzzing) which enables many assertions. In many cases these assertions should not be enabled in production builds.
 
-Select: **Met** | URL required: no
+Select: **Unmet** | URL required: no
 
-Justification to paste:
+Justification to paste (optional for Unmet):
 
 ```text
-Every test run, including the property-based tests, executes with assertions on: the Vitest suites assert behavior throughout, and production invariants (zod boundary validation, the registry re-check that trustedOrigins is non-empty) are always active because JavaScript has no assertion-stripping build mode.
+Production code validates inputs with zod and has a few explicit invariant checks that throw (for example assertTrustedOrigins in apps/consent-api/src/instance.ts, which the property-based tests exercise), but it does not use assert statements (node:assert) or any systematic set of run-time assertions, so "many" is not met.
 ```
 
-Evidence: [apps/dashboard-api/src/route-coverage.test.ts](https://github.com/Axiumine/c15t/blob/main/apps/dashboard-api/src/route-coverage.test.ts), [apps/consent-api/src/registry.ts](https://github.com/Axiumine/c15t/blob/main/apps/consent-api/src/registry.ts)
+To reach Met: SUGGESTED, so it does not block the badge. Add invariant checks (assert from node:assert) in the parsers and registry and run the fuzz tests with them.
 
 ##### `dynamic_analysis_fixed` (MUST): N/A
 
@@ -1172,7 +1173,7 @@ Select: **N/A** | URL required: no | N/A allowed: yes
 Justification to paste:
 
 ```text
-No medium or higher severity exploitable vulnerability has been found by dynamic analysis so far; any finding would be handled under SECURITY.md.
+No medium or higher severity exploitable vulnerability has been found by dynamic analysis. The property-based tests did find four low-severity gaps (a port-80 Host check that is wider than the list, an origin with only a password accepted, numeric host spellings accepted, a deeply nested stored choice that overflows the stack); none is a proven exploit, and each is recorded in the tests as test.fails until fixed. Any medium or higher finding would be handled under SECURITY.md.
 ```
 
 Evidence: [SECURITY.md](https://github.com/Axiumine/c15t/blob/main/SECURITY.md)
@@ -1284,7 +1285,7 @@ Select: **Unmet** | URL required: yes
 Justification to paste (optional for Unmet):
 
 ```text
-The project has a single maintainer. If that person were unavailable, nobody else could merge changes, cut a release or answer security reports within a week. GOVERNANCE.md says so openly. https://github.com/Axiumine/c15t/blob/main/GOVERNANCE.md
+The project has a single active maintainer, and GOVERNANCE.md documents no second person or procedure that would let the project create and close issues, merge changes and release a version within a week if that maintainer were unavailable. Adding a second maintainer is a stated goal. https://github.com/Axiumine/c15t/blob/main/GOVERNANCE.md
 ```
 
 Evidence: [GOVERNANCE.md](https://github.com/Axiumine/c15t/blob/main/GOVERNANCE.md)
@@ -1300,7 +1301,7 @@ Select: **Unmet** | URL required: yes
 Justification to paste (optional for Unmet):
 
 ```text
-The bus factor is 1: there is one maintainer. GOVERNANCE.md states this and lists adding a second maintainer as a goal. https://github.com/Axiumine/c15t/blob/main/GOVERNANCE.md
+The bus factor is 1 (one maintainer); see GOVERNANCE.md.
 ```
 
 Evidence: [GOVERNANCE.md](https://github.com/Axiumine/c15t/blob/main/GOVERNANCE.md)
@@ -1318,7 +1319,7 @@ Select: **Met** | URL required: yes
 Justification to paste:
 
 ```text
-The README section "Status and what is next" lists what is done (foundation, access control, consent views, hardening) and what is still open (the first release 0.1.0, a retention job for consent records, monitoring and cluster backups, calling the c15t admin endpoints through the node-sdk), the "Open questions" section lists the undecided points, and the design decisions D1 to D11 state what the project deliberately does not do (no Docker, no SSR, no SEO, no deletion of consent records). https://github.com/Axiumine/c15t/blob/main/README.md
+The README section "Status and what is next" lists what is done (foundation, access control, consent views, hardening) and what is still open (a 1.0 release, a retention job for consent records, monitoring and cluster backups, calling the c15t admin endpoints through the node-sdk), the "Open questions" section lists the undecided points, and the design decisions D1 to D11 state what the project deliberately does not do (no Docker, no SSR, no SEO, no deletion of consent records). https://github.com/Axiumine/c15t/blob/main/README.md
 ```
 
 Evidence: [README.md](https://github.com/Axiumine/c15t/blob/main/README.md)
@@ -1458,7 +1459,7 @@ Select: **Met** | URL required: no | N/A allowed: yes
 Justification to paste:
 
 ```text
-Only the latest release line is supported (SECURITY.md, Supported versions). The upgrade path is documented: infra/deploy.sh builds a release, runs forward migrations and switches the current symlink (a rollback command re-activates the previous release; database migrations are not reverted), and CHANGELOG.md is where breaking changes are listed per version (there is no release yet; before 1.0.0 minor versions may contain breaking changes).
+Only the latest release line is supported (SECURITY.md, Supported versions). The upgrade path is documented: infra/deploy.sh builds a release, runs forward migrations and switches the current symlink (a rollback command re-activates the previous release; database migrations are not reverted), and CHANGELOG.md is where breaking changes are listed per version (v0.1.0 is the first release; before 1.0.0 minor versions may contain breaking changes).
 ```
 
 Evidence: [SECURITY.md](https://github.com/Axiumine/c15t/blob/main/SECURITY.md), [infra/deploy.sh](https://github.com/Axiumine/c15t/blob/main/infra/deploy.sh), [CHANGELOG.md](https://github.com/Axiumine/c15t/blob/main/CHANGELOG.md)
@@ -1570,7 +1571,7 @@ Select: **Met** | URL required: no | N/A allowed: yes
 Justification to paste:
 
 ```text
-The build keeps debugging information: sourceMap and declarationMap are enabled in packages/config/tsconfig.base.json and nothing strips them.
+The tsc builds of the services and packages keep debugging information: sourceMap and declarationMap are enabled in packages/config/tsconfig.base.json and nothing strips them. The dashboard-web Vite bundle is built with build.sourcemap set to false (apps/dashboard-web/vite.config.ts), so it has no source maps unless that setting is changed.
 ```
 
 Evidence: [packages/config/tsconfig.base.json](https://github.com/Axiumine/c15t/blob/main/packages/config/tsconfig.base.json)
@@ -1598,30 +1599,28 @@ Select: **Met** | URL required: no | N/A allowed: yes
 Justification to paste:
 
 ```text
-Two clean builds of the same commit (tsc -b for all workspaces plus the Vite build) produce byte-identical output: the SHA-256 sums of every file under dist/ matched (266 files when checked), also from two different checkout directories. Versions are pinned (exact versions, yarn.lock, Node 26 via .nvmrc).
+Repeated builds of the same commit give byte-identical output. On 2026-10-30 three clean builds of commit a8cc136 (tsc -b for all workspaces plus the Vite build, Node v26.13.0, the same installed dependencies from yarn.lock) were made, two in one directory and one in a second directory, and the SHA-256 sums of all 271 files under dist/ were identical. Versions are pinned (exact versions, yarn.lock, Node 26 via .nvmrc). No CI job repeats the check yet.
 ```
 
 Evidence: [package.json](https://github.com/Axiumine/c15t/blob/main/package.json), [yarn.lock](https://github.com/Axiumine/c15t/blob/main/yarn.lock), [.nvmrc](https://github.com/Axiumine/c15t/blob/main/.nvmrc)
 
-Note: Verified once by hand on 2026-10-30 with Node v26.13.0 (clean copy, build twice, compare sha256sum; also built from a second directory). The source tree has changed since, and the check was not repeated when this document was last edited, so repeat it once before pasting. No CI job repeats the check; adding one (build twice, diff) would make the claim durable and is the first step toward the gold build_reproducible.
+Note: Verified by hand on 2026-10-30 with Node v26.13.0 (three clean builds of commit a8cc136, two in one directory and one in a second; the SHA-256 sums of all 271 files under dist/ were identical, as the justification says). It is a manual check: the source tree has changed since, so repeat it after larger changes. No CI job repeats the check; adding one (build twice, diff) would make the claim durable and is the first step toward the gold build_reproducible.
 
 #### Installation system
 
-##### `installation_common` (MUST): Unmet
+##### `installation_common` (MUST): Met
 
 > The project MUST provide a way to easily install and uninstall the software produced by the project using a commonly-used convention.
 
-Select: **Unmet** | URL required: no | N/A allowed: yes
+Select: **Met** | URL required: no | N/A allowed: yes
 
-Justification to paste (optional for Unmet):
+Justification to paste:
 
 ```text
-The project is installed from a source checkout with Yarn (yarn install --immutable, yarn build) and infra/deploy.sh plus systemd units; there is no distribution package, container image or npm package, and uninstalling is not scripted.
+Install and uninstall are two commands of one script. infra/deploy.sh install creates the c15t user and the directories, creates empty 0600 env files (it never overwrites one) and copies and enables the systemd units; infra/deploy.sh deploy then builds and activates a release. infra/deploy.sh uninstall removes the units, the nginx files and the releases, and keeps the PostgreSQL database, the c15t user, the env files (unless --purge-config) and the host-wide Cloudflare allowlist (unless --remove-cloudflare). Both accept --dry-run. Steps, upgrade and rollback: docs/installation.md. infra/test/uninstall.test.sh (156 checks, stand-ins, no root) runs in CI. This is a systemd deployment script, not a distribution package. https://github.com/Axiumine/c15t/blob/main/docs/installation.md
 ```
 
-Evidence: [infra/deploy.sh](https://github.com/Axiumine/c15t/blob/main/infra/deploy.sh), [README.md](https://github.com/Axiumine/c15t/blob/main/README.md)
-
-To reach Met: Needs a common install/uninstall convention: for example an install and uninstall target in infra/deploy.sh, or an OS package or container image published with each release.
+Evidence: [infra/deploy.sh](https://github.com/Axiumine/c15t/blob/main/infra/deploy.sh), [README.md](https://github.com/Axiumine/c15t/blob/main/README.md), [docs/installation.md](https://github.com/Axiumine/c15t/blob/main/docs/installation.md), [infra/test/uninstall.test.sh](https://github.com/Axiumine/c15t/blob/main/infra/test/uninstall.test.sh)
 
 ##### `installation_standard_variables` (MUST): N/A
 
@@ -1646,7 +1645,7 @@ Select: **Met** | URL required: no | N/A allowed: yes
 Justification to paste:
 
 ```text
-A developer installs everything with corepack enable and yarn install, then runs yarn typecheck && yarn lint && yarn test. Most suites need no server (PGlite runs in process); the consent-api integration tests and the PostgreSQL variants need a disposable PostgreSQL, set up as described in CONTRIBUTING.md and docs/database-setup.md (scripts/ci-bootstrap-db.sh does it in CI).
+A developer installs everything with npm install -g corepack (Node 26 does not bundle Corepack), corepack enable and yarn install, then runs yarn typecheck && yarn lint && yarn test. Most suites need no server (PGlite runs in process); the consent-api integration tests and the PostgreSQL variants of the dashboard-api suites need a disposable PostgreSQL and fail loudly without one. CONTRIBUTING.md and docs/database-setup.md describe how to set it up; scripts/ci-bootstrap-db.sh does it in CI only.
 ```
 
 Evidence: [CONTRIBUTING.md](https://github.com/Axiumine/c15t/blob/main/CONTRIBUTING.md), [README.md](https://github.com/Axiumine/c15t/blob/main/README.md), [package.json](https://github.com/Axiumine/c15t/blob/main/package.json), [scripts/ci-bootstrap-db.sh](https://github.com/Axiumine/c15t/blob/main/scripts/ci-bootstrap-db.sh)
@@ -1676,7 +1675,7 @@ Select: **Met** | URL required: no | N/A allowed: yes
 Justification to paste:
 
 ```text
-Dependencies are monitored for known vulnerabilities by Dependabot alerts and security updates, the dependency-review workflow on pull requests, OpenSSF Scorecard and yarn npm audit before releases (docs/dependency-policy.md). Dependabot version updates cover the npm workspaces, the CI tooling in .github/ci-tools and the GitHub Actions (workflows and the composite action); the digest of the PostgreSQL service image in ci.yml is bumped by hand, because Dependabot cannot update images in workflow service containers.
+Dependencies are monitored for known vulnerabilities by Dependabot alerts and security updates, Dependabot version-update pull requests, the dependency-review workflow on pull requests and OpenSSF Scorecard; docs/dependency-policy.md also requires yarn npm audit before each release. Dependabot version updates cover the npm workspaces, the CI tooling in .github/ci-tools and the GitHub Actions (workflows and the composite action); the digest of the PostgreSQL service image in ci.yml is bumped by hand, because Dependabot cannot update images in workflow service containers.
 ```
 
 Evidence: [docs/dependency-policy.md](https://github.com/Axiumine/c15t/blob/main/docs/dependency-policy.md), [.github/dependabot.yml](https://github.com/Axiumine/c15t/blob/main/.github/dependabot.yml), [.github/workflows/dependency-review.yml](https://github.com/Axiumine/c15t/blob/main/.github/workflows/dependency-review.yml)
@@ -1692,7 +1691,7 @@ Select: **Met** | URL required: no | N/A allowed: yes
 Justification to paste:
 
 ```text
-All reused components come from the npm registry through Yarn with exact versions and a committed lockfile; no third-party code is copied into the tree, so any component can be updated by changing its version.
+All reused components come from the npm registry through Yarn with exact versions and a committed yarn.lock. The repository contains no vendored copies of third-party libraries (no vendor directory, no bundled library sources), so a vulnerable component is updated by changing its version, and Dependabot proposes those updates.
 ```
 
 Evidence: [package.json](https://github.com/Axiumine/c15t/blob/main/package.json), [yarn.lock](https://github.com/Axiumine/c15t/blob/main/yarn.lock), [docs/dependency-policy.md](https://github.com/Axiumine/c15t/blob/main/docs/dependency-policy.md)
@@ -1706,7 +1705,7 @@ Select: **Met** | URL required: no | N/A allowed: yes
 Justification to paste:
 
 ```text
-The project targets current releases of its stack (Node.js 26 LTS, ESM only, current majors of TypeScript, React, Vite and Hono) and Dependabot keeps libraries current; no use of deprecated APIs is known.
+The project targets current releases of its stack: Node.js 26, ESM only, and on 2026-10-30 the latest published versions of React (19.3.1), Vite (8.3.5), Hono (4.13.14) and Tailwind CSS (4.3.3). TypeScript is held at 6.0.3 on purpose, because the 7.x native compiler has an unstable JavaScript API. Dependabot keeps libraries current, and no use of deprecated APIs is known.
 ```
 
 Evidence: [package.json](https://github.com/Axiumine/c15t/blob/main/package.json), [.github/dependabot.yml](https://github.com/Axiumine/c15t/blob/main/.github/dependabot.yml)
@@ -1736,7 +1735,7 @@ Select: **N/A** | URL required: no | N/A allowed: yes
 Justification to paste:
 
 ```text
-No bug has been fixed in a published release yet, so there is nothing to measure. CONTRIBUTING.md and the pull request template require a failing-then-passing test with every bug fix.
+No bug has been reported through the issue tracker or fixed in a release since the first release (v0.1.0, 2026-10-30), so there is nothing to measure yet. CONTRIBUTING.md and the pull request template require a regression test that fails without the fix with every bug fix.
 ```
 
 Evidence: [CONTRIBUTING.md](https://github.com/Axiumine/c15t/blob/main/CONTRIBUTING.md), [.github/PULL_REQUEST_TEMPLATE.md](https://github.com/Axiumine/c15t/blob/main/.github/PULL_REQUEST_TEMPLATE.md)
@@ -1745,23 +1744,21 @@ Depends on: M9 (section 1).
 
 Note: Time-dependent: once bug fixes are released, at least 50% of them in the previous six months need a regression test, then switch to Met.
 
-##### `test_statement_coverage80` (MUST): Unmet [M10]
+##### `test_statement_coverage80` (MUST): Met [M10]
 
 > The project MUST have FLOSS automated test suite(s) that provide at least 80% statement coverage if there is at least one FLOSS tool that can measure this criterion in the selected language.
 
-Select: **Unmet** | URL required: no | N/A allowed: yes
+Select: **Met** | URL required: no | N/A allowed: yes
 
-Justification to paste (optional for Unmet):
+Justification to paste:
 
 ```text
-No statement coverage figure has been read from a CI run yet. CI produces a V8 coverage report on every run (artifact "coverage": lcov and json-summary), and this will be marked Met only after the measured figure is at least 80%.
+The FLOSS test suite (Vitest with V8 coverage) measures 100% statement coverage (2553 of 2553; branches 1475 of 1475, functions 789 of 789, lines 2228 of 2228) in the CI job "Test (PostgreSQL 17, coverage)" on main at commit 5feb34c, counted over all 121 non-test source files of apps/*/src and packages/*/src (coverage.include in vitest.config.ts), entry points included. Entry points are covered with mocked collaborators, not against a real listening socket. coverage.thresholds in vitest.config.ts makes CI fail below 100%. https://github.com/Axiumine/c15t/actions/runs/41186970266 ("Coverage summary" in the Test step log; the "coverage" artifact has lcov.info and coverage-summary.json).
 ```
 
-Evidence: [.github/workflows/ci.yml](https://github.com/Axiumine/c15t/blob/main/.github/workflows/ci.yml)
+Evidence: [.github/workflows/ci.yml](https://github.com/Axiumine/c15t/blob/main/.github/workflows/ci.yml), [vitest.config.ts](https://github.com/Axiumine/c15t/blob/main/vitest.config.ts)
 
 Depends on: M10 (section 1).
-
-To reach Met: MUST for silver. Do not claim a figure that has not been measured. The tooling is in place: @vitest/coverage-v8 is a pinned devDependency (5.0.5) and the `Test (PostgreSQL 17, coverage)` job always runs `yarn test` with coverage and uploads the artifact "coverage" (`lcov.info`, `coverage-summary.json`; there is no fallback run without coverage). The remaining step is to read the real percentage from that artifact (or the text summary in the job log) after the first CI run on main: if statements are at least 80%, switch to Met and paste the number and the run URL; if not, add tests. For orientation only, this is not a coverage figure: on 2026-10-30, 33 of 121 hand-written .ts/.tsx source files under apps/*/src and packages/*/src (test helpers and generated files excluded) had a sibling `<name>.test.ts(x)`; UI components and route handlers are mostly covered indirectly.
 
 #### New functionality testing
 
@@ -1822,7 +1819,7 @@ Select: **Met** | URL required: no | N/A allowed: yes
 Justification to paste:
 
 ```text
-Secure design principles are implemented: fail-safe defaults (no public sign-up, unknown or disabled site returns 404, requireTenantId), complete mediation (all checks in authz.ts, route-coverage test), least privilege (read-only database role for dashboard-api, hardened systemd units), limited attack surface (services bind to loopback or private addresses only), allowlist input validation (zod). https://github.com/Axiumine/c15t/blob/main/docs/security-model.md
+Secure design principles are implemented: fail-safe defaults (no public sign-up, unknown or disabled site returns 404, requireTenantId), complete mediation (all checks in authz.ts, route-coverage test), least privilege (separate database roles: dashboard-api has SELECT only on the c15t schema and consent-api can read only app.site; hardened systemd units), limited attack surface (services bind to loopback or private addresses only), allowlist input validation (zod). https://github.com/Axiumine/c15t/blob/main/docs/security-model.md
 ```
 
 Evidence: [docs/security-model.md](https://github.com/Axiumine/c15t/blob/main/docs/security-model.md), [apps/dashboard-api/src/authz.ts](https://github.com/Axiumine/c15t/blob/main/apps/dashboard-api/src/authz.ts), [infra/systemd/c15t-consent-api.service](https://github.com/Axiumine/c15t/blob/main/infra/systemd/c15t-consent-api.service)
@@ -1838,7 +1835,7 @@ Select: **Met** | URL required: no | N/A allowed: yes
 Justification to paste:
 
 ```text
-The default security mechanisms do not use algorithms or modes with known serious weaknesses: no SHA-1 or CBC in the code, scrypt for passwords, TLS limited to 1.2/1.3 in the reference nginx config.
+The default security mechanisms do not depend on algorithms or modes with known serious weaknesses: the code contains no SHA-1, MD5 or CBC use, passwords are hashed by Better Auth with its default scrypt (the repository has no custom cryptography, see docs/security-model.md), and the reference nginx config limits TLS to 1.2 and 1.3.
 ```
 
 Evidence: [apps/dashboard-api/src/password.ts](https://github.com/Axiumine/c15t/blob/main/apps/dashboard-api/src/password.ts), [infra/nginx/dashboard.conf](https://github.com/Axiumine/c15t/blob/main/infra/nginx/dashboard.conf)
@@ -1852,10 +1849,10 @@ Select: **Unmet** | URL required: no | N/A allowed: yes
 Justification to paste (optional for Unmet):
 
 ```text
-The project does not offer a choice of cryptographic algorithms: password hashing is Better Auth's fixed scrypt, and TLS algorithms are configured in nginx/Cloudflare by the operator.
+The project implements no cryptographic primitive itself. TLS protocol versions and cipher suites (Cloudflare, nginx) and PostgreSQL TLS are operator configuration and can be changed without a code change. Password hashing (Better Auth scrypt with fixed parameters) and cookie signing (HMAC-SHA-256) are fixed in code, so switching them needs a code change in apps/dashboard-api/src/auth.ts. docs/cryptography.md lists every algorithm and who can change it. https://github.com/Axiumine/c15t/blob/main/docs/cryptography.md
 ```
 
-Evidence: [apps/dashboard-api/src/auth.ts](https://github.com/Axiumine/c15t/blob/main/apps/dashboard-api/src/auth.ts)
+Evidence: [apps/dashboard-api/src/auth.ts](https://github.com/Axiumine/c15t/blob/main/apps/dashboard-api/src/auth.ts), [docs/cryptography.md](https://github.com/Axiumine/c15t/blob/main/docs/cryptography.md)
 
 To reach Met: SHOULD criterion, does not block silver.
 
@@ -1882,7 +1879,7 @@ Select: **Unmet** | URL required: no | N/A allowed: yes
 Justification to paste (optional for Unmet):
 
 ```text
-The public edge is HTTPS only (nginx with TLS 1.2/1.3 behind Cloudflare, Secure cookies), but the hops between nginx and the services are plain HTTP on loopback or a private address by design (the bind address is validated), and the PostgreSQL link depends on the sslmode the operator sets.
+The hops between nginx and the services are plain HTTP on loopback or private addresses by design, and PostgreSQL TLS depends on operator configuration; see the silver answer.
 ```
 
 Evidence: [docs/security-model.md](https://github.com/Axiumine/c15t/blob/main/docs/security-model.md), [README.md](https://github.com/Axiumine/c15t/blob/main/README.md), [infra/nginx/dashboard.conf](https://github.com/Axiumine/c15t/blob/main/infra/nginx/dashboard.conf)
@@ -1898,7 +1895,7 @@ Select: **Met** | URL required: no | N/A allowed: yes
 Justification to paste:
 
 ```text
-Where the project configures TLS it supports at least TLS 1.2: the reference nginx vhost sets ssl_protocols TLSv1.2 TLSv1.3. https://github.com/Axiumine/c15t/blob/main/infra/nginx/dashboard.conf
+Where the project configures TLS it requires at least TLS 1.2: ssl_protocols TLSv1.2 TLSv1.3 in the reference nginx vhost. https://github.com/Axiumine/c15t/blob/main/infra/nginx/dashboard.conf
 ```
 
 Evidence: [infra/nginx/dashboard.conf](https://github.com/Axiumine/c15t/blob/main/infra/nginx/dashboard.conf)
@@ -1912,7 +1909,7 @@ Select: **Met** | URL required: no | N/A allowed: yes
 Justification to paste:
 
 ```text
-The software never disables TLS certificate verification: there is no rejectUnauthorized:false or NODE_TLS_REJECT_UNAUTHORIZED in the code, Node and curl verify by default, and the README tells operators to use sslmode=verify-full for PostgreSQL across hosts.
+The code never disables TLS certificate verification: there is no rejectUnauthorized:false or NODE_TLS_REJECT_UNAUTHORIZED anywhere, Node and curl verify by default (curl only fetches Cloudflare's public IP lists), and the README and docs/database-setup.md tell operators to use sslmode=verify-full for PostgreSQL across hosts. The README also warns that the postgres.js driver does not verify the certificate with sslmode=require, so verification there depends on the URL the operator sets.
 ```
 
 Evidence: [README.md](https://github.com/Axiumine/c15t/blob/main/README.md), [infra/nginx/update-cloudflare-ips.sh](https://github.com/Axiumine/c15t/blob/main/infra/nginx/update-cloudflare-ips.sh)
@@ -1942,7 +1939,7 @@ Select: **Met** | URL required: no | N/A allowed: yes
 Justification to paste:
 
 ```text
-Every release asset (source tarball, CycloneDX SBOMs and SHA256SUMS) is signed with keyless cosign by the release workflow (a .sigstore.json bundle next to each file) and the release has SLSA provenance; there is no long-lived private key. SECURITY.md (Verifying releases) gives the cosign verify-blob command with the certificate identity and OIDC issuer. https://github.com/Axiumine/c15t/blob/main/SECURITY.md
+Releases are cryptographically signed. Every release asset has a keyless cosign (Sigstore) signature bundle (<asset>.sigstore.json) made by the release workflow (.github/workflows/release.yml), and the release carries SLSA provenance (multiple.intoto.jsonl). There is no long-lived private key. SECURITY.md documents how to verify with cosign verify-blob and slsa-verifier; both were run against the v0.1.0 assets and passed. https://github.com/Axiumine/c15t/releases/tag/v0.1.0
 ```
 
 Evidence: [SECURITY.md](https://github.com/Axiumine/c15t/blob/main/SECURITY.md), [.github/workflows/release.yml](https://github.com/Axiumine/c15t/blob/main/.github/workflows/release.yml), [scripts/release-package.sh](https://github.com/Axiumine/c15t/blob/main/scripts/release-package.sh)
@@ -1958,7 +1955,7 @@ Select: **Unmet** | URL required: no
 Justification to paste (optional for Unmet):
 
 ```text
-Version tags are not GPG- or SSH-signed; the release assets are signed with cosign by the release workflow instead.
+The v0.1.0 tag is a lightweight, unsigned git tag. The release assets are signed with keyless cosign instead; signed tags (GPG or SSH) are not used yet. The tag ruleset only makes v* tags immutable.
 ```
 
 Evidence: [.github/workflows/release.yml](https://github.com/Axiumine/c15t/blob/main/.github/workflows/release.yml)
@@ -1976,7 +1973,7 @@ Select: **Met** | URL required: no | N/A allowed: yes
 Justification to paste:
 
 ```text
-Inputs from untrusted sources are checked against allowlists with zod at every boundary (environment, request bodies, route params, query strings, forms), and invalid input is rejected with a JSON error; for example siteKey must match ^[a-z0-9-]{3,40}$ and bind addresses must be loopback or private. https://github.com/Axiumine/c15t/blob/main/apps/dashboard-api/src/validate.ts
+Inputs from untrusted sources are checked against allowlists and invalid input is rejected: dashboard-api and the shared schemas validate environment, request bodies, route params, query strings and forms with zod and answer with a JSON error (for example siteKey must match ^[a-z0-9-]{3,40}$ and bind addresses must be loopback or private); on the public consent endpoints, consent-api's request guard rejects hostile paths and strips spoofable headers and query parameters before c15t itself validates the consent payload. https://github.com/Axiumine/c15t/blob/main/apps/dashboard-api/src/validate.ts
 ```
 
 Evidence: [apps/dashboard-api/src/validate.ts](https://github.com/Axiumine/c15t/blob/main/apps/dashboard-api/src/validate.ts), [packages/shared/src/site.ts](https://github.com/Axiumine/c15t/blob/main/packages/shared/src/site.ts), [packages/shared/src/network.ts](https://github.com/Axiumine/c15t/blob/main/packages/shared/src/network.ts), [apps/consent-api/src/request-guard.ts](https://github.com/Axiumine/c15t/blob/main/apps/consent-api/src/request-guard.ts)
@@ -1990,26 +1987,24 @@ Select: **Met** | URL required: no | N/A allowed: yes
 Justification to paste:
 
 ```text
-Hardening is used: a strict Content-Security-Policy with frame-ancestors none, X-Content-Type-Options nosniff and Referrer-Policy on every dashboard response (infra/nginx/dashboard-headers.conf), httpOnly Secure SameSite=Lax cookies, and hardened systemd units (NoNewPrivileges, ProtectSystem=strict, SystemCallFilter). https://github.com/Axiumine/c15t/blob/main/infra/nginx/dashboard-headers.conf
+Hardening mechanisms are used so that defects are less likely to become vulnerabilities: a restrictive Content-Security-Policy (default-src 'self', frame-ancestors 'none'), X-Content-Type-Options nosniff and Referrer-Policy on every dashboard response, httpOnly SameSite=Lax session cookies that are Secure over HTTPS, and systemd units with NoNewPrivileges, ProtectSystem=strict and a system-call filter. https://github.com/Axiumine/c15t/blob/main/infra/nginx/dashboard-headers.conf
 ```
 
 Evidence: [infra/nginx/dashboard-headers.conf](https://github.com/Axiumine/c15t/blob/main/infra/nginx/dashboard-headers.conf), [infra/systemd/c15t-consent-api.service](https://github.com/Axiumine/c15t/blob/main/infra/systemd/c15t-consent-api.service), [apps/dashboard-api/src/auth.ts](https://github.com/Axiumine/c15t/blob/main/apps/dashboard-api/src/auth.ts)
 
-##### `assurance_case` (MUST): Unmet
+##### `assurance_case` (MUST): Met
 
 > The project MUST provide an assurance case that justifies why its security requirements are met. The assurance case MUST include: a description of the threat model, clear identification of trust boundaries, an argument that secure design principles have been applied, and an argument that common implementation security weaknesses have been countered.
 
-Select: **Unmet** | URL required: yes
+Select: **Met** | URL required: yes
 
-Justification to paste (optional for Unmet):
+Justification to paste:
 
 ```text
-docs/security-model.md covers assets, actors, trust boundaries and what is and is not protected, but it does not yet contain an explicit assurance case with the four required parts.
+docs/assurance-case.md is the assurance case. It contains a threat model (assets, attackers, entry points, threats, what is out of scope), the trust boundaries (summarising docs/security-model.md), an argument for each secure design principle (economy of mechanism, fail-safe defaults, complete mediation, open design, separation of privilege, least privilege, least common mechanism, psychological acceptability, limited attack surface, allowlist input validation) and an argument for each OWASP Top 10 category and the relevant CWE entries, each tied to code and to a test. A Known gaps section lists what is not protected or not tested. https://github.com/Axiumine/c15t/blob/main/docs/assurance-case.md
 ```
 
-Evidence: [docs/security-model.md](https://github.com/Axiumine/c15t/blob/main/docs/security-model.md)
-
-To reach Met: Add an "Assurance case" section to docs/security-model.md with: (1) the threat model (attackers, entry points, threats), (2) the trust boundaries (already there, reference them), (3) an argument per secure design principle (economy of mechanism, fail-safe defaults, complete mediation, open design, separation of privilege, least privilege, least common mechanism, psychological acceptability, limited attack surface, input validation with allowlists) pointing to code and tests, and (4) an argument that the common weaknesses (OWASP Top 10 or CWE Top 25) are countered, each with the code and the test. Then switch to Met and paste the URL of that section.
+Evidence: [docs/security-model.md](https://github.com/Axiumine/c15t/blob/main/docs/security-model.md), [docs/assurance-case.md](https://github.com/Axiumine/c15t/blob/main/docs/assurance-case.md)
 
 ### Silver: Analysis
 
@@ -2047,7 +2042,7 @@ Evidence: [package.json](https://github.com/Axiumine/c15t/blob/main/package.json
 
 ## 6. Gold level
 
-**Gold is not attainable for now, and this document does not pretend otherwise.** The gold level requires, among other things: a silver badge, a bus factor of 2 or more, at least two unassociated significant contributors, review of at least 50% of all changes by a person other than the author, two-factor authentication for every developer, a reproducible build, 90% statement and 80% branch coverage, a security review within the last 5 years, and a dynamic analysis tool applied to every major release. The project has one maintainer and has not measured coverage yet. The answers below say what is Met today and what each Unmet criterion would need. Nothing here should be pasted as a request for the gold badge until the Unmet MUST criteria are resolved.
+**Gold is not attainable for now, and this document does not pretend otherwise.** The gold level requires, among other things: a silver badge, a bus factor of 2 or more, at least two unassociated significant contributors, review of at least 50% of all changes by a person other than the author, two-factor authentication for every developer, a reproducible build, 90% statement and 80% branch coverage, a security review within the last 5 years, and a dynamic analysis tool applied to every major release. The project has one maintainer; the live form shows gold at 61%, and the two coverage criteria are Met because CI measures 100% of statements and branches. The answers below say what is Met today and what each Unmet criterion would need. Nothing here should be pasted as a request for the gold badge until the Unmet MUST criteria are resolved.
 
 ### Gold: Basics
 
@@ -2062,10 +2057,10 @@ Select: **Unmet** | URL required: no
 Justification to paste (optional for Unmet):
 
 ```text
-The project does not hold a silver badge yet: access_continuity and, depending on measurement, test_statement_coverage80 and assurance_case are unmet.
+The project does not hold a silver badge yet: access_continuity, which needs a second person, is the one silver MUST criterion that is still unmet.
 ```
 
-To reach Met: Blocked by the silver MUST criteria listed above.
+To reach Met: Blocked by the silver MUST criterion access_continuity (the live form shows silver at 98%); every other silver MUST criterion is Met or N/A.
 
 #### Project oversight
 
@@ -2112,7 +2107,7 @@ Select: **Met** | URL required: no
 Justification to paste:
 
 ```text
-Every hand-written source file starts with "Copyright (C) 2026 Axiumine" and an SPDX header, added by scripts/add-spdx-headers.mjs (its --check mode passes and runs in CI as yarn spdx:check); REUSE.toml states the same copyright holder for files that cannot carry a comment (JSON, Markdown, YAML, generated files). https://github.com/Axiumine/c15t/blob/main/REUSE.toml
+Every hand-written source file starts with "Copyright (C) 2026 Axiumine" and an SPDX header, added by scripts/add-spdx-headers.mjs (its --check mode passes and runs in CI as yarn spdx:check). The exceptions are two Drizzle SQL migrations (packages/db/drizzle), two generated TypeScript files (routeTree.gen.ts, c15t.generated.ts) and one nginx test fixture; REUSE.toml states the same copyright holder for them and for files that cannot carry a comment (JSON, Markdown, YAML). https://github.com/Axiumine/c15t/blob/main/REUSE.toml
 ```
 
 Evidence: [REUSE.toml](https://github.com/Axiumine/c15t/blob/main/REUSE.toml), [scripts/add-spdx-headers.mjs](https://github.com/Axiumine/c15t/blob/main/scripts/add-spdx-headers.mjs)
@@ -2126,7 +2121,7 @@ Select: **Met** | URL required: no
 Justification to paste:
 
 ```text
-Every hand-written source file carries SPDX-License-Identifier: AGPL-3.0-or-later (scripts/add-spdx-headers.mjs --check passes), and REUSE.toml assigns the license to all remaining files. https://github.com/Axiumine/c15t/blob/main/REUSE.toml
+Every hand-written source file carries SPDX-License-Identifier: AGPL-3.0-or-later (scripts/add-spdx-headers.mjs --check passes), except two Drizzle SQL migrations, two generated TypeScript files and one nginx test fixture. REUSE.toml assigns AGPL-3.0-or-later to those and to all other files that cannot carry a comment. https://github.com/Axiumine/c15t/blob/main/REUSE.toml
 ```
 
 Evidence: [REUSE.toml](https://github.com/Axiumine/c15t/blob/main/REUSE.toml), [scripts/add-spdx-headers.mjs](https://github.com/Axiumine/c15t/blob/main/scripts/add-spdx-headers.mjs), [LICENSES/AGPL-3.0-or-later.txt](https://github.com/Axiumine/c15t/blob/main/LICENSES/AGPL-3.0-or-later.txt)
@@ -2208,7 +2203,7 @@ Select: **Unmet** | URL required: yes | N/A allowed: yes
 Justification to paste (optional for Unmet):
 
 ```text
-Code review requirements are not documented in detail yet (what must be checked, what makes a change acceptable).
+Code review is only partly documented. CONTRIBUTING.md says a code owner reviews every pull request, that CI must pass and that security-sensitive changes get extra care; the pull request template and docs/security-model.md ("Reviewing a change for security") list some checks. No single section yet states how review is conducted, the full checklist and what makes a change acceptable.
 ```
 
 Evidence: [CONTRIBUTING.md](https://github.com/Axiumine/c15t/blob/main/CONTRIBUTING.md), [docs/security-model.md](https://github.com/Axiumine/c15t/blob/main/docs/security-model.md)
@@ -2279,41 +2274,37 @@ Continuous integration runs typecheck, lint, tests and the build on every pull r
 
 Evidence: [.github/workflows/ci.yml](https://github.com/Axiumine/c15t/blob/main/.github/workflows/ci.yml)
 
-##### `test_statement_coverage90` (MUST): Unmet [M10]
+##### `test_statement_coverage90` (MUST): Met [M10]
 
 > The project MUST have FLOSS automated test suite(s) that provide at least 90% statement coverage if there is at least one FLOSS tool that can measure this criterion in the selected language.
 
-Select: **Unmet** | URL required: no | N/A allowed: yes
+Select: **Met** | URL required: no | N/A allowed: yes
 
-Justification to paste (optional for Unmet):
+Justification to paste:
 
 ```text
-Statement coverage has not been measured and is not claimed to be 90% or more.
+CI measures 100% of statements (2553 of 2553), 100% of branches (1475 of 1475), 100% of functions (789 of 789) and 100% of lines (2228 of 2228) with Vitest's V8 provider (@vitest/coverage-v8, FLOSS), counted over all 121 non-test source files of apps/*/src and packages/*/src (coverage.include in vitest.config.ts), entry points included, on main at commit 5feb34c. Entry points (both server.ts, compose.ts, admin-create.ts, migrate.ts, main.tsx) are covered with mocked collaborators and captured signal handlers, not against a real listening socket. coverage.thresholds in vitest.config.ts makes the Test job fail below 100%, and no coverage-ignore pragma is used. https://github.com/Axiumine/c15t/actions/runs/41186970266
 ```
 
-Evidence: [.github/workflows/ci.yml](https://github.com/Axiumine/c15t/blob/main/.github/workflows/ci.yml)
+Evidence: [.github/workflows/ci.yml](https://github.com/Axiumine/c15t/blob/main/.github/workflows/ci.yml), [vitest.config.ts](https://github.com/Axiumine/c15t/blob/main/vitest.config.ts)
 
 Depends on: M10 (section 1).
 
-To reach Met: Needs measured statement coverage of at least 90%.
-
-##### `test_branch_coverage80` (MUST): Unmet [M10]
+##### `test_branch_coverage80` (MUST): Met [M10]
 
 > The project MUST have FLOSS automated test suite(s) that provide at least 80% branch coverage if there is at least one FLOSS tool that can measure this criterion in the selected language.
 
-Select: **Unmet** | URL required: no | N/A allowed: yes
+Select: **Met** | URL required: no | N/A allowed: yes
 
-Justification to paste (optional for Unmet):
+Justification to paste:
 
 ```text
-Branch coverage has not been measured and is not claimed to be 80% or more.
+CI measures 100% of statements (2553 of 2553), 100% of branches (1475 of 1475), 100% of functions (789 of 789) and 100% of lines (2228 of 2228) with Vitest's V8 provider (@vitest/coverage-v8, FLOSS), over all 121 non-test source files of apps/*/src and packages/*/src (coverage.include in vitest.config.ts), entry points included, on main at commit 5feb34c. The report is produced on every CI run and coverage.thresholds in vitest.config.ts fails the Test job below 100%. https://github.com/Axiumine/c15t/actions/runs/41186970266
 ```
 
-Evidence: [.github/workflows/ci.yml](https://github.com/Axiumine/c15t/blob/main/.github/workflows/ci.yml)
+Evidence: [.github/workflows/ci.yml](https://github.com/Axiumine/c15t/blob/main/.github/workflows/ci.yml), [vitest.config.ts](https://github.com/Axiumine/c15t/blob/main/vitest.config.ts)
 
 Depends on: M10 (section 1).
-
-To reach Met: Needs measured branch coverage of at least 80%.
 
 ### Gold: Security
 
@@ -2390,7 +2381,7 @@ Select: **Met** | URL required: yes | N/A allowed: yes
 Justification to paste:
 
 ```text
-Hardening mechanisms are used so that defects are less likely to become vulnerabilities: strict CSP, nosniff, frame-ancestors none and Referrer-Policy on every dashboard response, httpOnly Secure SameSite cookies, and hardened systemd units. https://github.com/Axiumine/c15t/blob/main/infra/nginx/dashboard-headers.conf
+Hardening mechanisms are used so that defects are less likely to become vulnerabilities: a restrictive Content-Security-Policy (default-src 'self', frame-ancestors 'none'), X-Content-Type-Options nosniff and Referrer-Policy on every dashboard response, httpOnly SameSite=Lax session cookies that are Secure over HTTPS, and systemd units with NoNewPrivileges, ProtectSystem=strict and a system-call filter. https://github.com/Axiumine/c15t/blob/main/infra/nginx/dashboard-headers.conf
 ```
 
 Evidence: [infra/nginx/dashboard-headers.conf](https://github.com/Axiumine/c15t/blob/main/infra/nginx/dashboard-headers.conf), [infra/systemd/c15t-consent-api.service](https://github.com/Axiumine/c15t/blob/main/infra/systemd/c15t-consent-api.service)
@@ -2408,7 +2399,7 @@ Select: **Met** | URL required: no | N/A allowed: yes
 Justification to paste:
 
 ```text
-Property-based tests with fast-check (13 *.fuzz.test.ts files) vary the inputs of the parsers and validators that face untrusted data, together with the PostgreSQL integration tests; they run with yarn test in CI on every pull request and every push to main, and releases are cut from main. This is input-varying testing, not a coverage-guided fuzzer or a web scanner.
+Property-based tests with fast-check (13 *.fuzz.test.ts files) vary the inputs of the parsers and validators that face untrusted data, together with the PostgreSQL integration tests. They run with yarn test in CI on every pull request and every push to main (CI is green on commit 10e051b, the v0.1.0 commit), and the ruleset requires that check before merging. release.yml only accepts a tag on a commit reachable from main, so a release is always built from code these tests have run on. The first release, v0.1.0, was built from main after these tests passed. This is input-varying testing, not a coverage-guided fuzzer or a web scanner.
 ```
 
 Evidence: [apps/consent-api/src/request-guard.fuzz.test.ts](https://github.com/Axiumine/c15t/blob/main/apps/consent-api/src/request-guard.fuzz.test.ts), [packages/shared/src/network.fuzz.test.ts](https://github.com/Axiumine/c15t/blob/main/packages/shared/src/network.fuzz.test.ts), [.github/workflows/ci.yml](https://github.com/Axiumine/c15t/blob/main/.github/workflows/ci.yml), [.github/workflows/release.yml](https://github.com/Axiumine/c15t/blob/main/.github/workflows/release.yml)
@@ -2426,7 +2417,7 @@ Select: **Unmet** | URL required: no | N/A allowed: yes
 Justification to paste (optional for Unmet):
 
 ```text
-Production code validates inputs with zod and explicit checks but contains no assert statements; the property-based tests rely on test-side expectations.
+Production code validates inputs with zod and has a few explicit invariant checks that throw (for example assertTrustedOrigins in apps/consent-api/src/instance.ts, which the property-based tests exercise), but it does not use assert statements (node:assert) or any systematic set of run-time assertions, so "many" is not met.
 ```
 
 To reach Met: SHOULD criterion. Add invariant checks (assert from node:assert) in the parsers and registry and run the fuzz tests with them.
@@ -2478,7 +2469,10 @@ Every file referenced above, with its link. "Present" is checked against the wor
 | [apps/dashboard-web/src/components/form-field.tsx](https://github.com/Axiumine/c15t/blob/main/apps/dashboard-web/src/components/form-field.tsx) | yes |
 | [apps/dashboard-web/src/lib/format.ts](https://github.com/Axiumine/c15t/blob/main/apps/dashboard-web/src/lib/format.ts) | yes |
 | [docs/architecture.md](https://github.com/Axiumine/c15t/blob/main/docs/architecture.md) | yes |
+| [docs/assurance-case.md](https://github.com/Axiumine/c15t/blob/main/docs/assurance-case.md) | yes |
+| [docs/cryptography.md](https://github.com/Axiumine/c15t/blob/main/docs/cryptography.md) | yes |
 | [docs/dependency-policy.md](https://github.com/Axiumine/c15t/blob/main/docs/dependency-policy.md) | yes |
+| [docs/installation.md](https://github.com/Axiumine/c15t/blob/main/docs/installation.md) | yes |
 | [docs/security-model.md](https://github.com/Axiumine/c15t/blob/main/docs/security-model.md) | yes |
 | [env.example](https://github.com/Axiumine/c15t/blob/main/env.example) | yes |
 | [infra/deploy.sh](https://github.com/Axiumine/c15t/blob/main/infra/deploy.sh) | yes |
@@ -2486,6 +2480,7 @@ Every file referenced above, with its link. "Present" is checked against the wor
 | [infra/nginx/dashboard.conf](https://github.com/Axiumine/c15t/blob/main/infra/nginx/dashboard.conf) | yes |
 | [infra/nginx/update-cloudflare-ips.sh](https://github.com/Axiumine/c15t/blob/main/infra/nginx/update-cloudflare-ips.sh) | yes |
 | [infra/systemd/c15t-consent-api.service](https://github.com/Axiumine/c15t/blob/main/infra/systemd/c15t-consent-api.service) | yes |
+| [infra/test/uninstall.test.sh](https://github.com/Axiumine/c15t/blob/main/infra/test/uninstall.test.sh) | yes |
 | [package.json](https://github.com/Axiumine/c15t/blob/main/package.json) | yes |
 | [packages/config/biome.json](https://github.com/Axiumine/c15t/blob/main/packages/config/biome.json) | yes |
 | [packages/config/tsconfig.base.json](https://github.com/Axiumine/c15t/blob/main/packages/config/tsconfig.base.json) | yes |
@@ -2504,13 +2499,14 @@ Every file referenced above, with its link. "Present" is checked against the wor
 
 ## 8. What was verified when this document was written
 
-- `yarn lint` (`biome check .`) reported no diagnostics on 265 files on 2026-10-30 (so `warnings_fixed`).
-- Two clean builds (`tsc -b` for every workspace plus `vite build`) of a copy of the tree gave identical SHA-256 sums for all 266 files under `dist/`, also when built from a different directory (Node v26.13.0, Yarn 4.18.1). This backs silver `build_repeatable`. It is a one-off manual check, not a CI job, and it was done before later changes to the source tree: repeat it once before pasting.
+- `yarn lint` (`biome check .`) reported no diagnostics on 268 files on 2026-10-30 (so `warnings_fixed`).
+- Three clean builds (`tsc -b` for every workspace plus `vite build`) of commit a8cc136, two in one directory and one in a second directory, gave identical SHA-256 sums for all 271 files under `dist/` (Node v26.13.0, Yarn 4.18.1). This backs silver `build_repeatable`. It is a one-off manual check, not a CI job, and the source tree has changed since: repeat it after larger changes.
 - `scrypt` parameters and the random per-password salt were read in `@better-auth/utils` 0.5.1 (`password.node.mjs`), used by `better-auth` 1.7.14. The source tree has no `createHash`, `createCipher`, `rejectUnauthorized` or `NODE_TLS_REJECT_UNAUTHORIZED`. The only `Math.random` call is reconnect jitter in `apps/consent-api/src/listener.ts`.
 - `https://github.com/Axiumine/c15t` answered over HTTP/2 with `strict-transport-security`, `x-frame-options: deny`, `x-content-type-options: nosniff` and a `content-security-policy` header (checked with `curl -I` on 2026-10-30), which is what gold `hardened_site` asks for.
 - `node scripts/add-spdx-headers.mjs --check` reports that every file has an SPDX header or is covered by `REUSE.toml`. The only `.ts`, `.tsx`, `.sh`, `.mjs` and `.sql` files without the copyright line are generated (`routeTree.gen.ts`, `c15t.generated.ts` and the Drizzle migrations), and all of them are listed in `REUSE.toml`; CI runs the same check as `yarn spdx:check`.
 - Checked against the repository on 2026-10-30: the names and triggers of the jobs in `.github/workflows` (the required status checks in M4), the scripts in the root `package.json`, what `.github/dependabot.yml` covers, the root `.gitignore`, the wording of `SECURITY.md`, `SUPPORT.md`, `CONTRIBUTING.md` and `GOVERNANCE.md`, the number of `*.fuzz.test.ts` files (13), and that every file linked in this document exists (section 7).
-- Not verified, and therefore not claimed: code coverage figures (the tooling exists, no figure has been read from a CI run), the outcome of any workflow run, the state of GitHub repository settings, whether the git history exists (the working tree has no `.git` directory) and whether that history is free of secrets. Those are the manual actions M1, M5, M8 and M10.
+- Read from CI after this document was first written: on `main` at commit 5feb34c (run https://github.com/Axiumine/c15t/actions/runs/41186970266) the test suite covers 100% of statements (2553/2553), branches (1475/1475), functions (789/789) and lines (2228/2228). The live answers for `test_most`, `test_statement_coverage80`, `test_statement_coverage90` and `test_branch_coverage80` quote these figures.
+- Not verified here, and therefore not claimed: the outcome of later workflow runs and the state of GitHub repository settings (M2 to M5 rest on the maintainer's answers in the live form), and whether the git history is free of secrets beyond what the live `no_leaked_credentials` answer reports (a gitleaks scan that found nothing).
 
 ## 9. Keeping this document current
 

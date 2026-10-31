@@ -32,7 +32,7 @@ maintainer or contributor is needed, **settings** means a repository setting tha
 | Binary-Artifacts | No binaries are committed. `.gitignore` excludes build output, and a scan of the tree before publishing found no executables, archives, images or fonts. The only non-text asset is an SVG favicon. | 10 | 10 | none |
 | Branch-Protection | A repository ruleset on `main` (see step 2). Without any ruleset the score is 0. | 3 to 8 | 8, or 9 to 10 with two maintainers | settings, people |
 | CI-Tests | `ci.yml` runs typecheck, lint, unit and PostgreSQL integration tests and the build on every pull request. | 5 to 10 | 10 | time (the last ~30 commits must have passing check runs) |
-| CII-Best-Practices | Project 16093 is registered; the evidence is in `openssf-best-practices.md`. | 2 (in progress), 5 once `passing` is awarded | 5 now, 7 with silver. Gold needs two unassociated contributors. | settings (web form), people for silver/gold |
+| CII-Best-Practices | Project 16093 holds the `passing` badge (awarded 2026-10-30; the live form shows silver at 98% and gold at 61%); the evidence is in `openssf-best-practices.md`. | 5 | 5 now, 7 with silver (the one open silver MUST criterion is `access_continuity`, which needs a second person). Gold needs two unassociated contributors. | people for silver/gold |
 | Code-Review | Pull requests are required, but with one maintainer nobody else can approve. Scorecard counts a change as reviewed when someone other than the author approved it or merged it. | 0 | 10 only when a second human reviews every change | people |
 | Contributors | Needs recent contributors from at least 3 different organisations (profile "Company" field), each with 5 or more of the last 30 commits. | 0 | not realistic for a small project | people |
 | Dangerous-Workflow | No `pull_request_target`, no untrusted input in `run:` (event data goes through `env:`), no write tokens on pull request workflows. | 10 | 10 | none |
@@ -186,7 +186,7 @@ version (for example `v0.1.1` after a failed `v0.1.0`).
 | CI-Tests, SAST | Look at the last ~30 commits and merged pull requests | after about 30 commits go through pull requests |
 | Code-Review | Needs approval by someone other than the author | when a second maintainer joins |
 | Contributors | Needs 3 organisations | probably never for this project |
-| Silver and gold badge | Gold needs two unassociated contributors and two-person review | see `openssf-best-practices.md` |
+| Silver and gold badge | Silver needs a second person with admin access (`access_continuity`); gold needs two unassociated contributors and two-person review | see `openssf-best-practices.md` |
 
 ## Keeping the score
 
