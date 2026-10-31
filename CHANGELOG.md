@@ -39,6 +39,9 @@ the code changes are test-driven clean-ups, with the same behaviour.
 
 ### Changed
 
+- The README is shorter. The production steps and the nginx listings moved to `docs/installation.md` ("Setting up by hand",
+  "What a deploy does") and the new `docs/nginx.md`, and the license explanation moved to the new `docs/licensing.md`; the content
+  is the same. The README keeps short "Production" and "License" sections and a "Documentation" index.
 - Test coverage of all hand-written source in `apps/*/src` and `packages/*/src` is now 100% (statements,
   branches, functions and lines), including the process entry points, and `vitest.config.ts` enforces it, so
   CI fails when a change leaves code untested. A few unreachable defensive branches were removed instead of

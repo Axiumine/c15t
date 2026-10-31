@@ -7,8 +7,9 @@ Copyright (C) 2026 Axiumine
 
 How to install, upgrade, roll back and uninstall the platform on one Linux server, in the order you run the
 commands. The reasoning behind the layout is in [README D7](../README.md#d7-hosting-cloudflare-then-nginx-then-systemd-no-docker)
-and the Production section of the [README](../README.md#4-production-systemd-no-docker); this page is the short
-path, plus the part the README does not cover: removing everything again.
+and the [Production](../README.md#production) section of the README; this page is the install path, plus the
+part the README does not cover: removing everything again. The nginx files and the firewall allowlist are in
+[nginx.md](./nginx.md).
 
 The convention is a signed source tarball plus one script, `infra/deploy.sh`, which has the sub-commands
 `install`, a plain deploy, `rollback` and `uninstall`. Each one accepts `--dry-run`, which prints every step and
@@ -34,7 +35,7 @@ behind nginx (README D7).
 
 ## Requirements
 
-- A Linux server with systemd, nginx 1.25.1 or newer, `bash` 4.4 or newer, `flock`, `tar`, `curl`, `sudo` (or root).
+- A Linux server with systemd, nginx 1.25.1 or newer (the examples use the Debian and Ubuntu `/etc/nginx` layout; see "Then, once" below for others), `bash` 4.4 or newer, `flock`, `tar`, `curl`, `sudo` (or root).
 - Node.js 26 at `/usr/bin/node`, and Yarn 4 through Corepack: `npm install -g corepack && corepack enable`.
   The build downloads the dependencies from the npm registry, pinned by `yarn.lock`.
 - A PostgreSQL database prepared as described in [database-setup.md](./database-setup.md), reachable from the server.
@@ -127,14 +128,54 @@ one level deep, a `C15T_SERVICES` entry that does not start with `c15t-`, and a 
 Then, once:
 
 1. Create the first admin (README, "2. Database": `yarn admin:create --email you@example.com`, run from the source tree).
-2. Add the dashboard vhost and test nginx (README, "5. nginx (once)"):
+2. Add the dashboard vhost and test nginx ([nginx.md](./nginx.md)):
    ```bash
    sudo cp infra/nginx/dashboard.conf /etc/nginx/sites-available/c15t-dashboard.conf   # edit the per-host lines
    sudo ln -s ../sites-available/c15t-dashboard.conf /etc/nginx/sites-enabled/
    sudo nginx -t && sudo systemctl reload nginx
    ```
+   If your `/etc/nginx` has no `sites-available` and `sites-enabled` (they are a Debian and Ubuntu convention), copy
+   the file to `/etc/nginx/conf.d/c15t-dashboard.conf` and skip the `ln`. First check that `nginx.conf` contains
+   `include /etc/nginx/conf.d/*.conf;`: `deploy.sh` needs that directory loaded for `c15t-upstreams.conf` too. (The
+   RHEL family and Fedora ship it; if your nginx uses another directory, add the include.) `uninstall` does not
+   remove that copy; delete it before you run `uninstall` (step 2 of "Uninstall"), or `nginx -t` fails and it puts
+   everything back.
 3. Add each website (README, "Adding a website"): its vhost gets `set $c15t_site <siteKey>;` and `include snippets/c15t.conf;`.
-4. Optional but recommended: the Cloudflare firewall allowlist and its boot unit (README, "5. nginx (once)").
+4. Optional but recommended: the Cloudflare firewall allowlist and its boot unit ([nginx.md](./nginx.md)).
+
+## Setting up by hand
+
+`infra/deploy.sh install` (step 1 of "Install") runs steps 1 to 3 of the list below for you. The same commands by hand:
+
+One-time setup on the server (files are in `infra/`):
+
+```bash
+# 1. User and directories
+sudo useradd --system --home-dir /nonexistent --shell /usr/sbin/nologin c15t
+sudo install -d -o c15t -g c15t -m 0750 /etc/c15t-platform
+sudo install -d -o "$USER" -m 0755 /opt/c15t-platform          # deploy.sh writes releases/ and current here
+
+# 2. Service env files (README "Configuration"). Both MUST set the bind address and port explicitly:
+#    consent-api.env:   CONSENT_API_HOST, CONSENT_API_PORT, DATABASE_URL_C15T, C15T_ADMIN_API_KEY, ...
+#    dashboard-api.env: DASHBOARD_API_HOST, DASHBOARD_API_PORT, DATABASE_URL_DASHBOARD, BETTER_AUTH_SECRET, BETTER_AUTH_URL, ...
+#    (C15T_ADMIN_API_KEY and CONSENT_API_URL: leave them out of dashboard-api.env, they are reserved and unused today)
+sudo install -m 0600 -o c15t -g c15t /dev/null /etc/c15t-platform/consent-api.env     # then edit
+sudo install -m 0600 -o c15t -g c15t /dev/null /etc/c15t-platform/dashboard-api.env   # then edit
+
+# 3. systemd units (re-copy them when infra/systemd changes; deploy.sh warns about drift)
+sudo cp infra/systemd/*.service infra/systemd/*.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable c15t-consent-api c15t-dashboard-api
+sudo systemctl enable --now cloudflare-ips.timer
+
+# 4. First deploy. It installs the nginx upstreams and snippets, migrates, switches `current`,
+#    reloads nginx and starts both services.
+infra/deploy.sh
+```
+
+The first `infra/deploy.sh` also starts `cloudflare-ips.service` once, because the real_ip file `cloudflare-realip.conf` is still missing and the unit runs its script from `current/`, which only exists after the first switch. So do not start that unit by hand before the first deploy. The unit creates `/etc/nftables.d` itself. After the first deploy, install the dashboard vhost and test nginx (see [nginx.md](./nginx.md)), and read there how to keep the firewall allowlist across reboots.
+
+The database must already exist (README, "2. Database") when you run the first deploy, because it runs the migrations. The first admin is created like in README, "2. Database", from a checkout, with `DATABASE_URL_DASHBOARD`, `BETTER_AUTH_SECRET` and `BETTER_AUTH_URL` exported (the CLI needs only these three).
 
 ## Upgrade
 
@@ -160,6 +201,25 @@ ls /opt/c15t-platform/releases        # the releases that are kept
 infra/deploy.sh rollback              # switch back to the previous release
 infra/deploy.sh rollback 0.1.0        # or to a named one
 ```
+
+## What a deploy does
+
+Every later deploy is `infra/deploy.sh`, run by a user with sudo rights (or root):
+
+```bash
+infra/deploy.sh                 # build + migrate + switch + reload + restart + health check
+infra/deploy.sh --dry-run       # print every step and the rendered nginx upstreams, change nothing
+infra/deploy.sh --plan-only     # build, show `yarn c15t:plan`, stop. Review it, then run a normal deploy
+infra/deploy.sh rollback        # switch back to the previous release (or: rollback <release id>)
+```
+
+- **Source:** `git archive` of `C15T_REF` (default `HEAD`), so only committed files are deployed. The release is named after the short sha (a UTC timestamp when the tree is not a git repository).
+- **Order:** `yarn install --immutable`, `yarn build`, a check that the three build outputs exist, then `yarn c15t:plan` (shown), `yarn c15t:migrate` and `yarn db:migrate` against the primary. Only after that does it install the nginx files, run `nginx -t`, switch `current` atomically, reload nginx, restart both services and health-check them (`/status` on consent-api, `/api/health` on dashboard-api, each for up to 45 s).
+- **Failure handling:** a failed build, migration or `nginx -t` changes nothing that is running. A failed health check puts the previous `current` and the previous nginx files back and restarts the services. Database migrations are **not** reverted, so write them to work with the release that is still running (add first, remove in a later release).
+- **Secrets:** the `0600` env files are read through `sudo` and parsed, never executed. Their variables are exported only into the migration commands, and nothing secret is printed. Host and port for nginx and the health checks come from these files too, and `deploy.sh` refuses to guess them.
+- **Keeps** the 5 newest releases (`C15T_KEEP_RELEASES`), and always `current` and `previous`.
+- Other layouts, and testing: `C15T_ROOT`, `C15T_APP_DIR`, `C15T_ENV_DIR`, `C15T_NGINX_DIR`, `C15T_SRC_DIR`, `C15T_SUDO`, `C15T_SERVICES`, `CONSENT_API_HEALTH_PATH`, `DASHBOARD_API_HEALTH_PATH`. See the header of `infra/deploy.sh`.
+- The units are hardened (no capabilities, `ProtectSystem=strict`, a system call filter) and run with `TZ=UTC`, because c15t stores timestamps without a time zone. Each service hides `/etc/c15t-platform` from itself, so keep a database CA bundle elsewhere (for example `/etc/ssl/c15t/`). Check a unit with `systemd-analyze security c15t-consent-api`. The `cloudflare-ips` unit runs as root with the same kind of sandbox, but `/run` is writable for it, because `nginx -t` opens `/run/nginx.pid` read-write even in test mode.
 
 ## Uninstall
 

@@ -735,7 +735,7 @@ require_plain_dir() {
 
 # ---- install ----------------------------------------------------------------------------------
 
-# do_install: the host preparation of README "Production" steps 1 to 3. Safe to repeat: it creates what
+# do_install: the host preparation of docs/installation.md "Setting up by hand", steps 1 to 3. Safe to repeat: it creates what
 # is missing, never overwrites an env file, never changes a directory that exists, refreshes the unit
 # files when infra/systemd changed (keeping a copy of one that differs), and starts nothing but
 # cloudflare-ips.timer (which waits for its schedule).
@@ -805,7 +805,7 @@ do_install() {
   log "installed. Next: 1. fill in $ENV_CONSENT and $ENV_DASHBOARD (README Configuration)"
   log "                2. prepare the database (docs/database-setup.md)"
   log "                3. run infra/deploy.sh (the first deploy installs the nginx snippets and starts the services)"
-  log "                4. add the dashboard vhost (README: nginx)"
+  log "                4. add the dashboard vhost (docs/nginx.md)"
 }
 
 # ---- uninstall --------------------------------------------------------------------------------
@@ -956,7 +956,7 @@ uninstall_nginx() {
   recover_interrupted "${paths[@]}"
   for f in "${paths[@]}"; do
     if [[ $f == "$conf"/sites-enabled/* && -f $f && ! -L $f ]]; then
-      # install put a link here (README: ln -s). A regular file may be the only copy of the vhost.
+      # install put a link here (docs/installation.md: ln -s). A regular file may be the only copy of the vhost.
       warn "$f is a regular file, not a link to sites-available. uninstall does not delete it; remove or move it yourself (it includes c15t snippets, so nginx -t will stop the run until you do)"
       continue
     fi
