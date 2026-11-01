@@ -14,6 +14,7 @@ import type { TestEnvironment } from './environment.js';
 
 export const TEST_ORIGIN = 'https://dashboard.example.test';
 // Not a real secret: it only has to be long enough for the env schema.
+// nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- test fixture, not a credential
 const TEST_SECRET = 'test-only-secret-test-only-secret-0123456789';
 
 export interface TestUser {

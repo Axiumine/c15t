@@ -1,0 +1,20 @@
+# Findings that scripts/trivy.sh (and the "trivy" job of .github/workflows/security-scan.yml) must not
+# fail on. Read docs/security-scanning.md before you add a line.
+#
+# One finding per line: its ID, then an expiry date, then nothing else:
+#
+#   CVE-2026-12345 exp:2026-12-31
+#
+# The ID is a CVE or GHSA for a vulnerability, a rule ID such as github-pat for a secret, or an AVD ID
+# such as DS-0002 for a misconfiguration. Rules:
+#
+# - The line directly above explains why the finding does not apply (the code path is not reachable,
+#   the value is a documented placeholder, ...) or links the issue that tracks the fix. "False
+#   positive" alone is not a reason.
+# - `exp:YYYY-MM-DD` is required (scripts/trivy.sh refuses a line without one) and, by convention, is
+#   at most 90 days away. After that date Trivy stops ignoring the finding and the scan fails again,
+#   which forces a decision: upgrade, or renew the line with a new reason.
+# - Vulnerabilities follow the response times in docs/dependency-policy.md. An ignore line is for a
+#   finding we judged not to affect us, never for one we have not looked at.
+#
+# No findings are ignored at the moment.

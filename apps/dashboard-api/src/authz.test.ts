@@ -463,6 +463,7 @@ describeEnvironments('authz', ({ env }) => {
         .mustChangePassword,
     ).toBe(true);
 
+    // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_password -- test input: throwaway password of a user created in the test database
     const newPassword = 'a-brand-new-password-1';
     const changed = await t.request('POST', '/api/auth/change-password', {
       cookie,
