@@ -1,0 +1,143 @@
+name: Qodana
+
+# JetBrains Qodana (the jetbrains/qodana-js linter, Ultimate or Ultimate Plus license): an extra static
+# analysis layer next to ESLint, Semgrep, Trivy and CodeQL. Configuration: qodana.yaml. What it does, what
+# it sends to Qodana Cloud, how to read the first result and how to update the pins: docs/security-scanning.md
+# ("Qodana"). The same configuration runs locally with `yarn qodana` (scripts/qodana.sh).
+#
+# It needs a secret, and the job is built around that:
+#   - Without a repository secret named QODANA_TOKEN the job does not fail. Its first step says "skipped:
+#     no QODANA_TOKEN" (a notice on the run and a line in its summary) and every later step is skipped.
+#     That is the normal case for pull requests from forks and for Dependabot, which never receive the
+#     repository's secrets, and for any clone of this repository until its owner adds a Qodana license.
+#   - For the same reason this job is NOT a required status check, and must not become one: a skipped scan
+#     is green, so it cannot prove that a change was scanned. The ruleset lists the required checks
+#     (docs/scorecard.md); Qodana is advisory until a maintainer has read the first result and set the
+#     quality gate in qodana.yaml.
+#   - `secrets.QODANA_TOKEN` is not available in an `if:` expression, so the first step maps it to a boolean
+#     in its environment (the value is never printed) and publishes the answer as a step output.
+#
+# The token is a Qodana Cloud project token. The Qodana CLI sends it to Qodana Cloud (to check the license
+# and to attach the report to the project) and passes it into the linter container; only the scan step has it
+# in its environment, not the checkout or the other steps. The repository is public, and so is its source.
+# The report that goes to Qodana Cloud is the findings with the code around them, plus qodana.yaml.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # Tuesdays 05:13 UTC. JetBrains updates the inspections without a commit here, hence the schedule.
+    - cron: "13 5 * * 2"
+  workflow_dispatch:
+
+# Qodana needs nothing but to read the repository: it analyses the files in the workspace, calls Qodana Cloud
+# with the QODANA_TOKEN, and writes its result to the job summary. The permissions the action's README asks
+# for are left out on purpose:
+#   pull-requests: write   only for the summary comment on the pull request (post-pr-comment: false below)
+#   checks: write          only for a check run with annotations (use-annotations: false below); without
+#                          it the findings are in the job summary and in Qodana Cloud
+#   contents: write        only for push-fixes, which is "none" here
+# The action still tries to add a reaction to the pull request; without pull-requests: write that call is
+# refused and the action logs it at debug level. Nothing fails.
+permissions:
+  contents: read
+
+# A newer push to a pull request supersedes the older run. Runs on main always finish, so every commit
+# that lands has a result in Qodana Cloud.
+concurrency:
+  group: qodana-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  qodana:
+    name: Qodana
+    runs-on: ubuntu-24.04
+    # Pulling the 1.2 GB linter image, installing the dependencies and the analysis itself. Nobody has
+    # measured a run yet; a scan that takes more than this is stuck.
+    timeout-minutes: 45
+    steps:
+      - name: Look for the QODANA_TOKEN secret
+        id: token
+        env:
+          # A boolean ("true" or "false"); the secret itself does not enter this step.
+          HAS_TOKEN: ${{ secrets.QODANA_TOKEN != '' }}
+        run: |
+          set -euo pipefail
+          if [ "${HAS_TOKEN}" = "true" ]; then
+            echo "enabled=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "enabled=false" >> "${GITHUB_OUTPUT}"
+            echo "::notice title=Qodana skipped::skipped: no QODANA_TOKEN secret is available to this run (a fork or Dependabot pull request, or the repository has no Qodana license). Nothing was scanned."
+            {
+              echo "### Qodana skipped"
+              echo
+              echo "skipped: no \`QODANA_TOKEN\` secret is available to this run, so **nothing was scanned**."
+              echo "A repository maintainer can add the secret (a Qodana Cloud project token) in the repository settings; see \`docs/security-scanning.md\`."
+            } >> "${GITHUB_STEP_SUMMARY}"
+          fi
+
+      # A pull request is checked out at its own head commit, not at the merge commit that GitHub builds:
+      # the action compares the head with the merge base, and warns when it finds a merge commit. This is a
+      # `pull_request` run, never `pull_request_target`: a fork's pull request gets no secrets, so this job
+      # skips there and its code is not checked out; a pull request from a branch of this repository is as
+      # trusted as it is for the other workflows.
+      # fetch-depth 0: pull-request mode runs `git merge-base`, which needs the history of both branches.
+      - name: Check out
+        if: steps.token.outputs.enabled == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      # Qodana CLI 2026.2.2 (Linux, x86-64): the release archive from GitHub, checked against a SHA-256 that is
+      # written here before anything in it runs. Both values are the ones in common/cli.json of the pinned
+      # action, and GitHub records the same digest for the asset (checked with `gh release view`). The action
+      # can download the CLI itself, with the same checksum, but in its code (scan/src/utils.ts, installCli) a
+      # mismatch only calls core.setFailed: the step is marked failed and the binary still runs, with the
+      # token in its environment. A check in a step of its own stops the job before that. The release is not
+      # immutable (its assets could be replaced), which is why the check matters.
+      # To update, follow "Update the pins" in docs/security-scanning.md.
+      - name: Install the Qodana CLI
+        if: steps.token.outputs.enabled == 'true'
+        env:
+          QODANA_CLI_VERSION: "2026.2.2"
+          QODANA_CLI_SHA256: b1fc01fb5825f4c6382f9cedcfe97d4a8eeaaddc9f5384a3b5870ca63e231c6f
+        run: |
+          set -euo pipefail
+          archive="qodana_linux_x86_64.tar.gz"
+          curl --proto '=https' --tlsv1.2 --fail --silent --show-error --location --retry 3 \
+            --output "${RUNNER_TEMP}/${archive}" \
+            "https://github.com/JetBrains/qodana-cli/releases/download/v${QODANA_CLI_VERSION}/${archive}"
+          echo "${QODANA_CLI_SHA256}  ${RUNNER_TEMP}/${archive}" | sha256sum --check --strict -
+          mkdir "${RUNNER_TEMP}/qodana-bin"
+          tar -xzf "${RUNNER_TEMP}/${archive}" -C "${RUNNER_TEMP}/qodana-bin" qodana
+          echo "${RUNNER_TEMP}/qodana-bin" >> "${GITHUB_PATH}"
+
+      # The action runs that CLI (use-installed-cli), which pulls the linter image named in qodana.yaml (pinned
+      # by digest) and runs it in Docker. The action's own commit is pinned by SHA.
+      # To update, follow "Update the pins" in docs/security-scanning.md.
+      #   use-installed-cli true: the CLI from the step above, not the one the action would download.
+      #   pr-mode  pull requests: only the files that changed (the findings that belong to the change, and
+      #            quicker); every other event scans the whole tree and gives the quality gate its meaning.
+      #   use-caches false: nothing is cached, as in every other workflow here (the setup action says why);
+      #            the cost is a longer run, the gain is that no run reads state another run wrote.
+      #   upload-result false: the result directory is not published as a build artifact. Artifacts of a
+      #            public repository can be downloaded by anyone who is signed in to GitHub, and the linter's
+      #            logs and the report are not checked for the token. Qodana Cloud keeps the report.
+      #   --print-problems: lists every finding in the log of the run (the code is public), so that the first
+      #            result can be read without Qodana Cloud. Remove it once the findings are under control.
+      - name: Qodana scan
+        if: steps.token.outputs.enabled == 'true'
+        uses: JetBrains/qodana-action@3e8d76ff0e0241618abd808682f426afe84bab3f # v2026.2.2
+        env:
+          QODANA_TOKEN: ${{ secrets.QODANA_TOKEN }}
+        with:
+          args: --print-problems
+          use-installed-cli: true
+          pr-mode: ${{ github.event_name == 'pull_request' }}
+          use-caches: false
+          upload-result: false
+          use-annotations: false
+          post-pr-comment: false
+          push-fixes: none

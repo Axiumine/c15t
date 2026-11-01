@@ -109,6 +109,7 @@ yarn spdx                # add the SPDX licence header to new source files; yarn
 yarn test:coverage       # vitest with the 100% coverage gate; lefthook (installed by yarn install) runs the whole gate set before a push, docs/quality-gates.md
 yarn semgrep             # scripts/semgrep.sh: registry rule sets, exit 1 on any finding (skips with exit 0 when semgrep is missing and CI is unset)
 yarn trivy               # scripts/trivy.sh: trivy fs vuln,secret,misconfig, HIGH/CRITICAL fail, .trivyignore needs exp: dates (same skip rule); see docs/security-scanning.md
+yarn qodana              # scripts/qodana.sh: JetBrains Qodana on a copy of the tree; needs QODANA_TOKEN, Docker and the qodana CLI, refuses otherwise; advisory, never run with a token yet (docs/security-scanning.md)
 yarn knip                # unused files, exports, types and dependencies (knip.json lists only entries it cannot infer)
 yarn type-coverage       # 100% strict type coverage per tsconfig project (scripts/type-coverage.mjs; no any, no casts in src)
 yarn fta                 # FTA maintainability score per file, fails above score_cap in fta.json (lower is better)

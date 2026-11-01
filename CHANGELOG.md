@@ -22,6 +22,11 @@ their own "Security" heading and name the advisory.
   (typescript-eslint `strictTypeChecked`, sonarjs, security, no-unsanitized, complexity and size rules), knip,
   type-coverage (100%), FTA, a code-caps ratchet (`scripts/check-code-caps.ts`), Semgrep and Trivy (`docs/security-scanning.md`).
   CI has a new "Static analysis" job and a "Security scan" workflow.
+- JetBrains Qodana (`jetbrains/qodana-js`) as an advisory static-analysis layer: `qodana.yaml`, a token-guarded workflow
+  (`.github/workflows/qodana.yml`: push to `main`, pull requests, weekly, manual; skipped with a notice when the
+  `QODANA_TOKEN` repository secret is missing, so it is not a required check) and `yarn qodana` (`scripts/qodana.sh`).
+  It has never run with a token: its quality gate is a placeholder ceiling until the first real result is read
+  (`docs/security-scanning.md`, "Qodana").
 - Git hooks with lefthook, installed by `yarn install`: pre-commit (Biome, SPDX, code caps, shellcheck), commit-msg
   (DCO sign-off), pre-push (typecheck, analysers, tests at 100% coverage, scans).
 

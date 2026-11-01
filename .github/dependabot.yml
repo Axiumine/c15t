@@ -13,6 +13,7 @@ updates:
   # Not covered, because Dependabot cannot update them: the digest of the `services: postgres`
   # image in ci.yml (bumped by hand, see the comment there) and the floating test-only
   # `nginx:stable-alpine` tag in infra/test/compose.yaml (see docs/dependency-policy.md).
+  # Left out on purpose: JetBrains/qodana-action (see the ignore list below).
   - package-ecosystem: github-actions
     directories:
       - "/"
@@ -25,6 +26,12 @@ updates:
     open-pull-requests-limit: 5
     cooldown:
       default-days: 7
+    ignore:
+      # Qodana moves together with the checksum of the Qodana CLI in qodana.yml and the digest of the linter
+      # image in qodana.yaml, by hand (docs/security-scanning.md, "Update the pins"). The Qodana job is
+      # skipped for Dependabot pull requests (they have no secret), so a bump of the action alone would
+      # merge untested. Dependabot security alerts for it are not affected by this list.
+      - dependency-name: "JetBrains/qodana-action"
     groups:
       github-actions:
         patterns: ["*"]

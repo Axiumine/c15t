@@ -58,6 +58,11 @@ default owner).
   `pip --require-hashes`. Dependabot cannot update either, so a maintainer bumps them by hand
   ([`security-scanning.md`](./security-scanning.md) has the steps and the reason Trivy is not installed
   through its action).
+- Qodana (`qodana.yml`, `qodana.yaml`) has three pins that move together: `JetBrains/qodana-action` by commit SHA, the
+  Qodana CLI by version and SHA-256 (checked in a step of its own before it runs), and the `jetbrains/qodana-js`
+  linter image by digest. Dependabot is told to leave the action alone, because the Qodana job is skipped for its pull
+  requests (no secret) and a bump of the action alone would merge untested; a maintainer bumps all three by hand
+  ([`security-scanning.md`](./security-scanning.md), "Update the pins").
 - Because of the SLSA exception, do not switch on the repository setting *Require actions to be pinned to
   a full-length commit SHA*: it rejects every `uses:` that is not a SHA, and `release.yml` would fail.
   Pinning is kept by review and by the Scorecard Pinned-Dependencies check instead.
@@ -70,6 +75,7 @@ default owner).
 | npm packages and GitHub Actions (workflows and the composite action, SLSA generator tag included) | Dependabot opens grouped pull requests (minor and patch together, majors one by one) | weekly |
 | PostgreSQL service image digest in `ci.yml` | A maintainer, by hand (see "Pinning and reproducibility") | about quarterly, and on a PostgreSQL security release |
 | Trivy release and checksum, Semgrep lockfile (`security-scan.yml`) | A maintainer, by hand, with a release at least seven days old ([`security-scanning.md`](./security-scanning.md)) | about quarterly, and on a security release of either tool |
+| Qodana action SHA, Qodana CLI checksum, `jetbrains/qodana-js` image digest (`qodana.yml`, `qodana.yaml`) | A maintainer, by hand, with an action release at least seven days old ([`security-scanning.md`](./security-scanning.md)) | about quarterly, and on a security release |
 | Security updates | Dependabot security updates open a pull request as soon as an advisory exists, and are exempt from the cooldown | immediately |
 | Node.js, Yarn | A maintainer updates `.nvmrc`, `engines` and `packageManager` together after reading the release notes | on each LTS or security release |
 | c15t (`@c15t/*`) | A maintainer, because its API changed between major versions and the generated read types (`yarn db:pull-c15t`) must be regenerated | on each release |
