@@ -2,19 +2,13 @@
 // Copyright (C) 2026 Axiumine
 
 import { Hono } from 'hono';
-import { bodyLimit } from 'hono/body-limit';
-import { createMiddleware } from 'hono/factory';
 import { AUTH_BASE_PATH, type Auth } from './auth.js';
+import { authEndpointHandler } from './auth-endpoints.js';
 import { createAuthz } from './authz.js';
 import type { AppDatabase } from './db.js';
 import type { Env } from './env.js';
-import {
-  createErrorHandler,
-  errorResponse,
-  HttpError,
-  notFoundHandler,
-  type RequestContext,
-} from './errors.js';
+import { createErrorHandler, notFoundHandler } from './error-handler.js';
+import { originGuard, requestBodyLimit, responseHeaders } from './http-guards.js';
 import type { Logger } from './logger.js';
 import { adminAuditRoutes } from './routes/admin-audit.js';
 import { adminSiteRoutes } from './routes/admin-sites.js';
@@ -30,8 +24,6 @@ export interface AppDeps {
   readonly logger: Logger;
   readonly now?: () => Date;
 }
-
-const MAX_BODY_BYTES = 64 * 1024;
 
 /**
  * The JSON API below `/api` (README "API (dashboard-api)"), without Better Auth. Each group
@@ -57,70 +49,15 @@ export function createApi(deps: AppDeps) {
 /** Type for the dashboard-web client: `hc<AppType>('/api')`. */
 export type AppType = ReturnType<typeof createApi>;
 
-/**
- * The only Better Auth routes a browser may reach. The admin plugin's own HTTP endpoints stay
- * closed: they would let an admin skip the audit log and the last-admin rule. Our
- * `/api/admin/*` routes call them server-side instead.
- */
-const AUTH_ENDPOINTS: ReadonlySet<string> = new Set([
-  'POST /sign-in/email',
-  'POST /sign-out',
-  'GET /get-session',
-  'POST /change-password',
-]);
-
-const UNSAFE_METHODS: ReadonlySet<string> = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
-
-function originOf(url: string | undefined): string | undefined {
-  try {
-    return url === undefined ? undefined : new URL(url).origin;
-  } catch {
-    return undefined;
-  }
-}
-
 export function createApp(deps: AppDeps) {
   const trustedOrigin = new URL(deps.env.BETTER_AUTH_URL).origin;
   const app = new Hono();
 
-  app.use(
-    '*',
-    createMiddleware(async (c: RequestContext, next) => {
-      await next();
-      // On every response, errors and 404s included (README D10).
-      c.header('X-Robots-Tag', 'noindex, nofollow');
-      c.header('Cache-Control', 'no-store');
-      c.header('X-Content-Type-Options', 'nosniff');
-    }),
-  );
+  app.use('*', responseHeaders);
+  app.use('/api/*', originGuard(trustedOrigin));
+  app.use('/api/*', requestBodyLimit);
 
-  // CSRF: SameSite=Lax cookies are the first line, this origin check is the second. A browser
-  // always sends Origin (or Referer) on a same-origin write.
-  app.use(
-    '/api/*',
-    createMiddleware(async (c: RequestContext, next) => {
-      if (UNSAFE_METHODS.has(c.req.method)) {
-        const origin = c.req.header('origin') ?? originOf(c.req.header('referer'));
-        if (origin !== trustedOrigin) {
-          throw new HttpError('FORBIDDEN', 'Cross-origin request rejected');
-        }
-      }
-      await next();
-    }),
-  );
-  app.use(
-    '/api/*',
-    bodyLimit({
-      maxSize: MAX_BODY_BYTES,
-      onError: (c: RequestContext) => errorResponse(c, 'BAD_REQUEST', 'Request body too large'),
-    }),
-  );
-
-  app.on(['GET', 'POST'], `${AUTH_BASE_PATH}/*`, (c: RequestContext) => {
-    const endpoint = c.req.path.slice(AUTH_BASE_PATH.length);
-    if (!AUTH_ENDPOINTS.has(`${c.req.method} ${endpoint}`)) return errorResponse(c, 'NOT_FOUND');
-    return deps.auth.handler(c.req.raw);
-  });
+  app.on(['GET', 'POST'], `${AUTH_BASE_PATH}/*`, authEndpointHandler(deps.auth));
   app.route('/api', createApi(deps));
 
   app.onError(createErrorHandler(deps.logger));

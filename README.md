@@ -138,7 +138,7 @@ Self-hosted cookie-consent backend and dashboard for websites that run on the sa
   - Where the driver supports it, primary connections require `target_session_attrs=read-write`. Then a stale DNS answer makes the connection fail fast, instead of handing the app a connection to a replica. **Not every client can do this**, so the table below states exactly what each one does.
   - Pools discard broken connections and reconnect. Requests that were in flight fail with 503. Retry reads automatically, but never retry writes blindly. A connection that lands on a demoted node fails with `25006 read_only_sql_transaction`. Treat that as a failover signal and drop the connection. No pool may `process.exit()` on an idle-client error, because a planned switchover would restart the service.
   - The consent-api listener reconnects with backoff and runs `LISTEN` again. Then it disposes **all** cached c15t instances, because any `NOTIFY` sent during the failover is lost. It uses TCP keepalives and a periodic ping, so it notices quickly when the old primary goes away.
-- **What each client does** (the settings are in `packages/db/src/pool.ts`, `apps/consent-api/src/listener.ts` and `apps/consent-api/src/instance.ts`):
+- **What each client does** (the settings are in `packages/db/src/pool.ts`, `apps/consent-api/src/listener-config.ts` (the ping is in `listener-watch.ts`) and `apps/consent-api/src/instance-database.ts`):
 
   | Client | Driver | `target_session_attrs` | Connect timeout | TCP keepalive | Connection lifetime |
   |---|---|---|---|---|---|

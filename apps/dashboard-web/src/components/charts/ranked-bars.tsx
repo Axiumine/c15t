@@ -1,63 +1,23 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Axiumine
 
-import type { ReactNode } from 'react';
-import {
-  Bar,
-  BarChart,
-  LabelList,
-  ResponsiveContainer,
-  Tooltip,
-  type TooltipContentProps,
-  XAxis,
-  YAxis,
-} from 'recharts';
+import { Bar, BarChart, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useReducedMotion } from '../../lib/use-reduced-motion';
-import { ChartTooltip, hoveredDatum, type TooltipRow } from './chart-tooltip';
+import type { BarDatum } from './bar-datum';
+import {
+  BAR_RADIUS,
+  BAR_SIZE,
+  CURSOR,
+  labelWidthFor,
+  MARGIN,
+  ROW_HEIGHT,
+  TRACK,
+  VALUE_LABEL,
+} from './bar-layout';
+import { barTooltip } from './bar-tooltip';
+import { AXIS_LINE, TICK } from './chart-style';
 
-export interface BarDatum {
-  readonly name: string;
-  readonly value: number;
-  /** The text printed at the tip of the bar. */
-  readonly display: string;
-  /** Extra rows for the tooltip, besides the value itself. */
-  readonly details: readonly TooltipRow[];
-}
-
-const ROW_HEIGHT = 34;
-const BAR_SIZE = 16;
-const CHAR_WIDTH = 7.5;
-const AXIS_PADDING = 18;
-const TICK = { fill: 'var(--muted-foreground)', fontSize: 12 } as const;
-
-const MARGIN = { top: 4, right: 64, bottom: 4, left: 0 } as const;
-const AXIS_LINE = { stroke: 'var(--viz-axis)' } as const;
-const CURSOR = { fill: 'var(--viz-grid)', fillOpacity: 0.5 } as const;
-const TRACK = { fill: 'var(--viz-track)', radius: 4 } as const;
-const BAR_RADIUS: [number, number, number, number] = [0, 4, 4, 0];
-const VALUE_LABEL = {
-  dataKey: 'display',
-  position: 'right',
-  fill: 'var(--card-foreground)',
-  fontSize: 12,
-  fontWeight: 600,
-} as const;
-
-/** Room for the category names: as wide as the longest one, within 64 to 200 px. */
-function labelWidthFor(data: readonly BarDatum[]): number {
-  const widest = data.reduce((longest, item) => Math.max(longest, item.name.length), 0);
-  return Math.min(200, Math.max(64, widest * CHAR_WIDTH + AXIS_PADDING));
-}
-
-function barTooltip(props: TooltipContentProps, valueLabel: string): ReactNode {
-  const datum = hoveredDatum<BarDatum>(props);
-  return datum === undefined ? null : (
-    <ChartTooltip
-      title={datum.name}
-      rows={[{ label: valueLabel, value: datum.display }, ...datum.details]}
-    />
-  );
-}
+export type { BarDatum } from './bar-datum';
 
 /**
  * Horizontal ranked bars in one hue: at most 16px thick, a 4px rounded tip and a square

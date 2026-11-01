@@ -82,7 +82,7 @@ not `https://` (a `file://` URL is accepted only together with `--out-dir`, for 
 
 The hop from nginx to consent-api and dashboard-api is plain HTTP (`proxy_pass http://...`). It is
 meant for loopback. Env validation lets the services bind only to a loopback or private address
-(`hostSchema` in [`packages/shared/src/network.ts`](../packages/shared/src/network.ts), tested in
+(`hostSchema` in [`packages/shared/src/host.ts`](../packages/shared/src/host.ts), tested in
 `apps/consent-api/src/env.test.ts`, "rejects the bind address"). If an operator binds a private LAN
 address, that traffic is not encrypted. README D1 says to limit the port in the firewall. It also says
 that `@c15t/node-sdk` refuses plain `http:` together with an API key for non-loopback hosts; that
@@ -176,7 +176,7 @@ logged or audited; the test named above checks the logs, the output streams and 
 
 The alphabet and length are constants in the file. Changing them is a code change. The only other use of
 randomness in application code is `Math.random` for reconnect jitter in
-[`apps/consent-api/src/listener.ts`](../apps/consent-api/src/listener.ts), which has no security role.
+[`apps/consent-api/src/listener-timing.ts`](../apps/consent-api/src/listener-timing.ts), which has no security role.
 
 ## Sessions and cookies
 
@@ -184,7 +184,7 @@ randomness in application code is `Math.random` for reconnect jitter in
   cookie value with HMAC-SHA-256 keyed with `BETTER_AUTH_SECRET` (`better-auth` `dist/cookies/index.mjs`
   calls `setSignedCookie`; better-call 1.4.4 `dist/crypto.mjs` fixes `{ name: "HMAC", hash: "SHA-256" }`
   and verifies with WebCrypto `verify`). The session itself is a database row, and the cookie cache is
-  off ([`auth.ts`](../apps/dashboard-api/src/auth.ts), tested in `apps/dashboard-api/src/auth.test.ts`).
+  off ([`auth-options.ts`](../apps/dashboard-api/src/auth-options.ts), tested in `apps/dashboard-api/src/auth.test.ts`).
 - `BETTER_AUTH_SECRET` must be at least 32 characters
   ([`apps/dashboard-api/src/env.ts`](../apps/dashboard-api/src/env.ts)). Better Auth also logs a warning
   when the secret looks low-entropy and refuses its built-in default secret in production

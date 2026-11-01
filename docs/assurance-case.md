@@ -200,13 +200,14 @@ Each principle has a short argument, the code, the test that proves it, and its 
 ### 3.1 Economy of mechanism
 
 **Argument.** The security decisions are few and sit in few places. The project writes no cryptography
-and no session logic. Access checks are three middlewares in one file. Tenant resolution is one
+and no session logic. Access checks are three middlewares, all wired in one file. Tenant resolution is one
 function. Each app reads its environment in one module. Better Auth's HTTP surface is cut from dozens
 of endpoints to four.
 
 **Code.** [`authz.ts`](../apps/dashboard-api/src/authz.ts) (`requireSession`, `requireAdmin`,
-`requireSiteAccess`). `SiteRegistry.use` in [`registry.ts`](../apps/consent-api/src/registry.ts).
-`AUTH_ENDPOINTS` in [`app.ts`](../apps/dashboard-api/src/app.ts). `env.ts` in each app. No custom
+`requireSiteAccess`; the last one is built in [`site-access.ts`](../apps/dashboard-api/src/site-access.ts)).
+`SiteRegistry.use` in [`registry.ts`](../apps/consent-api/src/registry.ts). `AUTH_ENDPOINTS` in
+[`auth-endpoints.ts`](../apps/dashboard-api/src/auth-endpoints.ts). `env.ts` in each app. No custom
 cryptography: [`cryptography.md`](./cryptography.md).
 
 **Test.** `route-coverage.test.ts` (dashboard-api): `the route tree is exactly the documented API` and
@@ -224,16 +225,16 @@ unknown role gets no access. A bind address that is public or a wildcard is reje
 c15t is told to refuse a missing tenant.
 
 **Code.**
-- Unknown or disabled site: `settle` and `acquire` in [`registry.ts`](../apps/consent-api/src/registry.ts).
-- Untrusted by default: `peerAddress` in [`app.ts`](../apps/consent-api/src/app.ts) and `sanitizeHeaders` in
-  [`request-guard.ts`](../apps/consent-api/src/request-guard.ts).
-- `requireTenantId: true`, `assertTrustedOrigins` (non-empty, no wildcard) in
-  [`instance.ts`](../apps/consent-api/src/instance.ts).
-- Empty scope: `inScope` in [`c15t-read.ts`](../apps/dashboard-api/src/c15t-read.ts).
-- Unknown role: `readSession` in [`authz.ts`](../apps/dashboard-api/src/authz.ts) ("Fail closed").
-- Bind address: `hostSchema` in [`network.ts`](../packages/shared/src/network.ts).
+- Unknown or disabled site: `settle` and `acquire` in [`registry-resolver.ts`](../apps/consent-api/src/registry-resolver.ts).
+- Untrusted by default: `peerAddress` in [`request-source.ts`](../apps/consent-api/src/request-source.ts) and
+  `sanitizeHeaders` in [`request-guard.ts`](../apps/consent-api/src/request-guard.ts).
+- `requireTenantId: true` in [`instance.ts`](../apps/consent-api/src/instance.ts), `assertTrustedOrigins`
+  (non-empty, no wildcard) in [`instance-checks.ts`](../apps/consent-api/src/instance-checks.ts).
+- Empty scope: `inScope` in [`consent-filters.ts`](../apps/dashboard-api/src/consent-filters.ts).
+- Unknown role: `readSession` in [`session.ts`](../apps/dashboard-api/src/session.ts) ("Fail closed").
+- Bind address: `hostSchema` in [`host.ts`](../packages/shared/src/host.ts).
 - No sign-up: `disableSignUp` in [`auth.ts`](../apps/dashboard-api/src/auth.ts).
-- Database failure: a 503 with `Retry-After`, never wrong data (`serveSite` in `app.ts`).
+- Database failure: a 503 with `Retry-After`, never wrong data (`createSiteServer` in `site-server.ts`, called from `site-routes.ts`).
 
 **Test.** `registry.test.ts`: `a disabled site is not found and gets no instance`.
 `app.test.ts` (consent-api): `a request with no connection info is treated as untrusted`.
@@ -241,7 +242,7 @@ c15t is told to refuse a missing tenant.
 `assertTrustedOrigins` rejections (empty list, `*`, `*.example.com`). `c15t-read.test.ts`:
 `an empty scope or an unknown tenant returns nothing`. `env.test.ts` (consent-api and dashboard-api):
 `rejects the bind address %s`. `auth.test.ts`: `sign-up is disabled and passwords have the platform length limits`.
-`app.test.ts`: `a read that hits a database error is retried once on a fresh instance` and
+`app.failures.test.ts`: `a read that hits a database error is retried once on a fresh instance` and
 `a write is never retried, but the instance is replaced for the next request`.
 
 **Limit.** The `Host` check is not fail-safe in three cases: no `Host` header at all, an IP literal,
@@ -255,11 +256,12 @@ does not cache sessions in the cookie, and `requireSiteAccess` reads the user's 
 primary on each request. Every route group attaches its guard explicitly. In consent-api every request
 under `/s/` passes the path check, the header sanitizer and the `Host` check before it reaches c15t.
 
-**Code.** `cookieCache: { enabled: false }` in [`auth.ts`](../apps/dashboard-api/src/auth.ts).
-`accessibleSites(db.primary, user)` inside `requireSiteAccess`. `.use('*', authz.requireSiteAccess)` in
+**Code.** `cookieCache: { enabled: false }` in [`auth-options.ts`](../apps/dashboard-api/src/auth-options.ts).
+`accessibleSites(db.primary, user)` inside `requireSiteAccess`
+([`site-access.ts`](../apps/dashboard-api/src/site-access.ts)). `.use('*', authz.requireSiteAccess)` in
 [`routes/sites.ts`](../apps/dashboard-api/src/routes/sites.ts), `requireAdmin` in the admin route files.
-`createApp` in [`apps/consent-api/src/app.ts`](../apps/consent-api/src/app.ts) (path middleware, then
-`serveSite`).
+`createApp` in [`apps/consent-api/src/app.ts`](../apps/consent-api/src/app.ts) (path middleware in
+`guards.ts`, then `serveSite` from `site-routes.ts`).
 
 **Test.** `route-coverage.test.ts`: `every route outside the allowlist answers 401 without a session`
 (it walks `app.routes`, and the database stub throws if a query runs before a guard) and
@@ -270,8 +272,8 @@ under `/s/` passes the path check, the header sanitizer and the `Host` check bef
 
 **Limit.** consent-api caches the site registry. A change reaches a running instance through the
 `NOTIFY site_changed` trigger. If a notification is lost, the cached copy is trusted for up to
-5 minutes (`DEFAULT_TTL_MS` in `registry.ts`). The test `stops serving a site that was disabled while the notification was missed`
-shows the backstop. On a listener reconnect all instances are dropped (`onResync` in `server.ts`).
+5 minutes (`DEFAULT_TTL_MS` in `registry-config.ts`). The test `stops serving a site that was disabled while the notification was missed`
+shows the backstop. On a listener reconnect all instances are dropped (`onResync` in `server-wiring.ts`).
 
 ### 3.4 Open design
 
@@ -296,9 +298,11 @@ except change their password until they have replaced the generated one. Some ad
 outright: banning or resetting yourself, and demoting or banning the last active admin. The release
 workflow splits build, signing and publishing into jobs with different permissions.
 
-**Code.** `requireAdmin`, `loadUser` (the `mustChangePassword` check) in [`authz.ts`](../apps/dashboard-api/src/authz.ts).
-The Origin check in [`app.ts`](../apps/dashboard-api/src/app.ts). `ensureNotLastAdmin` and the self checks in
-[`routes/admin-users.ts`](../apps/dashboard-api/src/routes/admin-users.ts). `C15T_ADMIN_API_KEY` optional in
+**Code.** `requireAdmin` in [`authz.ts`](../apps/dashboard-api/src/authz.ts), `loadUser` (the `mustChangePassword` check) in
+[`session.ts`](../apps/dashboard-api/src/session.ts). The Origin check (`originGuard`) in
+[`http-guards.ts`](../apps/dashboard-api/src/http-guards.ts). `ensureNotLastAdmin` in
+[`admin-users/lookup.ts`](../apps/dashboard-api/src/admin-users/lookup.ts) and the self checks in `ban.ts`,
+`credentials.ts` and `update.ts` next to it. `C15T_ADMIN_API_KEY` optional in
 [`env.ts`](../apps/dashboard-api/src/env.ts). Job permissions in [`release.yml`](../.github/workflows/release.yml)
 (`build` has read-only contents, `sign` adds `id-token: write`, `release` has `contents: write`).
 
@@ -322,7 +326,7 @@ system (apart from a private `/tmp`).
 
 **Code.** [`infra/postgres/init.sql`](../infra/postgres/init.sql), [`0001_guards.sql`](../packages/db/drizzle/0001_guards.sql)
 (`admin_audit_append_only`, `admin_audit_no_truncate`, the `c15t_api` grant). `TenantScope` in
-[`authz.ts`](../apps/dashboard-api/src/authz.ts). `NoNewPrivileges`, `CapabilityBoundingSet=` (empty),
+[`authz-types.ts`](../apps/dashboard-api/src/authz-types.ts). `NoNewPrivileges`, `CapabilityBoundingSet=` (empty),
 `ProtectSystem=strict` in [`c15t-consent-api.service`](../infra/systemd/c15t-consent-api.service) and
 [`c15t-dashboard-api.service`](../infra/systemd/c15t-dashboard-api.service).
 
@@ -347,9 +351,10 @@ with separate environment files, and `InaccessiblePaths` hides `/etc/c15t-platfo
 own connection pool. The dashboard reads analytics from a separate pool (`db.analytics`) from the one that
 does authorization and writes (`db.primary`). Joins on c15t tables always include the tenant.
 
-**Code.** `createSiteInstance` and `createDatabaseLayer` in [`instance.ts`](../apps/consent-api/src/instance.ts).
+**Code.** `createSiteInstance` in [`instance.ts`](../apps/consent-api/src/instance.ts) and `createDatabaseLayer` in
+[`instance-database.ts`](../apps/consent-api/src/instance-database.ts).
 `InaccessiblePaths=/etc/c15t-platform` in the units. [`db.ts`](../apps/dashboard-api/src/db.ts) and
-`fetchRows` in [`c15t-read.ts`](../apps/dashboard-api/src/c15t-read.ts) (every join has
+`fetchRows` in [`consent-rows.ts`](../apps/dashboard-api/src/consent-rows.ts) (every join has
 `eq(x.tenantId, consent.tenantId)`).
 
 **Test.** `integration.test.ts` (consent-api): `site A's reader gets the record, site B's does not` and
@@ -377,7 +382,7 @@ code. Sign-in failures show one generic message.
 **Code.** [`password.ts`](../apps/dashboard-api/src/password.ts), `siteSetup` in
 [`site-mapping.ts`](../apps/dashboard-api/src/site-mapping.ts),
 [`one-time-password-dialog.tsx`](../apps/dashboard-web/src/components/one-time-password-dialog.tsx),
-`SAFE_MESSAGES` in [`errors.ts`](../apps/dashboard-api/src/errors.ts).
+`SAFE_MESSAGES` in [`error-response.ts`](../apps/dashboard-api/src/error-response.ts).
 
 **Test.** `password.test.ts`: `meets the platform password rules and avoids look-alike characters`.
 `site-mapping.test.ts`: `the nginx snippet is exactly the two lines of the README`.
@@ -400,9 +405,10 @@ dormant outbound paths, see CWE-918 in 4.2). c15t's OpenAPI
 document is turned off, and Better Auth telemetry is off. Bodies are size-limited. Dot files are a 404.
 
 **Code.** `hostSchema` and `serve({ hostname })` ([`env.ts`](../apps/consent-api/src/env.ts),
-[`server.ts`](../apps/consent-api/src/server.ts)). [`c15t.conf`](../infra/nginx/c15t.conf) (`location ^~ /api/c15t/`, rewrite to `/s/$c15t_site/`).
+[`server-listen.ts`](../apps/consent-api/src/server-listen.ts)). [`c15t.conf`](../infra/nginx/c15t.conf) (`location ^~ /api/c15t/`, rewrite to `/s/$c15t_site/`).
 `openapi: { enabled: false }` in `instance.ts`. `telemetry: { enabled: false }` in `auth.ts`.
-`MAX_BODY_BYTES` in both `app.ts` files. `location ~ /\.` in
+`MAX_BODY_BYTES` in [`site-routes.ts`](../apps/consent-api/src/site-routes.ts) (consent-api) and
+[`http-guards.ts`](../apps/dashboard-api/src/http-guards.ts) (dashboard-api). `location ~ /\.` in
 [`dashboard-locations.conf`](../infra/nginx/dashboard-locations.conf).
 
 **Test.** `route-coverage.test.ts`: `the route tree is exactly the documented API`.
@@ -422,11 +428,13 @@ set `key`, `password` or `mustChangePassword`. Roles, statuses and presets are e
 and re-validated. Country and region codes from Cloudflare must match a code pattern. The database
 repeats the key and domain rules as `CHECK` constraints.
 
-**Code.** `SITE_KEY_PATTERN`, `domainSchema`, `domainsSchema`, `siteCreateSchema`, `siteUpdateSchema` in
-[`site.ts`](../packages/shared/src/site.ts). [`user.ts`](../packages/shared/src/user.ts) (`z.strictObject`).
+**Code.** `SITE_KEY_PATTERN`, `siteCreateSchema`, `siteUpdateSchema` in
+[`site.ts`](../packages/shared/src/site.ts), `domainSchema`, `domainsSchema` in
+[`domain.ts`](../packages/shared/src/domain.ts). [`user.ts`](../packages/shared/src/user.ts) (`z.strictObject`).
 [`validate.ts`](../apps/dashboard-api/src/validate.ts) (`@hono/zod-validator`). `decodeCursor` in
-[`pagination.ts`](../apps/dashboard-api/src/pagination.ts). `COUNTRY_CODE`, `REGION_CODE`, `siteKeyFromPath`
-in [`request-guard.ts`](../apps/consent-api/src/request-guard.ts). `site_key_format_check`,
+[`pagination.ts`](../apps/dashboard-api/src/pagination.ts). `COUNTRY_CODE`, `REGION_CODE` in
+[`override-headers.ts`](../apps/consent-api/src/override-headers.ts), `siteKeyFromPath` in
+[`request-path.ts`](../apps/consent-api/src/request-path.ts). `site_key_format_check`,
 `site_domains_check` in [`schema.ts`](../packages/db/src/schema.ts). `noNul` in [`text.ts`](../packages/shared/src/text.ts).
 
 **Test.** `site.fuzz.test.ts` (shared): `the site key schema never throws and accepts exactly 3 to 40 of a-z, 0-9 and hyphen`,
@@ -472,7 +480,7 @@ covered in the last row.
 | CWE | Verdict | Counter (code) | Test |
 |---|---|---|---|
 | CWE-79 Cross-site scripting | Partly | No `dangerouslySetInnerHTML`, `innerHTML`, `eval` or `document.write` in non-test source (searched). React escapes text. CSP `default-src 'self'` with no `script-src`, so only same-origin scripts run ([`dashboard-headers.conf`](../infra/nginx/dashboard-headers.conf)). `X-Content-Type-Options: nosniff` on every API response. zod runs `jitless` in the browser so it does not probe `new Function`, which the CSP forbids ([`zod-setup.ts`](../apps/dashboard-web/src/lib/zod-setup.ts)). | `headers-robots.spec.ts` **[manual]**: `the policy nginx ships is strict`, `the shipped HTML has no inline script and no inline event handler`, `login and the not-found screen run under the policy without violations`. `route-coverage.test.ts`: `sends noindex and no-store on %s` (checks `nosniff`). Residual: `style-src` allows `'unsafe-inline'`, and no test renders hostile text such as `<script>` from a user agent through the UI. |
-| CWE-89 SQL injection | Countered | Drizzle query builder and postgres.js tagged templates bind every value. The raw SQL that exists takes constants only: `sql.raw` in [`schema.ts`](../packages/db/src/schema.ts), the quoted `LISTEN` channel in [`listener.ts`](../apps/consent-api/src/listener.ts), and the migrator, which validates schema and table names with `IDENTIFIER` ([`migrator.ts`](../packages/db/src/migrator.ts)). | `authz.test.ts`: `a malformed site key is a 404 too, never a query` (includes a quote character). `migrations.test.ts`: `rejects unsafe journal identifiers`. `hostile-input.test.ts`. Residual: no test sends a classic injection string such as `' OR 1=1`. The protection is by construction. |
+| CWE-89 SQL injection | Countered | Drizzle query builder and postgres.js tagged templates bind every value. The raw SQL that exists takes constants only: `sql.raw` in [`schema.ts`](../packages/db/src/schema.ts), the quoted `LISTEN` channel in [`listener-driver.ts`](../apps/consent-api/src/listener-driver.ts), and the migrator, which validates schema and table names with `IDENTIFIER` ([`migrator.ts`](../packages/db/src/migrator.ts)). | `authz.test.ts`: `a malformed site key is a 404 too, never a query` (includes a quote character). `migrations.test.ts`: `rejects unsafe journal identifiers`. `hostile-input.test.ts`. Residual: no test sends a classic injection string such as `' OR 1=1`. The protection is by construction. |
 | CWE-78, CWE-77 OS command injection | Countered | No `child_process` or process spawn in application code (searched). Shell scripts in `infra/` and `scripts/` run only for the operator or CI. They were not audited line by line. | None needed for the application code. |
 | CWE-94 Code injection | Countered | No `eval` or dynamic `Function` in application code. | None. |
 | CWE-1236 CSV injection | Countered | `csvCell` prefixes a cell that starts with `=`, `+`, `-`, `@`, tab or carriage return with an apostrophe ([`csv.ts`](../apps/dashboard-api/src/csv.ts)). | `csv.test.ts`: `=SUM(A1:A9)`, `+1`, `-1`, `@cmd` and tab cases. `csv.fuzz.test.ts`: `every formula prefix is neutralised in front of any payload`. `c15t-read.test.ts`: `csv rows neutralize formulas and serialize purposes as JSON`. |
@@ -481,16 +489,16 @@ covered in the last row.
 | CWE-434 Unrestricted upload | Not applicable | There is no upload, multipart or file-writing endpoint (searched). | None. |
 | CWE-502 Deserialization of untrusted data | Countered | The only decoding of caller-supplied structure is `JSON.parse` of a pagination cursor, then a zod schema ([`pagination.ts`](../apps/dashboard-api/src/pagination.ts)). No YAML, no `v8.deserialize`. | `pagination.test.ts`: `rejects a forged cursor (%s) with a 400`. `hostile-input.test.ts`: `a forged consent cursor (%s) is a 400`. `c15t-read.test.ts`: `rejects a forged cursor`. `admin.test.ts`: `rejects a forged audit cursor`. |
 | CWE-918 SSRF | Not applicable for our code | No application code makes an outbound HTTP request (searched for `fetch`, `http.request` and similar outside the browser app). `CONSENT_API_URL` is validated as a bare origin but dashboard-api does not call it yet ([`env.ts`](../apps/dashboard-api/src/env.ts)). The browser app calls only its own origin. `@c15t/backend` 3.1.0 does have outbound `fetch` calls: `dist/http/gvl.js` (default endpoint `https://gvl.inth.app`) and `dist/http/ad-tech-providers.js`. They run only when the matched policy model is `iab` and the Global Vendor List is enabled (`dist/http/init.js`). `instance.ts` sets no `gvl` option and no platform preset (`europeOptIn`, `quebecOptIn`, `usPrivacyStatesOptOut`, `worldNone`, `worldOptOutNoPrompt`) uses an `iab` model, so these paths are dormant. The target is a fixed default or an operator option, never request data. A new preset with an `iab` model would switch them on. | `env.test.ts` (dashboard-api): `validates the two optional variables when they are set`. No test covers the c15t paths. |
-| CWE-352 CSRF | Countered | Cookies are `SameSite=Lax`. In addition, every `POST`, `PUT`, `PATCH` and `DELETE` under `/api/` must carry an `Origin` (or `Referer`) equal to `BETTER_AUTH_URL`; no header means rejection ([`app.ts`](../apps/dashboard-api/src/app.ts)). Better Auth's `trustedOrigins` is the same single origin. The `GET` routes of the dashboard API only read data. | `route-coverage.test.ts`: `rejects a write with %s (CSRF)` (no Origin, foreign Origin, `null`, foreign Referer) and `a same-origin Referer is enough when the browser sends no Origin`. `headers-robots.spec.ts` **[manual]**: in `every API answer, errors included, says noindex and no-store`, a sign-in with a foreign `Origin` returns 403. consent-api uses no cookie authentication, so CSRF does not apply there (but see T5). |
+| CWE-352 CSRF | Countered | Cookies are `SameSite=Lax`. In addition, every `POST`, `PUT`, `PATCH` and `DELETE` under `/api/` must carry an `Origin` (or `Referer`) equal to `BETTER_AUTH_URL`; no header means rejection ([`http-guards.ts`](../apps/dashboard-api/src/http-guards.ts)). Better Auth's `trustedOrigins` is the same single origin. The `GET` routes of the dashboard API only read data. | `route-coverage.test.ts`: `rejects a write with %s (CSRF)` (no Origin, foreign Origin, `null`, foreign Referer) and `a same-origin Referer is enough when the browser sends no Origin`. `headers-robots.spec.ts` **[manual]**: in `every API answer, errors included, says noindex and no-store`, a sign-in with a foreign `Origin` returns 403. consent-api uses no cookie authentication, so CSRF does not apply there (but see T5). |
 | CWE-862 Missing authorization | Countered | Section 3.3. Every route group attaches `requireSession`, `requireAdmin` or `requireSiteAccess`. | `route-coverage.test.ts`: `every route outside the allowlist answers 401 without a session`. `authz.test.ts`: `a user gets 403 on every admin route and nothing changes`. |
 | CWE-863 Incorrect authorization, CWE-639 Authorization bypass through a user-controlled key (IDOR) | Countered | The site key in the URL is resolved against `accessibleSites` for the session. For a `user`, a missing, disabled or unassigned site is the same 404. An `admin` sees every site, including disabled ones. Every c15t query filters by the `TenantScope` that guard built, never by request input. Cursors cannot widen the scope. | `authz.test.ts`: `a user gets 404 on every read route of a site assigned to someone else`, `another site looks exactly like a site that does not exist (no enumeration)`, `a disabled site is invisible to its users but visible to admins`, `the record search of one site cannot be pointed at another site data`, `a cursor taken from one site cannot be replayed to read another site`. `c15t-read.test.ts`: `only returns rows of the tenants in the scope`, `a cursor cannot widen the scope`. `consent-flow.spec.ts` **[manual]**: `each reader sees only their own tenant: list, stats and CSV`. |
 | CWE-306 Missing authentication for a critical function | Countered | The only routes outside the guards are `/api/health` and `/api/auth/*`, which is cut down to four endpoints. Admin bootstrap is a CLI that needs shell access and the database URL. | `route-coverage.test.ts`: `the only open routes are health and the Better Auth sign-in family`. `bootstrap.test.ts`: `creates an administrator with a one-time password that must be changed`. |
 | CWE-287 Improper authentication | Partly | Better Auth with email and password. No sign-up. Sessions last 7 days and refresh daily. A ban or a revoked session applies on the next request. Password change revokes other sessions. | `authz.test.ts`: `a banned user is rejected: the old session dies and sign-in is refused`, `a revoked session is rejected at once`. `change-password.test.ts`: `other sessions are revoked even when the client omits or disables revokeOtherSessions`. Residual: no MFA. |
-| CWE-307 Excessive authentication attempts | Partly | Better Auth rate limiter, stored in the database: 10 sign-ins per 5 minutes per client IP and path ([`auth.ts`](../apps/dashboard-api/src/auth.ts)). The IP comes from `X-Forwarded-For` set by nginx. | `authz.test.ts`: `login is rate limited per client IP`. Residual: a distributed attack across many IPs is not limited, and there is no per-account lockout. |
+| CWE-307 Excessive authentication attempts | Partly | Better Auth rate limiter, stored in the database: 10 sign-ins per 5 minutes per client IP and path ([`auth-options.ts`](../apps/dashboard-api/src/auth-options.ts)). The IP comes from `X-Forwarded-For` set by nginx. | `authz.test.ts`: `login is rate limited per client IP`. Residual: a distributed attack across many IPs is not limited, and there is no per-account lockout. |
 | CWE-521 Weak password requirements, CWE-798 Hard-coded credentials | Countered | Passwords are 12 to 128 characters. Admin-issued passwords are generated (about 115 bits) and must be changed. No default account and no credential in source; the first admin is created with `yarn admin:create`. Secrets are read from the environment by one module per app. Test and CI files hold only throwaway values for ephemeral databases. | `user.test.ts`: `rejects short, long and unchanged passwords`. `password.test.ts`. `bootstrap.test.ts`. `env.test.ts`: `rejects a short secret and an origin with a path`. `change-password.test.ts`: `the one-time password cannot be "changed" to itself, and the flag stays set`. Residual: no scan for secrets runs in CI (see Known gaps). |
 | CWE-269 Improper privilege management | Countered | `mustChangePassword` has `input: false`, so no HTTP caller can clear it. Better Auth's admin plugin endpoints are not reachable. A user cannot ban or reset themselves, and the last active admin cannot be demoted or banned. | `auth.test.ts`: `mustChangePassword cannot be written by a client`. `authz.test.ts`: `the Better Auth admin endpoints are not a way around the API`. `admin.test.ts`: `the only active administrator cannot demote themselves; with two they can`. |
 | CWE-613 Insufficient session expiration | Countered | `expiresIn` 7 days, `updateAge` 1 day, no cookie cache, `revokeSessionsOnPasswordReset`, sessions revoked on ban and password reset. | `authz.test.ts`: `a revoked session is rejected at once`. `admin.test.ts`: `resets a password: new one-time password, forced change, sessions revoked, audited`. `auth-roles.spec.ts` **[manual]**: `signing out invalidates the session on the server`. |
-| CWE-200, CWE-209, CWE-532 Information exposure (data, errors, logs) | Countered | Errors use fixed text per code. Better Auth and driver messages never reach the client. Loggers write identifiers and codes, not bodies, headers, cookies or passwords. `errorFields` and `describeError` keep only name, message line and code. Env errors name variables, never values. | `errors.test.ts`: `an unexpected error is a generic 500 and the log has no stack, SQL or parameters`, `Better Auth errors map to a status but never forward their text`. `admin.test.ts`: `every admin response is JSON and never leaks SQL or stack traces`, and the one-time password test (not in logs, streams or audit). `app.test.ts` (consent-api): `an unexpected exception is a generic JSON 500 with no stack or message`. `env.test.ts`: `rejects a database URL that is not postgres, and never echoes it`. |
+| CWE-200, CWE-209, CWE-532 Information exposure (data, errors, logs) | Countered | Errors use fixed text per code. Better Auth and driver messages never reach the client. Loggers write identifiers and codes, not bodies, headers, cookies or passwords. `errorFields` and `describeError` keep only name, message line and code. Env errors name variables, never values. | `errors.test.ts`: `an unexpected error is a generic 500 and the log has no stack, SQL or parameters`, `Better Auth errors map to a status but never forward their text`. `admin.test.ts`: `every admin response is JSON and never leaks SQL or stack traces`, and the one-time password test (not in logs, streams or audit). `app.failures.test.ts` (consent-api): `an unexpected exception is a generic JSON 500 with no stack or message`. `env.test.ts`: `rejects a database URL that is not postgres, and never echoes it`. |
 | CWE-1021 Clickjacking | Countered | CSP `frame-ancestors 'none'`. | `headers-robots.spec.ts` **[manual]**: `the policy nginx ships is strict` (asserts `frame-ancestors`). |
 | CWE-601 Open redirect | Countered | The post-login target must start with `/`, not `//`, with no backslash ([`session.ts`](../apps/dashboard-web/src/session.ts)). | `session.test.ts`: `only same-origin paths are accepted as a post-login target`. |
 | CWE-362 Race conditions | Partly | User administration takes a transaction-scoped advisory lock (`lockUserAdministration`), so two admins cannot each remove "the other" last admin. A site `PATCH` reads the row `FOR UPDATE`. The site-change `NOTIFY` is sent by a trigger inside the writing transaction. The registry re-reads when a notification lands during a lookup. | `registry.test.ts`: `a change notification that lands mid-lookup forces a fresh read`, `concurrent first requests share one lookup and one instance`. `migrations.test.ts`: `inserts and updates notify site_changed with the key`. **No test runs two admin changes concurrently**: `the only active administrator cannot demote themselves` is sequential. |
@@ -550,7 +558,7 @@ which has the operator advice.
   There is no hash chain or external copy.
 - **Both services run as the same system user.** A code-execution bug in one service can probably read
   the other's secrets from `/proc/<pid>/environ` (3.7). Then the database role separation (B6) no longer holds.
-- **dashboard-api trusts `X-Forwarded-For` from any peer.** `auth.ts` reads the client IP from that header with
+- **dashboard-api trusts `X-Forwarded-For` from any peer.** `auth-options.ts` reads the client IP from that header with
   no trusted-proxy list. nginx replaces it, so this only matters if the dashboard-api port is reachable directly:
   a caller could then pick the IP and avoid the sign-in rate limit.
 - **One `C15T_ADMIN_API_KEY` for every site.** consent-api passes the same key to every instance
@@ -581,7 +589,7 @@ them so the case does not read stronger than the evidence.
    the CSP assertions, the nginx header and path-traversal behaviour, and the end-to-end tenant checks.
 2. **No concurrency test** for the advisory lock in `lockUserAdministration` or the `FOR UPDATE` on a site
    update. The sequential last-admin test passes, but a race is not exercised.
-3. **No test for an unknown role string** being refused in `readSession` (`authz.ts`).
+3. **No test for an unknown role string** being refused in `readSession` (`session.ts`).
 4. **No automated check of the systemd sandbox.** `systemd-analyze security` is run by hand.
 5. **The `dashboard` role's inability to write `c15t.*`** is asserted for one table in
    `scripts/ci-bootstrap-db.sh`. No application test tries a write.

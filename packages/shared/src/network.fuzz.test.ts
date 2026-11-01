@@ -4,17 +4,11 @@
 import { BlockList, isIP } from 'node:net';
 import * as fc from 'fast-check';
 import { expect, test } from 'vitest';
-import {
-  cidrListSchema,
-  cidrSchema,
-  classifyHost,
-  hostSchema,
-  ipInCidrs,
-  originSchema,
-  parseCidr,
-  parseIp,
-  portSchema,
-} from './network.js';
+import { ipInCidrs } from './cidr.js';
+import { classifyHost, hostSchema } from './host.js';
+import { parseCidr, parseIp } from './ip.js';
+import { cidrListSchema, cidrSchema, portSchema } from './network.js';
+import { originSchema } from './origin.js';
 
 /*
  * Property-based tests for the bind-address and trusted-proxy rules. Node's own `net` module
@@ -34,7 +28,7 @@ const anyText = fc.oneof(ipish, fc.string(), fc.string({ unit: 'binary' }));
 const ipv4Number = (text: string): number =>
   text.split('.').reduce((acc, octet) => acc * 256 + Number(octet), 0);
 
-/** IPv4 containment by integer division, independent of the bit masks used in network.ts. */
+/** IPv4 containment by integer division, independent of the bit masks used in cidr.ts. */
 function referenceContains(address: string, base: string, prefix: number): boolean {
   const block = 2 ** (32 - prefix);
   return Math.floor(ipv4Number(address) / block) === Math.floor(ipv4Number(base) / block);

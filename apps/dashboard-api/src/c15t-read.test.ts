@@ -10,11 +10,11 @@ import {
   consentCsvRow,
   consentCsvStream,
   consentStats,
-  derivePurposes,
-  isNaiveTimestamp,
   listConsents,
-  toConsentRecord,
 } from './c15t-read.js';
+import { isNaiveTimestamp } from './consent-cursor.js';
+import { derivePurposes } from './consent-purposes.js';
+import { toConsentRecord } from './consent-record.js';
 import { HttpError } from './errors.js';
 import type { ConsentFixture } from './testing/environment.js';
 import { describeEnvironments } from './testing/suite.js';

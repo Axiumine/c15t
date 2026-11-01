@@ -4,8 +4,8 @@
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { expect, test } from 'vitest';
-import { parseDomainList, siteFormSchema } from './components/site-form';
-import { filterFormSchema } from './screens/site/consents';
+import { parseDomainList, siteFormSchema } from './components/site-form-schema';
+import { filterFormSchema } from './screens/site/consent-filter-schema';
 import { admin, shop } from './test/fixtures';
 import { apiError, json, mockFetch, renderApp, route } from './test/harness';
 

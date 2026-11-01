@@ -3,9 +3,9 @@
 
 import { EventEmitter } from 'node:events';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-import type { AppDeps } from './app.js';
-import type { ListenerOptions } from './listener.js';
-import type { RegistryOptions } from './registry.js';
+import type { AppDeps } from './app-types.js';
+import type { ListenerOptions } from './listener-types.js';
+import type { RegistryOptions } from './registry-types.js';
 import { siteRecord } from './testing/fakes.js';
 
 /*
@@ -76,10 +76,8 @@ vi.mock('@consent/db', () => ({ createPool: h.createPool }));
 vi.mock('@hono/node-server', () => ({ serve: h.serve }));
 vi.mock('./app.js', () => ({ createApp: h.createApp }));
 vi.mock('./instance.js', () => ({ createSiteInstance: h.createSiteInstance }));
-vi.mock('./listener.js', () => ({
-  createPostgresListenerDriver: h.createDriver,
-  SiteChangeListener: h.FakeListener,
-}));
+vi.mock('./listener-driver.js', () => ({ createPostgresListenerDriver: h.createDriver }));
+vi.mock('./listener.js', () => ({ SiteChangeListener: h.FakeListener }));
 vi.mock('./registry.js', () => ({ SiteRegistry: h.FakeRegistry }));
 vi.mock('./site-store.js', () => ({ createPgSiteStore: h.createPgSiteStore }));
 vi.mock('./log.js', async (importOriginal) => ({

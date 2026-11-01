@@ -1,21 +1,9 @@
 [
   {
-    "path": "apps/consent-api/src/app.test.ts",
-    "kind": "file-lines",
-    "name": "(file)",
-    "value": 747
-  },
-  {
-    "path": "apps/consent-api/src/listener.ts",
-    "kind": "function-lines",
-    "name": "createPostgresListenerDriver",
-    "value": 51
-  },
-  {
     "path": "apps/consent-api/src/request-guard.fuzz.test.ts",
     "kind": "file-lines",
     "name": "(file)",
-    "value": 655
+    "value": 650
   },
   {
     "path": "apps/dashboard-api/src/admin.test.ts",
@@ -28,11 +16,5 @@
     "kind": "file-lines",
     "name": "(file)",
     "value": 577
-  },
-  {
-    "path": "apps/dashboard-api/src/authz.ts",
-    "kind": "function-lines",
-    "name": "createAuthz",
-    "value": 54
   }
 ]

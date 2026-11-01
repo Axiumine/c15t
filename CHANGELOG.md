@@ -30,6 +30,13 @@ their own "Security" heading and name the advisory.
 - Git hooks with lefthook, installed by `yarn install`: pre-commit (Biome, SPDX, code caps, shellcheck), commit-msg
   (DCO sign-off), pre-push (typecheck, analysers, tests at 100% coverage, scans).
 
+### Changed
+
+- The FTA maintainability cap is now 50 (was 65): 39 source files in consent-api, dashboard-api, dashboard-web and
+  `packages/*` were split into smaller modules, with the same behaviour and the same tests. The size-cap ratchet
+  (`.code-caps-baseline.json`) is down to three remaining violations. Source pointers in the documentation follow
+  the moved symbols.
+
 ## [0.2.0] - 2026-11-01
 
 Adds `deploy.sh install` and `uninstall`, the security and cryptography documentation, a reproducible-build check and

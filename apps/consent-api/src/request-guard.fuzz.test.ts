@@ -6,17 +6,12 @@ import { DEFAULT_IP_HEADERS_LIST } from '@c15t/schema/geo';
 import { ipInCidrs, SITE_KEY_PATTERN } from '@consent/shared';
 import * as fc from 'fast-check';
 import { expect, test } from 'vitest';
-import {
-  clientAddress,
-  isSafePath,
-  rawPathname,
-  requestHostAllowed,
-  sanitizeHeaders,
-  siteKeyFromPath,
-  stripOverrideParams,
-  VISITOR_OVERRIDE_HEADERS,
-  VISITOR_OVERRIDE_PARAMS,
-} from './request-guard.js';
+import { clientAddress } from './forwarding-headers.js';
+import { VISITOR_OVERRIDE_HEADERS } from './override-headers.js';
+import { stripOverrideParams, VISITOR_OVERRIDE_PARAMS } from './override-params.js';
+import { sanitizeHeaders } from './request-guard.js';
+import { requestHostAllowed } from './request-host.js';
+import { isSafePath, rawPathname, siteKeyFromPath } from './request-path.js';
 
 /*
  * Property-based tests for the request hardening that stands between a visitor and c15t. The

@@ -3,7 +3,8 @@
 
 import { describe, expect, test, vi } from 'vitest';
 import { SiteConfigError } from './errors.js';
-import { type InstanceFactory, SiteRegistry } from './registry.js';
+import { SiteRegistry } from './registry.js';
+import type { InstanceFactory } from './registry-types.js';
 import type { SiteRecord } from './site-store.js';
 import {
   capturingLogger,

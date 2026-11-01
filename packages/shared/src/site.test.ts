@@ -2,13 +2,14 @@
 // Copyright (C) 2026 Axiumine
 
 import { describe, expect, test } from 'vitest';
+import { domainSchema, domainsSchema } from './domain.js';
 import {
   DEFAULT_POLICY_PRESET,
-  domainSchema,
-  domainsSchema,
   POLICY_PRESET_LABELS,
   POLICY_PRESET_RULES,
   POLICY_PRESETS,
+} from './policy.js';
+import {
   siteCreateSchema,
   siteDetailSchema,
   siteKeySchema,
