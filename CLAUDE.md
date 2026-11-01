@@ -86,6 +86,7 @@ infra/
                         uninstall.test.sh (no Docker, no root: deploy.sh install and uninstall on a temporary tree; run in CI)
 eslint.config.mjs       ESLint flat config (type-aware via each workspace's tsconfig.json + tsconfig.test.json, tsconfig.tools.json for configs and e2e)
 c15t-backend.config.ts  config used by the c15t migration CLI
+stryker.config.mjs, vitest.mutation.config.ts, tsconfig.mutation.json   StrykerJS mutation testing (yarn mutation); never touches a database
 knip.json, fta.json      analyser configs (yarn knip, yarn fta); typeCoverage in package.json configures yarn type-coverage
 scripts/check-code-caps.ts (+ scripts/code-caps/) + .code-caps-baseline.json   size caps with a ratchet baseline (yarn code-caps)
 .yarnrc.yml             nodeLinker, injectEnvironmentFiles, packageExtensions
@@ -110,6 +111,7 @@ yarn test:coverage       # vitest with the 100% coverage gate; lefthook (install
 yarn semgrep             # scripts/semgrep.sh: registry rule sets, exit 1 on any finding (skips with exit 0 when semgrep is missing and CI is unset)
 yarn trivy               # scripts/trivy.sh: trivy fs vuln,secret,misconfig, HIGH/CRITICAL fail, .trivyignore needs exp: dates (same skip rule); see docs/security-scanning.md
 yarn qodana              # scripts/qodana.sh: JetBrains Qodana on a copy of the tree; needs QODANA_TOKEN, Docker and the qodana CLI, refuses otherwise; advisory, never run with a token yet (docs/security-scanning.md)
+yarn mutation            # StrykerJS, incremental, no database (PGlite only); weekly in CI on the self-hosted runners (docs/quality-gates.md)
 yarn knip                # unused files, exports, types and dependencies (knip.json lists only entries it cannot infer)
 yarn type-coverage       # 100% strict type coverage per tsconfig project (scripts/type-coverage.mjs; no any, no casts in src)
 yarn fta                 # FTA maintainability score per file, fails above score_cap in fta.json (lower is better)

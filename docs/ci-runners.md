@@ -11,7 +11,13 @@ is gated by a maintainer's approval.
 | Workflow | Runner |
 |---|---|
 | `ci.yml` (all four jobs), `codeql.yml`, `dco.yml`, `dependency-review.yml`, `security-scan.yml` (Semgrep, Trivy), `qodana.yml` | The organisation's self-hosted runners (`[self-hosted, Linux, X64]`). A pull request from a fork, or one whose head repository cannot be read, runs on `ubuntu-24.04` instead. |
+| `mutation.yml` (StrykerJS) | The same self-hosted runners, always: plain `[self-hosted, Linux, X64]`, no fork fallback. It starts only on `schedule` (Mondays) and `workflow_dispatch`, never on `pull_request` or `pull_request_target`, so a fork cannot make it run: a fork cannot start a manual run in this repository, and a schedule runs the default branch only. It is not a pull request check. |
 | `release.yml`, `scorecard.yml` | GitHub-hosted, always. |
+
+Load of the mutation run: Stryker starts one test worker per core by default; the workflow passes
+`--concurrency 4` so a 8 to 12 CPU host stays usable for other jobs. A cold run needs about 8 minutes on 32 cores (more on a smaller host; an earlier port measured 23.6 minutes on 4 cores) and the job has a 90 minute limit.
+The job removes its `.stryker-tmp` sandbox at the end (the runner is persistent), and a killed job can leave
+it behind. It needs no database and no port (PGlite only), and nothing beyond the tools in the table below.
 
 Why those two stay hosted:
 

@@ -11,6 +11,8 @@
     "/apps/dashboard-web/dist",
     "/packages/db/dist",
     "/packages/shared/dist",
-    "/infra/test"
+    "/infra/test",
+    "/.stryker-tmp",
+    "/reports"
   ]
 }

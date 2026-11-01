@@ -6,7 +6,8 @@
         "scripts/*.{mjs,ts}",
         "e2e/**/*.ts",
         "c15t-backend.config.ts",
-        "playwright.config.ts"
+        "playwright.config.ts",
+        "vitest.mutation.config.ts"
       ],
       "project": ["scripts/**/*.{mjs,ts}", "e2e/**/*.ts", "*.ts"],
       "playwright": false
