@@ -4,7 +4,8 @@
 import { CONSENT_CSV_COLUMNS, type ConsentRecord } from '@consent/shared';
 import * as fc from 'fast-check';
 import { expect, test } from 'vitest';
-import { consentCsvRow, derivePurposes } from './c15t-read.js';
+import { consentCsvRow } from './c15t-read.js';
+import { derivePurposes } from './consent-purposes.js';
 import { parseCsv } from './testing/csv-reader.js';
 
 /*

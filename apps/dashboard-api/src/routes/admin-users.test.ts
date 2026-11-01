@@ -8,7 +8,7 @@ import { asc, eq } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { afterAll, beforeAll, expect, test } from 'vitest';
 import { createApi } from '../app.js';
-import { createErrorHandler } from '../errors.js';
+import { createErrorHandler } from '../error-handler.js';
 import { silentLogger } from '../logger.js';
 import {
   closeIfOpen,

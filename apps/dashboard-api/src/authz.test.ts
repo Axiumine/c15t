@@ -14,7 +14,7 @@ import { Hono } from 'hono';
 import { afterAll, beforeAll, expect, test } from 'vitest';
 import type { Auth } from './auth.js';
 import { accessibleSiteKeys, accessibleSites, createAuthz, type SessionUser } from './authz.js';
-import { createErrorHandler } from './errors.js';
+import { createErrorHandler } from './error-handler.js';
 import { silentLogger } from './logger.js';
 import type { TestUser } from './testing/harness.js';
 import { closeIfOpen, cookieHeader, createTestApp, type TestApp } from './testing/harness.js';
