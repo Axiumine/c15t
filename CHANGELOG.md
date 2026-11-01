@@ -16,7 +16,7 @@ their own "Security" heading and name the advisory.
 
 ## [Unreleased]
 
-## [0.2.0] - 2026-10-31
+## [0.2.0] - 2026-11-01
 
 Adds `deploy.sh install` and `uninstall`, the security and cryptography documentation, a reproducible-build check and
 a 100% coverage gate. There is no intended change in the behaviour of consent-api, dashboard-api or dashboard-web:
