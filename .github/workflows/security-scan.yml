@@ -1,0 +1,89 @@
+name: Security scan
+
+# Two scanners, both described in docs/security-scanning.md, both run by the same scripts a developer
+# runs locally (scripts/semgrep.sh, scripts/trivy.sh):
+#   semgrep  static analysis of the TypeScript and JavaScript sources (registry rule sets)
+#   trivy    known vulnerabilities in yarn.lock and the CI tools' lockfiles, secrets, misconfigurations
+# Neither job needs a secret, a token or a login. Neither uses a third-party action: the tools are
+# installed by the steps below, pinned and verified, because both a scanner's action and its release
+# are a way into the CI of every project that runs it (see the Trivy note in the document).
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # Mondays 06:41 UTC. New rules and new advisories land without a commit, hence the schedule.
+    - cron: "41 6 * * 1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-scan-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  semgrep:
+    name: semgrep
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # semgrep 1.182.1 and every package it needs, from a lockfile with a SHA-256 for each file
+      # (.github/ci-tools/semgrep/requirements.txt). pip refuses any download that does not match, any
+      # package that is not in the file, and anything that would have to be built from source.
+      - name: Install Semgrep
+        run: |
+          set -euo pipefail
+          python3 -m venv "${RUNNER_TEMP}/semgrep-venv"
+          "${RUNNER_TEMP}/semgrep-venv/bin/python" -m pip install \
+            --disable-pip-version-check --no-input \
+            --require-hashes --only-binary :all: --no-deps \
+            --requirement .github/ci-tools/semgrep/requirements.txt
+          echo "${RUNNER_TEMP}/semgrep-venv/bin" >> "$GITHUB_PATH"
+
+      # Fetches the public rule sets from the Semgrep registry (no login, `--metrics=off`) and exits 1
+      # on any finding. A rule set can gain rules between two runs, which is what the schedule is for.
+      - name: Run Semgrep
+        run: bash scripts/semgrep.sh
+
+  trivy:
+    name: trivy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Trivy 0.76.1, the Linux 64-bit release archive from GitHub, checked against a SHA-256 that is
+      # written down here, not fetched. v0.76.1 is an immutable release (its assets and tag cannot be
+      # replaced), and the digest below is the one GitHub's release attestation records for it.
+      # Not used, on purpose: aquasecurity/trivy-action and aquasecurity/setup-trivy (their tags were
+      # force-pushed to malware in March 2026, GHSA-69fq-xp46-6x23), `latest` anything, the install
+      # script, and the Docker Hub and GHCR images by tag.
+      # To update, follow "Update the pins" in docs/security-scanning.md.
+      - name: Install Trivy
+        env:
+          TRIVY_VERSION: "0.76.1"
+          TRIVY_SHA256: c7cbe3137fb8a48a17574bede3dd6beb16742d1e9772929940fc90082c39d9c0
+        run: |
+          set -euo pipefail
+          archive="trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"
+          curl --proto '=https' --tlsv1.2 --fail --silent --show-error --location --retry 3 \
+            --output "${RUNNER_TEMP}/${archive}" \
+            "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/${archive}"
+          echo "${TRIVY_SHA256}  ${RUNNER_TEMP}/${archive}" | sha256sum --check --strict -
+          mkdir "${RUNNER_TEMP}/trivy-bin"
+          tar -xzf "${RUNNER_TEMP}/${archive}" -C "${RUNNER_TEMP}/trivy-bin" trivy
+          echo "${RUNNER_TEMP}/trivy-bin" >> "$GITHUB_PATH"
+
+      # Downloads Trivy's public vulnerability database and checks bundle (nothing is uploaded) and
+      # exits 1 on a HIGH or CRITICAL finding that .trivyignore does not cover.
+      - name: Run Trivy
+        run: bash scripts/trivy.sh

@@ -119,6 +119,7 @@ function readIgnoreRules() {
 
 function isIgnored(rel, rules) {
   let ignored = false;
+  // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- rule.re comes from globToRegExp over .gitignore, a maintainer-controlled file; rel is a repository path, not request input
   for (const rule of rules) if (rule.re.test(rel)) ignored = !rule.negate;
   return ignored;
 }
@@ -181,6 +182,7 @@ function withHeader(text, style) {
 
 /** Handles one file; returns a problem description, 'written', or null when it is fine. */
 function processFile(rel, style, globs) {
+  // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- g comes from globToRegExp over REUSE.toml, a maintainer-controlled file; rel is a repository path, not request input
   if (globs.some((g) => g.test(rel))) return null;
   if (!style) return 'no comment style known and not listed in REUSE.toml';
   const abs = join(ROOT, rel);
