@@ -25,7 +25,8 @@ test visited.
   are never committed.
 - A migrated PostgreSQL: the root env file must define `DATABASE_URL_DASHBOARD` (role `dashboard`),
   `DATABASE_URL_C15T` (role `c15t_api`), `BETTER_AUTH_SECRET` and `C15T_ADMIN_API_KEY`. Run
-  `yarn db:migrate` and `yarn c15t:migrate` once. The roles do not need to create schemas.
+  `yarn db:migrate` and `yarn c15t:migrate` once. The roles do not need to create schemas. If you have no
+  PostgreSQL yet, [`local-database.md`](./local-database.md) sets one up and lists the variables.
 - Docker with Compose, for the website scenario only. It uses `infra/test/compose.yaml` (the only Docker
   in the repo) and the `nginx:stable-alpine` image.
 

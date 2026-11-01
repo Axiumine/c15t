@@ -18,6 +18,11 @@ their own "Security" heading and name the advisory.
 
 ### Added
 
+- `docs/local-database.md`: a PostgreSQL for development, the tests and the e2e suite. It lists which suites need a
+  real database and what happens when the variables are missing, how to run a throwaway server without root, how to
+  create the roles and a separate test database, the connection URLs, every environment variable (dotenv file versus
+  shell, and Yarn's precedence rules, including the nested-checkout trap), the commands for the tests and Playwright,
+  the CI equivalent, safety rules and a troubleshooting table.
 - Quality gates beyond Biome and `tsc`, all passing with zero findings and documented in `docs/quality-gates.md`: ESLint
   (typescript-eslint `strictTypeChecked`, sonarjs, security, no-unsanitized, complexity and size rules), knip,
   type-coverage (100%), FTA, a code-caps ratchet (`scripts/check-code-caps.ts`), Semgrep and Trivy (`docs/security-scanning.md`).
@@ -36,6 +41,15 @@ their own "Security" heading and name the advisory.
   `packages/*` were split into smaller modules, with the same behaviour and the same tests. The size-cap ratchet
   (`.code-caps-baseline.json`) is down to three remaining violations. Source pointers in the documentation follow
   the moved symbols.
+
+### Fixed
+
+- The message of the consent-api integration tests for a missing database variable (`apps/consent-api/src/testing/db.ts`)
+  named `yarn workspace @consent/consent-api test`, which fails with `command not found: vitest`. It now names
+  `yarn vitest run --project consent-api`.
+- The comments in `infra/postgres/init.sql` and `scripts/ci-bootstrap-db.sh`, and `docs/database-setup.md`, said that a
+  role with `CREATEROLE` and `CREATEDB` can run the bootstrap. On PostgreSQL 16 and newer only a superuser can (the
+  `ALTER ROLE ... NOSUPERUSER` statements stop with `permission denied to alter role`).
 
 ## [0.2.0] - 2026-11-01
 

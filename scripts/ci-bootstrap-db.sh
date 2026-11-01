@@ -13,7 +13,8 @@
 # It never targets a shared database: point it at a throwaway server only. Re-running it on the
 # same server is safe (init.sql is idempotent, and the role passwords are reset to the new ones).
 #
-# Input (libpq environment variables, for a superuser or a role with CREATEROLE and CREATEDB):
+# Input (libpq environment variables, for a superuser: CREATEROLE and CREATEDB are not enough on
+# PostgreSQL 16 and newer, because init.sql runs ALTER ROLE ... NOSUPERUSER):
 #   PGPASSWORD   required
 #   PGHOST       default 127.0.0.1
 #   PGPORT       default 5432

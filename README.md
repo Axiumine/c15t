@@ -392,6 +392,7 @@ Still open:
 - [`docs/installation.md`](./docs/installation.md): install, upgrade, roll back and uninstall, and how to verify a release
 - [`docs/nginx.md`](./docs/nginx.md): the nginx files, the Cloudflare `real_ip` file, the firewall allowlist and the nginx tests
 - [`docs/database-setup.md`](./docs/database-setup.md): PostgreSQL roles, schemas, grants and the Patroni notes
+- [`docs/local-database.md`](./docs/local-database.md): a PostgreSQL for development, the tests and the e2e suite, with every environment variable
 - [`docs/architecture.md`](./docs/architecture.md): a map from questions to documents. [`docs/e2e.md`](./docs/e2e.md): the Playwright suite
 - [`docs/security-model.md`](./docs/security-model.md) (threat model, including what is not protected), [`docs/assurance-case.md`](./docs/assurance-case.md) (why the security requirements are met, with the known gaps) and [`docs/cryptography.md`](./docs/cryptography.md) (where each cryptographic algorithm is chosen and who can change it)
 - [`docs/quality-gates.md`](./docs/quality-gates.md): every gate (Biome, tsc, ESLint, knip, type coverage, FTA, code caps, coverage, scans), the Git hooks and the order they run in, and what was left out

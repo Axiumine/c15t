@@ -24,6 +24,7 @@ so that you know where to read.
 | Threats and trust boundaries | [`security-model.md`](./security-model.md) |
 | Rules the code must follow | [`CLAUDE.md`](../CLAUDE.md) |
 | Database roles, schemas and grants | [`database-setup.md`](./database-setup.md) |
+| A local PostgreSQL, the test database and the variables the tests read | [`local-database.md`](./local-database.md) |
 
 ## Repository layout
 
