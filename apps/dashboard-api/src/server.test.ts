@@ -25,10 +25,10 @@ vi.mock('./env.js', async (importOriginal) => ({
 }));
 
 class ExitSignal extends Error {
-  readonly code: number | undefined;
+  readonly code: string | number | null | undefined;
 
-  constructor(code: number | undefined) {
-    super(`process.exit(${code})`);
+  constructor(code: string | number | null | undefined) {
+    super(`process.exit(${String(code)})`);
     this.code = code;
   }
 }
@@ -41,7 +41,8 @@ const dbClose = vi.fn();
 
 let handlers: Map<string, Handler>;
 let registeredWith: Map<string, 'once' | 'on'>;
-let exit: ReturnType<typeof vi.spyOn>;
+const spyOnExit = () => vi.spyOn(process, 'exit').mockImplementation((() => undefined) as never);
+let exit: ReturnType<typeof spyOnExit>;
 let closeCallback: (() => void) | undefined;
 let listening: ((info: { address: string; port: number }) => void) | undefined;
 let server: { close: ReturnType<typeof vi.fn>; closeIdleConnections?: ReturnType<typeof vi.fn> };
@@ -56,7 +57,7 @@ function trackProcessHooks() {
       return process;
     }) as never);
   }
-  exit = vi.spyOn(process, 'exit').mockImplementation((() => undefined) as never);
+  exit = spyOnExit();
 }
 
 async function start() {
@@ -133,7 +134,7 @@ describe('startup', () => {
     mocks.loadEnv.mockImplementation(() => {
       throw new EnvError(['BETTER_AUTH_SECRET: Must be at least 32 characters']);
     });
-    exit.mockImplementation((code?: number) => {
+    exit.mockImplementation((code) => {
       throw new ExitSignal(code);
     });
     await expect(import('./server.js')).rejects.toMatchObject({ code: 1 });
@@ -148,7 +149,7 @@ describe('startup', () => {
     mocks.loadEnv.mockImplementation(() => {
       throw new Error('reading the secret failed: s3cr3t');
     });
-    exit.mockImplementation((code?: number) => {
+    exit.mockImplementation((code) => {
       throw new ExitSignal(code);
     });
     await expect(start()).rejects.toMatchObject({ code: 1 });

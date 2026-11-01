@@ -35,6 +35,15 @@ export const silentLogger: Logger = createLogger(() => undefined);
 const MAX_ERROR_MESSAGE = 300;
 
 /**
+ * The text before the first line break. A stack trace or bound SQL parameters may follow the
+ * first line of an error message, so the log keeps only that line.
+ */
+export function firstLine(text: string): string {
+  const end = text.indexOf('\n');
+  return end === -1 ? text : text.slice(0, end);
+}
+
+/**
  * Safe description of an unexpected error for the log. Drizzle appends the bound parameters on
  * a second line of its message, so only the first line is kept.
  */
@@ -46,7 +55,7 @@ export function describeError(error: unknown): LogFields {
     typeof cause === 'object' && cause !== null ? (cause as { code?: unknown }).code : undefined;
   return {
     errorName: error.name,
-    errorMessage: error.message.replace(/\n[\s\S]*$/, '').slice(0, MAX_ERROR_MESSAGE),
+    errorMessage: firstLine(error.message).slice(0, MAX_ERROR_MESSAGE),
     ...(typeof code === 'string' ? { errorCode: code } : {}),
     ...(typeof causeCode === 'string' ? { causeCode } : {}),
   };

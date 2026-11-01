@@ -41,5 +41,5 @@ export async function signOutUi(page: Page): Promise<void> {
 export async function userRow(page: Page, email: string) {
   await mainNav(page).getByRole('link', { name: 'Users' }).click();
   await expect(page.getByRole('heading', { name: 'Users', level: 1 })).toBeVisible();
-  return page.getByRole('row', { name: new RegExp(email) });
+  return page.getByRole('row', { name: email });
 }

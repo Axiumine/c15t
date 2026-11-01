@@ -4,7 +4,7 @@
 import { type SiteRow, site, siteMember } from '@consent/db';
 import { ROLES, type Role, siteKeySchema } from '@consent/shared';
 import { and, asc, eq } from 'drizzle-orm';
-import type { Context, MiddlewareHandler } from 'hono';
+import type { MiddlewareHandler } from 'hono';
 import { createMiddleware } from 'hono/factory';
 import type { Auth } from './auth.js';
 import type { AppDatabase, Executor } from './db.js';
@@ -72,42 +72,58 @@ export interface AuthzDeps {
 
 const isRole = (value: unknown): value is Role => ROLES.some((role) => role === value);
 
-export function createAuthz({ auth, db, now = () => new Date() }: AuthzDeps) {
-  async function loadUser(c: Context, allowPasswordChange: boolean): Promise<SessionUser> {
-    const cached: SessionUser | undefined = c.get('user');
-    const user = cached ?? (await readSession(c));
-    if (user.mustChangePassword && !allowPasswordChange) {
-      throw new HttpError(
-        'PASSWORD_CHANGE_REQUIRED',
-        'You must change your password before continuing',
-      );
-    }
-    c.set('user', user);
-    return user;
-  }
+type SessionDeps = Pick<AuthzDeps, 'auth'> & { readonly now: () => Date };
 
-  async function readSession(c: Context): Promise<SessionUser> {
-    const result = await auth.api.getSession({ headers: c.req.raw.headers });
-    if (result === null) throw new HttpError('UNAUTHORIZED', 'Authentication is required');
-    const { user } = result;
-    const banActive =
-      user.banned === true && (user.banExpires == null || new Date(user.banExpires) > now());
-    if (banActive) throw new HttpError('UNAUTHORIZED', 'This account is disabled');
-    // Fail closed: an unknown role string gets no access at all.
-    if (!isRole(user.role)) throw new HttpError('FORBIDDEN', 'You are not allowed to do this');
-    return {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      mustChangePassword: user.mustChangePassword === true,
-    };
+/** The part of a Hono context that session loading uses: both `AuthedEnv` and `SiteEnv` fit. */
+interface SessionContext {
+  readonly req: { readonly raw: Request };
+  get(key: 'user'): SessionUser | undefined;
+  set(key: 'user', value: SessionUser): void;
+}
+
+async function readSession({ auth, now }: SessionDeps, c: SessionContext): Promise<SessionUser> {
+  const result = await auth.api.getSession({ headers: c.req.raw.headers });
+  if (result === null) throw new HttpError('UNAUTHORIZED', 'Authentication is required');
+  const { user } = result;
+  const banActive =
+    user.banned === true && (user.banExpires == null || new Date(user.banExpires) > now());
+  if (banActive) throw new HttpError('UNAUTHORIZED', 'This account is disabled');
+  // Fail closed: an unknown role string gets no access at all.
+  if (!isRole(user.role)) throw new HttpError('FORBIDDEN', 'You are not allowed to do this');
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    mustChangePassword: user.mustChangePassword === true,
+  };
+}
+
+async function loadUser(
+  deps: SessionDeps,
+  c: SessionContext,
+  allowPasswordChange: boolean,
+): Promise<SessionUser> {
+  const cached: SessionUser | undefined = c.get('user');
+  const user = cached ?? (await readSession(deps, c));
+  if (user.mustChangePassword && !allowPasswordChange) {
+    throw new HttpError(
+      'PASSWORD_CHANGE_REQUIRED',
+      'You must change your password before continuing',
+    );
   }
+  c.set('user', user);
+  return user;
+}
+
+export function createAuthz({ auth, db, now = () => new Date() }: AuthzDeps) {
+  const load = (c: SessionContext, allowPasswordChange: boolean) =>
+    loadUser({ auth, now }, c, allowPasswordChange);
 
   /** Valid session, and the password has been changed if an admin required it. */
   const requireSession: MiddlewareHandler<AuthedEnv> = createMiddleware<AuthedEnv>(
     async (c, next) => {
-      await loadUser(c, false);
+      await load(c, false);
       await next();
     },
   );
@@ -115,13 +131,13 @@ export function createAuthz({ auth, db, now = () => new Date() }: AuthzDeps) {
   /** Only for `/api/me`: the UI needs it to know that a password change is pending. */
   const requireSessionAllowingPasswordChange: MiddlewareHandler<AuthedEnv> =
     createMiddleware<AuthedEnv>(async (c, next) => {
-      await loadUser(c, true);
+      await load(c, true);
       await next();
     });
 
   const requireAdmin: MiddlewareHandler<AuthedEnv> = createMiddleware<AuthedEnv>(
     async (c, next) => {
-      const user = await loadUser(c, false);
+      const user = await load(c, false);
       if (user.role !== 'admin') {
         throw new HttpError('FORBIDDEN', 'Administrator access is required');
       }
@@ -135,7 +151,7 @@ export function createAuthz({ auth, db, now = () => new Date() }: AuthzDeps) {
    */
   const requireSiteAccess: MiddlewareHandler<SiteEnv> = createMiddleware<SiteEnv>(
     async (c, next) => {
-      const user = await loadUser(c, false);
+      const user = await load(c, false);
       const key = siteKeySchema.safeParse(c.req.param('siteKey'));
       const match = key.success
         ? (await accessibleSites(db.primary, user)).find((row) => row.key === key.data)

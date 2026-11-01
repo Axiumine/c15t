@@ -14,7 +14,7 @@ import { assertTrustedOrigins } from './instance.js';
 
 const RUNS = { numRuns: 300 };
 
-const label = fc.stringMatching(/^[a-z0-9]([a-z0-9-]{0,10}[a-z0-9])?$/);
+const label = fc.stringMatching(/^(?:[a-z0-9]|[a-z0-9][a-z0-9-]{0,10}[a-z0-9])$/);
 const validHost = fc
   .tuple(fc.array(label, { minLength: 1, maxLength: 3 }), fc.stringMatching(/^[a-z]{2,6}$/))
   .map(([labels, tld]) => [...labels, tld].join('.'));

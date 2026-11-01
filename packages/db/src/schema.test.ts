@@ -31,9 +31,11 @@ interface AuthField {
 type AuthTables = Record<string, { modelName: string; fields: Record<string, AuthField> }>;
 
 async function loadAuthTables(): Promise<AuthTables> {
+  // eslint-disable-next-line no-unsanitized/method -- the specifier is a constant, resolved from the dashboard-api workspace
   const { getAuthTables } = (await import(require.resolve('better-auth/db'))) as {
     getAuthTables: (options: object) => AuthTables;
   };
+  // eslint-disable-next-line no-unsanitized/method -- the specifier is a constant, resolved from the dashboard-api workspace
   const { admin } = (await import(require.resolve('better-auth/plugins'))) as {
     admin: () => unknown;
   };
@@ -101,10 +103,13 @@ describe('app schema vs Better Auth', async () => {
   const authTables = await loadAuthTables();
 
   test('covers exactly the tables Better Auth needs', () => {
-    expect(Object.keys(authTables).sort()).toEqual(Object.keys(OUR_TABLES).sort());
+    expect(Object.keys(authTables).sort((a, b) => a.localeCompare(b))).toEqual(
+      Object.keys(OUR_TABLES).sort((a, b) => a.localeCompare(b)),
+    );
   });
 
   for (const [key, authTable] of Object.entries(authTables)) {
+    // eslint-disable-next-line security/detect-object-injection -- `key` comes from Object.entries of Better Auth's tables; a missing table is skipped
     const ours = OUR_TABLES[key];
     if (ours === undefined) continue;
 
@@ -112,6 +117,7 @@ describe('app schema vs Better Auth', async () => {
       const columns = getTableColumns(ours);
       expect(Object.keys(columns)).toContain('id');
       for (const [field, definition] of Object.entries(authTable.fields)) {
+        // eslint-disable-next-line security/detect-object-injection -- `field` comes from Object.entries of the Better Auth table
         expectColumnFits(`${key}.${field}`, columns[field], definition);
       }
     });

@@ -316,6 +316,7 @@ yarn admin:create --email you@example.com   # prints a one-time password
 ```bash
 yarn dev                                    # consent-api, dashboard-api and Vite; UI at http://127.0.0.1:5173
 yarn typecheck && yarn lint && yarn test    # tsc -b, biome check, vitest run
+yarn lint:eslint                            # ESLint gate (run yarn typecheck first)
 yarn test:e2e                               # Playwright
 ```
 

@@ -12,7 +12,10 @@ export interface TooltipRow {
  * The readout: values lead and are strong, names follow in secondary ink. A short line in the
  * series colour keys the row. React escapes the text, so labels from the API are inert.
  */
-export function ChartTooltip({ title, rows }: { title: string; rows: readonly TooltipRow[] }) {
+export function ChartTooltip({
+  title,
+  rows,
+}: Readonly<{ title: string; rows: readonly TooltipRow[] }>) {
   return (
     <div className="min-w-36 rounded-md border bg-card px-3 py-2 text-xs shadow-md">
       <p className="mb-1 font-medium text-muted-foreground">{title}</p>
@@ -34,9 +37,15 @@ export function ChartTooltip({ title, rows }: { title: string; rows: readonly To
   );
 }
 
+/** Recharts types `payload` as always present, yet it is missing between marks. */
+function firstPayload(payload: TooltipContentProps['payload'] | undefined) {
+  return payload?.[0];
+}
+
 /** Recharts passes `active` and the hovered payload; nothing renders between marks. */
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters -- T names the chart's own data type: Recharts types the payload as `any`, so there is no value to infer it from
 export function hoveredDatum<T>(props: TooltipContentProps): T | undefined {
-  if (props.active !== true) return undefined;
-  const first = props.payload?.[0];
+  if (!props.active) return undefined;
+  const first = firstPayload(props.payload);
   return first === undefined ? undefined : (first.payload as T);
 }

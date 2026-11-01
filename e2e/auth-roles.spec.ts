@@ -111,7 +111,7 @@ test.describe
         await dialog.getByLabel('Domains').fill(site.host);
         await dialog.getByRole('button', { name: 'Create site' }).click();
         await expect(dialog).toBeHidden();
-        await expect(page.getByRole('row', { name: new RegExp(site.key) })).toBeVisible();
+        await expect(page.getByRole('row', { name: site.key })).toBeVisible();
       }
 
       // A key is unique: the form shows the clash on the field.
@@ -142,7 +142,7 @@ test.describe
         const form = page.getByRole('dialog', { name: 'New user' });
         await form.getByLabel('Name', { exact: true }).fill(name);
         await form.getByLabel('Email').fill(email);
-        await form.getByRole('checkbox', { name: new RegExp(site.key) }).check();
+        await form.getByRole('checkbox', { name: site.key }).check();
         await form.getByRole('button', { name: 'Create user' }).click();
 
         const secret = page.getByRole('dialog', { name: 'User created' });
@@ -160,13 +160,17 @@ test.describe
         await expect(page.getByLabel('One-time password')).toHaveCount(0);
         await expect(page.locator('body')).not.toContainText(oneTimePassword);
         const storage = await page.evaluate(() =>
-          JSON.stringify([{ ...localStorage }, { ...sessionStorage }, document.cookie]),
+          JSON.stringify([
+            Object.fromEntries(Object.entries(localStorage)),
+            Object.fromEntries(Object.entries(sessionStorage)),
+            document.cookie,
+          ]),
         );
         expect(storage).not.toContain(oneTimePassword);
         const listing = await page.request.get('/api/admin/users');
         expect(await listing.text()).not.toContain(oneTimePassword);
         await page.reload();
-        await expect(page.getByRole('row', { name: new RegExp(email) })).toBeVisible();
+        await expect(page.getByRole('row', { name: email })).toBeVisible();
         await expect(page.locator('body')).not.toContainText(oneTimePassword);
 
         created.push({ email, oneTimePassword, password: oneTimePassword });
@@ -209,10 +213,10 @@ test.describe
         await expect(mainNav(page).getByRole('link', { name: admin })).toHaveCount(0);
       }
       await page.getByRole('link', { name: sites[0].name }).click();
-      await expect(page).toHaveURL(new RegExp(`/sites/${sites[0].key}$`));
+      await expect(page).toHaveURL((url) => url.pathname === `/sites/${sites[0].key}`);
       await expect(page.getByRole('heading', { name: sites[0].name, level: 1 })).toBeVisible();
       await page.getByRole('link', { name: 'Consent records' }).click();
-      await expect(page).toHaveURL(new RegExp(`/sites/${sites[0].key}/consents$`));
+      await expect(page).toHaveURL((url) => url.pathname === `/sites/${sites[0].key}/consents`);
       await expect(page.getByRole('button', { name: 'Search' })).toBeVisible();
 
       // Direct navigation to site 2 looks exactly like a site that does not exist.
@@ -303,7 +307,7 @@ test.describe
       const table = page.getByRole('table', { name: 'Administrator actions, newest first' });
       for (const site of [sites[0], sites[1]]) {
         await expect(
-          table.getByRole('row', { name: new RegExp(`Site created.*${site.key}`) }),
+          table.getByRole('row').filter({ hasText: 'Site created' }).filter({ hasText: site.key }),
         ).toBeVisible();
       }
       await expect(table.getByRole('row', { name: /User created/ }).first()).toBeVisible();
@@ -326,9 +330,8 @@ test.describe
       expect(actions.filter((action) => action === 'site.create')).toHaveLength(2);
       expect(actions.filter((action) => action === 'user.create')).toHaveLength(2);
       expect(actions).toContain('user.ban');
-      expect(entries.find((entry) => entry.action === 'site.create')?.targetId).toMatch(
-        new RegExp(`^${rt.runId}-`),
-      );
+      const createdTarget = entries.find((entry) => entry.action === 'site.create')?.targetId;
+      expect(createdTarget?.startsWith(`${rt.runId}-`), createdTarget).toBe(true);
       // Each browser context sent its own X-Forwarded-For (198.18.0.0/15), as nginx would.
       for (const entry of entries) expect(entry.ip, entry.action).toMatch(/^198\.1[89]\./);
     });

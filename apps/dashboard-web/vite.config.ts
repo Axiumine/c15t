@@ -16,7 +16,8 @@ const API_PORT = process.env['DASHBOARD_API_PORT']?.trim() || '4200';
 const DEV_HOST = '127.0.0.1';
 const DEV_PORT = Number(process.env['DASHBOARD_WEB_DEV_PORT']?.trim() || '5173');
 
-const apiTarget = `http://${API_HOST.includes(':') ? `[${API_HOST}]` : API_HOST}:${API_PORT}`;
+const apiAuthority = API_HOST.includes(':') ? `[${API_HOST}]` : API_HOST;
+const apiTarget = `http://${apiAuthority}:${API_PORT}`;
 
 // Same origin in dev as in production: the browser only ever talks to this server, and /api is
 // proxied unchanged (Host and Origin stay as the browser sent them, which Better Auth checks).

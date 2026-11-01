@@ -2,7 +2,7 @@
 // Copyright (C) 2026 Axiumine
 
 import { execFile } from 'node:child_process';
-import { chmodSync, mkdirSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdirSync, type WriteFileOptions, writeFileSync } from 'node:fs';
 import { request } from 'node:http';
 import { resolve } from 'node:path';
 import { promisify } from 'node:util';
@@ -64,11 +64,24 @@ function composeVariables(rt: Runtime, siteA?: TestSite, siteB?: TestSite): Reco
   };
 }
 
+/* The paths below all lie inside the run's own scratch directory (Runtime.runDir, siteDir). */
+
+function makeDir(path: string, mode?: number): void {
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- a directory inside the run's scratch directory
+  mkdirSync(path, { recursive: true, ...(mode === undefined ? {} : { mode }) });
+}
+
+function writeText(path: string, content: string, options?: WriteFileOptions): void {
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- a file inside the run's scratch directory
+  writeFileSync(path, content, options);
+}
+
 function writeNginxEnv(rt: Runtime, variables: Record<string, string>): void {
-  mkdirSync(rt.siteDir, { recursive: true, mode: 0o755 });
+  makeDir(rt.siteDir, 0o755);
   // The container's nginx workers run as an unprivileged user: the files must be world-readable.
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- the run's site directory
   chmodSync(rt.siteDir, 0o755);
-  writeFileSync(
+  writeText(
     resolve(rt.runDir, 'nginx.env'),
     `${Object.entries(variables)
       .map(([key, value]) => `${key}=${value}`)
@@ -78,9 +91,8 @@ function writeNginxEnv(rt: Runtime, variables: Record<string, string>): void {
 
 /** Writes a file into the static site root served by both test vhosts. */
 export function writeSiteFile(rt: Runtime, name: string, content: string): void {
-  mkdirSync(rt.siteDir, { recursive: true, mode: 0o755 });
-  const path = resolve(rt.siteDir, name);
-  writeFileSync(path, content, { mode: 0o644 });
+  makeDir(rt.siteDir, 0o755);
+  writeText(resolve(rt.siteDir, name), content, { mode: 0o644 });
 }
 
 /** `fetch` cannot set `Host`; the vhost is chosen by it, so this uses `node:http`. */
@@ -133,8 +145,8 @@ export async function startNginx(rt: Runtime, siteA: TestSite, siteB: TestSite):
 /** Idempotent: a no-op when nothing of the project is running. */
 export async function stopNginx(rt: Runtime): Promise<void> {
   try {
-    mkdirSync(rt.runDir, { recursive: true });
-    writeFileSync(resolve(rt.runDir, 'nginx.env'), '', { flag: 'a' });
+    makeDir(rt.runDir);
+    writeText(resolve(rt.runDir, 'nginx.env'), '', { flag: 'a' });
     await run('docker', composeArgs(rt, 'down', '--remove-orphans', '--timeout', '2'), {
       cwd: REPO_ROOT,
       // `down` renders the file too: it needs the required variables even when nothing runs.
@@ -143,6 +155,7 @@ export async function stopNginx(rt: Runtime): Promise<void> {
   } catch (error) {
     throw new Error(
       `Could not remove the nginx test container of ${rt.composeProject}: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
     );
   }
 }

@@ -56,20 +56,16 @@ const DEFAULT_BACKOFF_INITIAL_MS = 500;
 const DEFAULT_BACKOFF_MAX_MS = 30_000;
 const DEFAULT_STABLE_MS = 10_000;
 
-function withTimeout<T>(work: Promise<T>, ms: number): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error(`Timed out after ${ms} ms`)), ms);
-    work.then(
-      (value) => {
-        clearTimeout(timer);
-        resolve(value);
-      },
-      (error: unknown) => {
-        clearTimeout(timer);
-        reject(error);
-      },
-    );
+async function withTimeout<T>(work: Promise<T>, ms: number): Promise<T> {
+  let timer: NodeJS.Timeout | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`Timed out after ${ms} ms`)), ms);
   });
+  try {
+    return await Promise.race([work, timeout]);
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 /**
@@ -104,15 +100,16 @@ export class SiteChangeListener {
     this.current = 'stopped';
   }
 
-  private get stopped(): boolean {
+  /** A method, not a getter: TypeScript would keep a narrowed `this.stopped` across an await. */
+  private isStopped(): boolean {
     return this.abort.signal.aborted;
   }
 
   private async run(): Promise<void> {
     let failures = 0;
-    while (!this.stopped) {
+    while (!this.isStopped()) {
       const listenedMs = await this.runSession();
-      if (this.stopped) break;
+      if (this.isStopped()) break;
       if (listenedMs !== undefined && listenedMs >= (this.options.stableMs ?? DEFAULT_STABLE_MS)) {
         failures = 0;
       }
@@ -131,13 +128,13 @@ export class SiteChangeListener {
         onNotify: (payload) => this.notified(payload),
         onClose: (reason) => lost.resolve(reason),
       });
-      if (this.stopped) return undefined;
+      if (this.isStopped()) return undefined;
       const startedAt = Date.now();
       this.current = 'listening';
       this.log.info('listening for site changes', { channel: SITE_CHANNEL });
       this.safely('resync', () => this.options.onResync());
       const reason = await this.watch(session, lost.promise);
-      if (!this.stopped) this.log.warn('site listener lost', errorFields(reason));
+      if (!this.isStopped()) this.log.warn('site listener lost', errorFields(reason));
       return Date.now() - startedAt;
     } catch (error) {
       this.log.warn('site listener could not connect', errorFields(error));
@@ -166,7 +163,7 @@ export class SiteChangeListener {
             pinging = false;
           });
       }, pingEvery);
-      lost.then(finish);
+      void lost.then(finish);
       this.abort.signal.addEventListener('abort', () => finish('stopped'), { once: true });
     });
   }

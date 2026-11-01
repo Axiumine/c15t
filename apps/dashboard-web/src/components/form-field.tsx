@@ -13,7 +13,7 @@ interface FieldProps {
 }
 
 /** Wires label, hint and error text to a control through `fieldProps(id, error, hint)`. */
-export function Field({ id, label, error, hint, children }: FieldProps) {
+export function Field({ id, label, error, hint, children }: Readonly<FieldProps>) {
   return (
     <div className="grid gap-1.5">
       <Label htmlFor={id}>{label}</Label>
@@ -46,7 +46,7 @@ export function fieldProps(id: string, error?: string, hint?: string) {
   };
 }
 
-export function FormError({ message }: { message: string | undefined }) {
+export function FormError({ message }: Readonly<{ message: string | undefined }>) {
   if (message === undefined) return null;
   return (
     <p role="alert" className="rounded-md border border-destructive px-3 py-2 text-sm">

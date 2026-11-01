@@ -16,7 +16,13 @@ import type { Auth } from './auth.js';
 import { accessibleSiteKeys, accessibleSites, createAuthz, type SessionUser } from './authz.js';
 import { createErrorHandler } from './errors.js';
 import { silentLogger } from './logger.js';
-import { cookieHeader, createTestApp, type TestApp, type TestUser } from './testing/harness.js';
+import {
+  closeIfOpen,
+  cookieHeader,
+  createTestApp,
+  type TestApp,
+  type TestUser,
+} from './testing/harness.js';
 import { describeEnvironments } from './testing/suite.js';
 
 /*
@@ -85,7 +91,7 @@ describeEnvironments('authz', ({ env }) => {
   }, 120_000);
 
   afterAll(async () => {
-    await t?.close();
+    await closeIfOpen(t);
   });
 
   /* Site visibility */
@@ -111,14 +117,18 @@ describeEnvironments('authz', ({ env }) => {
     const { items } = (await (await get('/api/sites', adminCookie)).json()) as {
       items: { key: string; status: string }[];
     };
-    const mine = items.filter((s) => s.key.startsWith(env().prefix)).map((s) => [s.key, s.status]);
-    expect(mine.sort()).toEqual(
-      [
-        [site1.key, 'active'],
-        [site2.key, 'active'],
-        [siteOff.key, 'disabled'],
-      ].sort(),
-    );
+    const byKey = (a: readonly string[], b: readonly string[]) =>
+      (a[0] ?? '').localeCompare(b[0] ?? '');
+    const mine = items
+      .filter((s) => s.key.startsWith(env().prefix))
+      .map((s) => [s.key, s.status])
+      .sort(byKey);
+    const expected = [
+      [site1.key, 'active'],
+      [site2.key, 'active'],
+      [siteOff.key, 'disabled'],
+    ].sort(byKey);
+    expect(mine).toEqual(expected);
   });
 
   test('a user reads their own site: detail, stats, records and CSV', async () => {
@@ -139,7 +149,7 @@ describeEnvironments('authz', ({ env }) => {
 
     const list = await get(`/api/sites/${site1.key}/consents`, aliceCookie);
     const page = consentPageSchema.parse(await list.json());
-    expect(page.items.map((item) => item.subjectId).sort()).toEqual(
+    expect(page.items.map((item) => item.subjectId).sort((a, b) => a.localeCompare(b))).toEqual(
       ['a', 'b', 'c'].map((n) => subject('one', n)),
     );
 
@@ -198,9 +208,8 @@ describeEnvironments('authz', ({ env }) => {
 
   test('another site looks exactly like a site that does not exist (no enumeration)', async () => {
     const ghost = `${env().prefix}-ghost`;
-    for (const [real, missing] of siteReadRoutes(site2.key).map(
-      (path, i) => [path, siteReadRoutes(ghost)[i] as string] as const,
-    )) {
+    for (const real of siteReadRoutes(site2.key)) {
+      const missing = real.replace(site2.key, ghost);
       const a = await get(real, aliceCookie);
       const b = await get(missing, aliceCookie);
       expect(a.status).toBe(b.status);

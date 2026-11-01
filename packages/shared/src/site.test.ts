@@ -88,7 +88,9 @@ describe('policy presets', () => {
   test('every preset has rules and a label, and the default exists', () => {
     expect(POLICY_PRESETS).toContain(DEFAULT_POLICY_PRESET);
     for (const preset of POLICY_PRESETS) {
+      // eslint-disable-next-line security/detect-object-injection -- `preset` is the closed PolicyPreset union
       expect(POLICY_PRESET_RULES[preset].length).toBeGreaterThan(0);
+      // eslint-disable-next-line security/detect-object-injection -- `preset` is the closed PolicyPreset union
       expect(POLICY_PRESET_LABELS[preset]).not.toBe('');
     }
   });

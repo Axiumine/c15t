@@ -39,7 +39,7 @@ export const FAILOVER_ERROR_CODES: ReadonlySet<string> = new Set([
   'CONNECTION_ENDED',
 ]);
 
-function* causeChain(error: unknown): Generator<unknown> {
+function* causeChain(error: unknown): Generator {
   let current: unknown = error;
   for (
     let depth = 0;

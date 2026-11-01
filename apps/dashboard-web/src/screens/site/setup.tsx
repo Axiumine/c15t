@@ -19,7 +19,7 @@ import {
   CardTitle,
 } from '../../components/ui/card';
 
-function SetupSnippets({ site }: { site: SiteDetail }) {
+function SetupSnippets({ site }: Readonly<{ site: SiteDetail }>) {
   return (
     <Card>
       <CardHeader>
@@ -53,7 +53,7 @@ function SetupSnippets({ site }: { site: SiteDetail }) {
   );
 }
 
-function SiteFacts({ site }: { site: SiteDetail }) {
+function SiteFacts({ site }: Readonly<{ site: SiteDetail }>) {
   return (
     <Card>
       <CardHeader>
@@ -83,7 +83,7 @@ function SiteFacts({ site }: { site: SiteDetail }) {
   );
 }
 
-function EditSiteCard({ site }: { site: SiteDetail }) {
+function EditSiteCard({ site }: Readonly<{ site: SiteDetail }>) {
   const update = useUpdateSite();
 
   async function save(values: SiteFormValues) {
@@ -109,7 +109,7 @@ function EditSiteCard({ site }: { site: SiteDetail }) {
   );
 }
 
-export function SetupScreen({ siteKey }: { siteKey: string }) {
+export function SetupScreen({ siteKey }: Readonly<{ siteKey: string }>) {
   const site = useSite(siteKey);
   const me = useMe();
   if (site.isPending) return <LoadingBlock label="Loading setup" />;

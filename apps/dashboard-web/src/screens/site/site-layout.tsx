@@ -12,25 +12,48 @@ import { Button } from '../../components/ui/button';
 const tab =
   'border-b-2 border-transparent px-3 py-2 text-sm text-muted-foreground hover:text-foreground aria-[current=page]:border-primary aria-[current=page]:font-medium aria-[current=page]:text-foreground';
 
-export function SiteLayoutScreen({ siteKey }: { siteKey: string }) {
+function SiteNotFound() {
+  return (
+    <EmptyState
+      title="Site not found"
+      description="It does not exist, or it is not assigned to you."
+      action={
+        <Button asChild variant="outline">
+          <Link to="/sites">Back to sites</Link>
+        </Button>
+      }
+    />
+  );
+}
+
+function SiteTabs({ siteKey }: Readonly<{ siteKey: string }>) {
+  return (
+    <nav aria-label="Site sections" className="-mb-2 flex flex-wrap border-b">
+      <Link
+        to="/sites/$key"
+        params={{ key: siteKey }}
+        activeOptions={{ exact: true }}
+        className={tab}
+      >
+        Overview
+      </Link>
+      <Link to="/sites/$key/consents" params={{ key: siteKey }} className={tab}>
+        Consent records
+      </Link>
+      <Link to="/sites/$key/setup" params={{ key: siteKey }} className={tab}>
+        Setup
+      </Link>
+    </nav>
+  );
+}
+
+export function SiteLayoutScreen({ siteKey }: Readonly<{ siteKey: string }>) {
   const site = useSite(siteKey);
 
   if (site.isPending) return <LoadingBlock label="Loading site" />;
   if (site.isError) {
     // A missing site and a site the user may not see look the same on purpose.
-    if (site.error instanceof ApiError && site.error.kind === 'not-found') {
-      return (
-        <EmptyState
-          title="Site not found"
-          description="It does not exist, or it is not assigned to you."
-          action={
-            <Button asChild variant="outline">
-              <Link to="/sites">Back to sites</Link>
-            </Button>
-          }
-        />
-      );
-    }
+    if (site.error instanceof ApiError && site.error.kind === 'not-found') return <SiteNotFound />;
     return <ErrorState error={site.error} onRetry={() => void site.refetch()} />;
   }
 
@@ -54,22 +77,7 @@ export function SiteLayoutScreen({ siteKey }: { siteKey: string }) {
           </AlertDescription>
         </Alert>
       ) : null}
-      <nav aria-label="Site sections" className="-mb-2 flex flex-wrap border-b">
-        <Link
-          to="/sites/$key"
-          params={{ key: siteKey }}
-          activeOptions={{ exact: true }}
-          className={tab}
-        >
-          Overview
-        </Link>
-        <Link to="/sites/$key/consents" params={{ key: siteKey }} className={tab}>
-          Consent records
-        </Link>
-        <Link to="/sites/$key/setup" params={{ key: siteKey }} className={tab}>
-          Setup
-        </Link>
-      </nav>
+      <SiteTabs siteKey={siteKey} />
       <Outlet />
     </div>
   );

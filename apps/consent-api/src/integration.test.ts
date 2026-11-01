@@ -80,7 +80,7 @@ interface Reply {
   readonly status: number;
   readonly headers: IncomingHttpHeaders;
   readonly text: string;
-  readonly json: <T = Record<string, unknown>>() => T;
+  readonly json: () => unknown;
 }
 
 /** node:http rather than fetch: the path and the Host header go on the wire exactly as written. */
@@ -112,7 +112,7 @@ function send(
             status: res.statusCode ?? 0,
             headers: res.headers,
             text,
-            json: <T>() => JSON.parse(text) as T,
+            json: () => JSON.parse(text) as unknown,
           });
         });
       },
@@ -158,9 +158,10 @@ async function eventually<T>(work: () => Promise<T>, accept: (value: T) => boole
 }
 
 async function insertSite(key: string, domains: string[], preset = 'eu-opt-in'): Promise<void> {
+  const name = `Test ${key}`;
   await dashboard`
     insert into app.site (key, name, domains, policy_preset)
-    values (${key}, ${`Test ${key}`}, ${dashboard.array(domains, TEXT_ARRAY)}, ${preset})`;
+    values (${key}, ${name}, ${dashboard.array(domains, TEXT_ARRAY)}, ${preset})`;
 }
 
 beforeAll(async () => {
@@ -195,7 +196,7 @@ describe('service health', () => {
     const status = await send('/status');
     expect(status.status).toBe(200);
     expect(status.json()).toMatchObject({ status: 'ok', listener: 'listening' });
-    expect(status.json<{ activeSites: number }>().activeSites).toBeGreaterThanOrEqual(3);
+    expect((status.json() as { activeSites: number }).activeSites).toBeGreaterThanOrEqual(3);
   });
 
   test('c15t_api can read the registry but nothing else in the app schema', async () => {
@@ -215,19 +216,18 @@ describe('serving a site', () => {
     expect(reply.status).toBe(200);
     expect(reply.headers['cache-control']).toBe('no-store');
     expect(reply.headers['cloudflare-cdn-cache-control']).toBe('no-store');
-    const body = reply.json<{
+    const body = reply.json() as {
       location: { countryCode: string };
       policyResolution: { policyId: string; status: string };
-    }>();
+    };
     expect(body.location.countryCode).toBe('DE');
     expect(body.policyResolution).toMatchObject({ policyId: 'europe_opt_in', status: 'matched' });
   });
 
   test('outside the EU the same site resolves its other rule', async () => {
     const reply = await send(`/s/${keyA}/init`, { headers: visit(domainA, 'BR') });
-    expect(reply.json<{ policyResolution: { policyId: string } }>().policyResolution.policyId).toBe(
-      'world_none',
-    );
+    const body = reply.json() as { policyResolution: { policyId: string } };
+    expect(body.policyResolution.policyId).toBe('world_none');
   });
 
   test('the script tag points at the same-origin path', async () => {
@@ -269,7 +269,7 @@ describe('recording consent', () => {
   test("site A's reader gets the record, site B's does not", async () => {
     const own = await send(`/s/${keyA}/subjects/${subjectId}`, { headers: visit(domainA) });
     expect(own.status).toBe(200);
-    expect(own.json<{ subject: { id: string } }>().subject.id).toBe(subjectId);
+    expect((own.json() as { subject: { id: string } }).subject.id).toBe(subjectId);
 
     const other = await send(`/s/${keyB}/subjects/${subjectId}`, { headers: visit(domainB) });
     expect(other.status).toBe(404);
@@ -281,7 +281,7 @@ describe('recording consent', () => {
       body: consentBody(domainB),
     });
     expect(reply.status).toBe(409);
-    expect(reply.json<{ cause: { code: string } }>().cause.code).toBe('SUBJECT_CONFLICT');
+    expect((reply.json() as { cause: { code: string } }).cause.code).toBe('SUBJECT_CONFLICT');
     const rows =
       await consentDb`select count(*)::int as n from c15t.consent where "tenantId" = ${keyB}`;
     expect(rows[0]?.['n']).toBe(0);
@@ -370,7 +370,7 @@ describe('cross-tenant isolation', () => {
       { headers: { 'cf-ipcountry': 'DE', host: domainA } },
       {
         incoming: { url: target, socket: { remoteAddress: '127.0.0.1' } },
-      } as never,
+      },
     );
     expect(reply.status).toBe(200);
     const body = (await reply.json()) as { location: { countryCode: string | null } };
@@ -486,8 +486,9 @@ describe('Patroni failover behaviour', () => {
     expect(write.json()).toMatchObject({ error: { code: 'SERVICE_UNAVAILABLE' } });
     expect(write.text).not.toMatch(/read-only|INSERT|25006/i);
 
+    const unknownSubject = `${subjectId}r`;
     const rows =
-      await consentDb`select count(*)::int as n from c15t.subject where id = ${`${subjectId}r`}`;
+      await consentDb`select count(*)::int as n from c15t.subject where id = ${unknownSubject}`;
     expect(rows[0]?.['n']).toBe(0);
     expect((await send(`/s/${keyRo}/init`, { headers: visit(domainRo) })).status).toBe(200);
   });

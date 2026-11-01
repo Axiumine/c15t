@@ -8,7 +8,7 @@ import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { Button } from './ui/button';
 import { Skeleton } from './ui/skeleton';
 
-export function LoadingBlock({ label = 'Loading' }: { label?: string }) {
+export function LoadingBlock({ label = 'Loading' }: Readonly<{ label?: string }>) {
   return (
     <output className="grid gap-3" aria-live="polite" aria-busy="true">
       <span className="sr-only">{label}…</span>
@@ -22,10 +22,10 @@ export function LoadingBlock({ label = 'Loading' }: { label?: string }) {
 export function ErrorState({
   error,
   onRetry,
-}: {
+}: Readonly<{
   error: unknown;
   onRetry?: (() => void) | undefined;
-}) {
+}>) {
   const retryable = onRetry !== undefined;
   return (
     <Alert variant="destructive">
@@ -56,11 +56,11 @@ export function EmptyState({
   title,
   description,
   action,
-}: {
+}: Readonly<{
   title: string;
   description?: string | undefined;
   action?: ReactNode;
-}) {
+}>) {
   return (
     <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed px-4 py-10 text-center">
       <Inbox className="size-6 text-muted-foreground" aria-hidden="true" />

@@ -51,24 +51,25 @@ function expandEmbeddedIpv4(text: string): string | null {
   return `${text.slice(0, lastColon + 1)}${high}:${low}`;
 }
 
+/** The eight groups of an address; a "::" at index `gap` stands in for the missing zero groups. */
+function expandGroups(text: string, gap: number): number[] | null {
+  const head = parseGroups(gap === -1 ? text : text.slice(0, gap));
+  if (head === null) return null;
+  if (gap === -1) return head.length === 8 ? head : null;
+  const tail = parseGroups(text.slice(gap + 2));
+  if (tail === null || head.length + tail.length > 7) return null;
+  return [...head, ...new Array<number>(8 - head.length - tail.length).fill(0), ...tail];
+}
+
 function parseIpv6Value(input: string): bigint | null {
   if (!input.includes(':') || input.includes('%')) return null;
   const text = expandEmbeddedIpv4(input);
   if (text === null) return null;
   // At most one "::" may stand in for a run of zero groups.
   const gap = text.indexOf('::');
-  const tailText = text.slice(gap + 2);
-  if (gap !== -1 && tailText.includes('::')) return null;
-  const head = parseGroups(gap === -1 ? text : text.slice(0, gap));
-  if (head === null) return null;
-  let groups = head;
-  if (gap === -1) {
-    if (head.length !== 8) return null;
-  } else {
-    const tail = parseGroups(tailText);
-    if (tail === null || head.length + tail.length > 7) return null;
-    groups = [...head, ...new Array<number>(8 - head.length - tail.length).fill(0), ...tail];
-  }
+  if (gap !== -1 && text.slice(gap + 2).includes('::')) return null;
+  const groups = expandGroups(text, gap);
+  if (groups === null) return null;
   return groups.reduce((acc, group) => (acc << 16n) | BigInt(group), 0n);
 }
 
@@ -129,8 +130,11 @@ export function ipInCidrs(ip: string, cidrs: readonly string[]): boolean {
   });
 }
 
+// The private ranges are the data this validator classifies bind addresses against.
+// eslint-disable-next-line sonarjs/no-hardcoded-ip -- RFC 1918 and CGNAT ranges, not an endpoint
 const PRIVATE_V4_RANGES = ['10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16', '100.64.0.0/10'];
 const LOOPBACK_V4 = '127.0.0.0/8';
+// eslint-disable-next-line sonarjs/no-hardcoded-ip -- the IPv6 unique-local range, not an endpoint
 const PRIVATE_V6_ULA = 'fc00::/7';
 const LOOPBACK_V6 = '::1/128';
 
@@ -166,6 +170,7 @@ export const hostSchema = z
   .superRefine((value, ctx) => {
     const kind = classifyHost(value);
     if (kind === 'loopback' || kind === 'private') return;
+    // eslint-disable-next-line security/detect-object-injection -- `kind` is narrowed to the keys of HOST_MESSAGES
     ctx.addIssue({ code: 'custom', message: HOST_MESSAGES[kind] });
   });
 

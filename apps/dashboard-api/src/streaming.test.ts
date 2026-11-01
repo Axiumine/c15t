@@ -4,7 +4,7 @@
 import type { Database } from '@consent/db';
 import { apiErrorSchema } from '@consent/shared';
 import { afterAll, beforeAll, expect, test } from 'vitest';
-import { createTestApp, type TestApp, type TestUser } from './testing/harness.js';
+import { closeIfOpen, createTestApp, type TestApp, type TestUser } from './testing/harness.js';
 import { describeEnvironments } from './testing/suite.js';
 
 /** A pool wrapper that counts `select` calls and can fail them like a database in failover. */
@@ -28,7 +28,9 @@ function instrument(real: Database) {
         };
       }
       const value: unknown = Reflect.get(target, property, target);
-      return typeof value === 'function' ? value.bind(target) : value;
+      if (typeof value !== 'function') return value;
+      const bound: unknown = value.bind(target);
+      return bound;
     },
   });
   return { pool, state };
@@ -67,7 +69,7 @@ describeEnvironments('CSV streaming and failover', ({ env }) => {
   }, 180_000);
 
   afterAll(async () => {
-    await t?.close();
+    await closeIfOpen(t);
   });
 
   const csv = (query = '') =>

@@ -191,7 +191,7 @@ test('consent records: a reversed date range is refused before the request', asy
   await user.type(screen.getByLabelText('To (inclusive)'), '2026-03-01');
   await user.click(screen.getByRole('button', { name: 'Search' }));
   expect(await screen.findByText(/must not be after/)).toBeInTheDocument();
-  expect(calls.length).toBe(before);
+  expect(calls).toHaveLength(before);
 });
 
 test('setup: a user reads the snippets but cannot edit', async () => {

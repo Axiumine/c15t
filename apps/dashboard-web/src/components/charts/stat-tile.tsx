@@ -9,11 +9,11 @@ export function StatTile({
   label,
   value,
   hint,
-}: {
+}: Readonly<{
   label: string;
   value: ReactNode;
   hint?: string;
-}) {
+}>) {
   return (
     <Card className="grid content-start gap-1 p-4">
       <p className="text-sm text-muted-foreground">{label}</p>

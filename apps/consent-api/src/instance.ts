@@ -104,6 +104,7 @@ export function policyRulesFor(site: SiteRecord): PolicyRules {
     (() => PolicyRules[number]) | undefined
   >;
   return POLICY_PRESET_RULES[site.policyPreset].map((name) => {
+    // eslint-disable-next-line security/detect-object-injection -- guarded by Object.hasOwn on the preset table
     const rule = Object.hasOwn(presets, name) ? presets[name] : undefined;
     if (rule === undefined) {
       throw new SiteConfigError(site.key, `Unknown policy rule preset "${name}"`);

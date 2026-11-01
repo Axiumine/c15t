@@ -41,6 +41,13 @@ test('naive UTC conversion round-trips and tolerates c15t formats', () => {
   expect(fromNaiveUtc(new Date('2026-03-01T12:00:00Z'))).toBe('2026-03-01T12:00:00.000Z');
 });
 
+test('fromNaiveUtc keeps a zone the text already carries and appends Z to the rest', () => {
+  expect(fromNaiveUtc('2026-03-01T12:00:00Z')).toBe('2026-03-01T12:00:00.000Z');
+  expect(fromNaiveUtc('2026-03-01T12:00:00+02:00')).toBe('2026-03-01T10:00:00.000Z');
+  expect(fromNaiveUtc('2026-03-01T12:00:00+0200')).toBe('2026-03-01T10:00:00.000Z');
+  expect(fromNaiveUtc('2026-03-01T12:00:00-05:30')).toBe('2026-03-01T17:30:00.000Z');
+});
+
 test('startOfUtcDay drops the time', () => {
   expect(startOfUtcDay(new Date('2026-03-10T23:59:59.999Z')).toISOString()).toBe(
     '2026-03-10T00:00:00.000Z',

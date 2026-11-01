@@ -115,6 +115,13 @@ interface Table {
  */
 const TIMESTAMP_COLUMNS: ReadonlySet<string> = new Set(['createdAt', 'updatedAt', 'givenAt']);
 
+/** `$n`, cast from text where the column type needs it (see the comment above). */
+function placeholder(column: string, position: number, jsonColumns: readonly string[]): string {
+  if (jsonColumns.includes(column)) return `$${position}::text::json`;
+  if (TIMESTAMP_COLUMNS.has(column)) return `$${position}::text::timestamp`;
+  return `$${position}`;
+}
+
 /** Multi-row INSERT ... ON CONFLICT DO NOTHING, in chunks. `jsonColumns` get a ::text::json cast. */
 async function insertRows(
   exec: Exec,
@@ -128,10 +135,7 @@ async function insertRows(
     const tuples = chunk.map((row) => {
       const placeholders = row.map((value, index) => {
         params.push(value);
-        const column = table.columns[index] ?? '';
-        if (jsonColumns.includes(column)) return `$${params.length}::text::json`;
-        if (TIMESTAMP_COLUMNS.has(column)) return `$${params.length}::text::timestamp`;
-        return `$${params.length}`;
+        return placeholder(table.columns.at(index) ?? '', params.length, jsonColumns);
       });
       return `(${placeholders.join(', ')})`;
     });
@@ -190,6 +194,50 @@ const CONSENT: Table = {
 const purposeId = (tenantId: string, code: string) => `${tenantId}-purpose-${code}`;
 const domainId = (tenantId: string, name: string) => `${tenantId}-domain-${name}`;
 
+/** The `runtimePolicyDecision` row of a fixture, or nothing when it has no country. */
+function decisionRow(
+  f: ConsentFixture,
+  id: string,
+  stamp: string,
+): readonly (string | null)[] | undefined {
+  if (f.countryCode === undefined) return undefined;
+  return [
+    `${id}-decision`,
+    f.tenantId,
+    'policy',
+    `${id}-fp`,
+    'country',
+    f.countryCode,
+    f.regionCode ?? null,
+    f.jurisdiction ?? null,
+    'opt-in',
+    `${id}-dedupe`,
+    stamp,
+  ];
+}
+
+/** The `consent` row of a fixture. The granted codes go to `purposeIds`, the answers to `choice`. */
+function consentRow(f: ConsentFixture, id: string): readonly (string | null)[] {
+  const granted = [
+    ...Object.entries(f.choice ?? {})
+      .filter(([, value]) => value)
+      .map(([code]) => code),
+    ...(f.legacyPurposes ?? []),
+  ];
+  return [
+    id,
+    f.subjectId,
+    domainId(f.tenantId, f.domain),
+    json(granted.map((code) => purposeId(f.tenantId, code))),
+    f.choice === undefined || f.choice === null ? null : receipts(f.choice),
+    f.userAgent ?? null,
+    f.givenAt,
+    f.jurisdiction ?? null,
+    'custom',
+    f.tenantId,
+  ];
+}
+
 async function seedConsents(exec: Exec, fixtures: readonly ConsentFixture[]): Promise<void> {
   const stamp = '2026-01-01 00:00:00';
   const unique = <T>(items: readonly (readonly [string, T])[]) => [...new Map(items).values()];
@@ -219,43 +267,7 @@ async function seedConsents(exec: Exec, fixtures: readonly ConsentFixture[]): Pr
   );
   const consents = fixtures.map((f, index) => {
     const id = f.id ?? `${f.tenantId}-consent-${index}`;
-    const granted = [
-      ...Object.entries(f.choice ?? {})
-        .filter(([, value]) => value)
-        .map(([code]) => code),
-      ...(f.legacyPurposes ?? []),
-    ];
-    return {
-      id,
-      decision:
-        f.countryCode === undefined
-          ? undefined
-          : [
-              `${id}-decision`,
-              f.tenantId,
-              'policy',
-              `${id}-fp`,
-              'country',
-              f.countryCode,
-              f.regionCode ?? null,
-              f.jurisdiction ?? null,
-              'opt-in',
-              `${id}-dedupe`,
-              stamp,
-            ],
-      row: [
-        id,
-        f.subjectId,
-        domainId(f.tenantId, f.domain),
-        json(granted.map((code) => purposeId(f.tenantId, code))),
-        f.choice === undefined || f.choice === null ? null : receipts(f.choice),
-        f.userAgent ?? null,
-        f.givenAt,
-        f.jurisdiction ?? null,
-        'custom',
-        f.tenantId,
-      ],
-    };
+    return { id, decision: decisionRow(f, id, stamp), row: consentRow(f, id) };
   });
 
   await insertRows(exec, DOMAIN, domains);
@@ -356,8 +368,7 @@ export async function createPgliteEnvironment(): Promise<TestEnvironment> {
   };
 }
 
-function requireVariable(name: string): string {
-  const value = process.env[name];
+function requireVariable(name: string, value: string | undefined): string {
   if (value === undefined || value === '') {
     throw new Error(
       `${name} is not set, so the real-database tests cannot run. Yarn injects it from the dev env ` +
@@ -368,8 +379,11 @@ function requireVariable(name: string): string {
 }
 
 export async function createPostgresEnvironment(): Promise<TestEnvironment> {
-  const dashboardUrl = requireVariable('DATABASE_URL_DASHBOARD');
-  const c15tUrl = requireVariable('DATABASE_URL_C15T');
+  const dashboardUrl = requireVariable(
+    'DATABASE_URL_DASHBOARD',
+    process.env['DATABASE_URL_DASHBOARD'],
+  );
+  const c15tUrl = requireVariable('DATABASE_URL_C15T', process.env['DATABASE_URL_C15T']);
   // Tiny pools: the shared dev database allows 100 connections in total.
   const handle = createDatabase({
     primaryUrl: dashboardUrl,

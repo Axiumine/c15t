@@ -45,6 +45,7 @@ and do not switch to Plug'n'Play: Vite, drizzle-kit and the c15t CLI need `node_
 |---|---|
 | `yarn typecheck` | `tsc -b` over every project reference (sources and tests) |
 | `yarn lint` | `biome check .` (formatting, lint rules and import order) |
+| `yarn lint:eslint` | ESLint, the zero-findings gate next to Biome (type-aware, security and complexity rules); run `yarn typecheck` first |
 | `yarn format` | `biome check --write .` fixes what can be fixed automatically |
 | `yarn test` | `vitest run` over every workspace |
 | `yarn build` | builds every workspace to `dist/` |
@@ -52,7 +53,21 @@ and do not switch to Plug'n'Play: Vite, drizzle-kit and the c15t CLI need `node_
 | `yarn test:e2e` | Playwright end-to-end tests |
 | `yarn spdx` | adds the SPDX header to new source files (`yarn spdx:check` only verifies) |
 
-**Run `yarn typecheck && yarn lint && yarn test` before you open a pull request.**
+**Run `yarn typecheck && yarn lint && yarn lint:eslint && yarn test` before you open a pull request.**
+
+### ESLint
+
+Biome formats the code and runs the fast lint rules; ESLint (`eslint.config.mjs`) adds what Biome cannot do:
+typescript-eslint `strictTypeChecked` (it uses the type information of each workspace, tests included),
+`eslint-plugin-sonarjs`, `eslint-plugin-security` and `eslint-plugin-no-unsanitized`, plus size caps
+(cyclomatic complexity 10, 50 lines per function, 500 lines per file, 4 parameters, depth 4). The React hooks
+rules are not duplicated: Biome already checks them. `yarn lint:eslint` runs with `--max-warnings 0` and keeps its
+cache in `node_modules/.cache/eslint/`; it needs the declaration files of the other workspaces, so run
+`yarn typecheck` (or `yarn build`) first in a fresh checkout. Every rule is an error, so a finding is either
+fixed or, only when the rule is a proven false positive, silenced on that line with
+`// eslint-disable-next-line <rule> -- <reason>`. There are no file-wide or rule-wide disables, and the
+security rules stay on in tests. Test files may exceed the length caps and use async mocks without `await`
+(see the test override in `eslint.config.mjs`).
 
 ### Testing changes to `infra/`
 

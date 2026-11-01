@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Axiumine
 
-import { afterAll, beforeAll, describe, test } from 'vitest';
+import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import { createEnvironment, type EnvironmentKind, type TestEnvironment } from './environment.js';
 
 /** The same tests run on PGlite and, with the dev database variables set, on the real database. */
@@ -12,6 +12,15 @@ export interface SuiteContext {
   /** Throws the setup error when the environment could not be created, so every test fails loudly. */
   env(): TestEnvironment;
 }
+
+/** The error behind a failed setup, as an `Error` that a test may throw. */
+function setupFailure(cause: unknown): Error {
+  return cause instanceof Error ? cause : new Error('test environment setup failed', { cause });
+}
+
+/** What `env()` throws before the environment exists: the setup error, or a plain message. */
+const notReady = (setupError: unknown): Error =>
+  setupError instanceof Error ? setupError : new Error('test environment is not ready');
 
 export function describeEnvironments(
   name: string,
@@ -34,8 +43,8 @@ export function describeEnvironments(
     // A sibling suite, so a failing hook in the tests below cannot hide this failure as a skip.
     describe('environment', () => {
       test('the database is reachable and migrated', () => {
-        if (setupError !== undefined) throw setupError;
-        if (environment === undefined) throw new Error('test environment is not ready');
+        if (setupError !== undefined) throw setupFailure(setupError);
+        expect(environment).toBeDefined();
       });
     });
 
@@ -52,11 +61,7 @@ export function describeEnvironments(
       define({
         kind,
         env: () => {
-          if (environment === undefined) {
-            throw setupError instanceof Error
-              ? setupError
-              : new Error('test environment is not ready');
-          }
+          if (environment === undefined) throw notReady(setupError);
           return environment;
         },
       });

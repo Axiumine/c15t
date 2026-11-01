@@ -6,6 +6,7 @@ import {
   consoleLogger,
   createLogger,
   describeError,
+  firstLine,
   type LogLevel,
   silentLogger,
 } from './logger.js';
@@ -27,7 +28,7 @@ test('writes one JSON line per call with the time, level, message and fields', (
   logger.warn('careful');
   logger.error('broken', { code: 'X' });
   expect(written.map((entry) => entry.level)).toEqual(['info', 'warn', 'error']);
-  expect(written.map((entry) => JSON.parse(entry.line))).toEqual([
+  expect(written.map((entry) => JSON.parse(entry.line) as unknown)).toEqual([
     { time: '2026-03-01T12:00:00.000Z', level: 'info', message: 'hello', siteKey: 'shop' },
     { time: '2026-03-01T12:00:00.000Z', level: 'warn', message: 'careful' },
     { time: '2026-03-01T12:00:00.000Z', level: 'error', message: 'broken', code: 'X' },
@@ -41,11 +42,10 @@ test('the consoleLogger sends errors to stderr and everything else to stdout', (
   consoleLogger.info('one');
   consoleLogger.warn('two');
   consoleLogger.error('three');
-  expect(out.mock.calls.map(([chunk]) => JSON.parse(String(chunk)).message)).toEqual([
-    'one',
-    'two',
-  ]);
-  expect(err.mock.calls.map(([chunk]) => JSON.parse(String(chunk)).message)).toEqual(['three']);
+  const messageOf = ([chunk]: readonly unknown[]) =>
+    (JSON.parse(String(chunk)) as { message: string }).message;
+  expect(out.mock.calls.map(messageOf)).toEqual(['one', 'two']);
+  expect(err.mock.calls.map(messageOf)).toEqual(['three']);
   expect(String(out.mock.calls[0]?.[0]).endsWith('\n')).toBe(true);
 });
 
@@ -102,4 +102,12 @@ test('describeError truncates a long message and copes with an empty first line'
   });
   expect(describeError(new Error('\nonly the second line'))).toMatchObject({ errorMessage: '' });
   expect(describeError(new Error(''))).toMatchObject({ errorMessage: '' });
+});
+
+test('firstLine keeps the text before the first line break and leaves single lines alone', () => {
+  expect(firstLine('one\ntwo\nthree')).toBe('one');
+  expect(firstLine('one\r\ntwo')).toBe('one\r');
+  expect(firstLine('\nonly the second line')).toBe('');
+  expect(firstLine('no break')).toBe('no break');
+  expect(firstLine('')).toBe('');
 });

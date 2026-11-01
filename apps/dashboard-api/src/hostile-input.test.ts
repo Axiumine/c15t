@@ -4,7 +4,7 @@
 import { apiErrorSchema } from '@consent/shared';
 import { afterAll, beforeAll, expect, test } from 'vitest';
 import { encodeCursor } from './pagination.js';
-import { createTestApp, type TestApp, type TestUser } from './testing/harness.js';
+import { closeIfOpen, createTestApp, type TestApp, type TestUser } from './testing/harness.js';
 import { describeEnvironments } from './testing/suite.js';
 
 /*
@@ -45,7 +45,7 @@ describeEnvironments('hostile input', ({ env }) => {
   }, 120_000);
 
   afterAll(async () => {
-    await t?.close();
+    await closeIfOpen(t);
   });
 
   test.each([

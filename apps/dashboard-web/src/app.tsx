@@ -13,10 +13,12 @@ import { safeRedirectPath } from './session';
  * them to the forced change-password screen.
  */
 export function createApp(history?: RouterHistory) {
-  let router: AppRouter | undefined;
+  // The query client's callbacks need the router, which needs the query client: fill it in later.
+  const current: { router: AppRouter | undefined } = { router: undefined };
   const queryClient = createQueryClient({
     onUnauthorized: () => {
       // A route guard that is mid-navigation does its own redirect (see requireUser).
+      const router = current.router;
       if (router === undefined || router.state.status === 'pending') return;
       if (router.latestLocation.pathname === '/login') return;
       const redirect = safeRedirectPath(router.latestLocation.href);
@@ -25,19 +27,21 @@ export function createApp(history?: RouterHistory) {
         .then(() => queryClient.clear());
     },
     onPasswordChangeRequired: () => {
+      const router = current.router;
       if (router === undefined || router.state.status === 'pending') return;
       if (router.latestLocation.pathname === '/account') return;
       queryClient.removeQueries({ queryKey: queryKeys.me });
       void router.navigate({ to: '/account', replace: true });
     },
   });
-  router = createAppRouter(queryClient, history);
+  const router = createAppRouter(queryClient, history);
+  current.router = router;
   return { queryClient, router };
 }
 
 export type App = ReturnType<typeof createApp>;
 
-export function AppProviders({ app }: { app: App }) {
+export function AppProviders({ app }: Readonly<{ app: App }>) {
   return (
     <QueryClientProvider client={app.queryClient}>
       <RouterProvider router={app.router} />

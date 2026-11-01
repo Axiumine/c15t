@@ -130,13 +130,13 @@ test('the query client reports 401 and PASSWORD_CHANGE_REQUIRED to the session h
     onPasswordChangeRequired: () => seen.push('password'),
   });
   mockFetch(route('GET /api/me', apiError(401, 'UNAUTHORIZED')));
-  await queryClient.fetchQuery(meQueryOptions()).catch(() => undefined);
+  await queryClient.query(meQueryOptions()).catch(() => undefined);
   mockFetch(route('GET /api/me', apiError(403, 'PASSWORD_CHANGE_REQUIRED')));
   queryClient.clear();
-  await queryClient.fetchQuery(meQueryOptions()).catch(() => undefined);
+  await queryClient.query(meQueryOptions()).catch(() => undefined);
   mockFetch(route('GET /api/me', apiError(404, 'NOT_FOUND')));
   queryClient.clear();
-  await queryClient.fetchQuery(meQueryOptions()).catch(() => undefined);
+  await queryClient.query(meQueryOptions()).catch(() => undefined);
   expect(seen).toEqual(['unauthorized', 'password']);
 });
 
@@ -194,7 +194,7 @@ test('the query client ignores errors that are not ApiErrors', async () => {
     onPasswordChangeRequired: () => seen.push('password'),
   });
   await queryClient
-    .fetchQuery({
+    .query({
       queryKey: ['boom'],
       queryFn: () => Promise.reject(new Error('boom')),
       retry: false,

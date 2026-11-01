@@ -46,6 +46,7 @@ const human = { name: 'Una Dev', email: 'una@example.com' };
 /** A repository with a signed-off base commit and the given candidate commits on top. */
 function scenario(...candidates) {
   const repo = join(root, `repo-${counter++}`);
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- temp path inside the test's own directory
   mkdirSync(repo);
   copyFileSync(SCRIPT, join(repo, SCRIPT_IN_REPO));
   git(repo, ['init', '-q', '-b', 'main']);

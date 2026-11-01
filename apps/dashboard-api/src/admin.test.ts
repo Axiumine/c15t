@@ -12,7 +12,7 @@ import {
 } from '@consent/shared';
 import { asc, eq, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, expect, test, vi } from 'vitest';
-import { createTestApp, type TestApp, type TestUser } from './testing/harness.js';
+import { closeIfOpen, createTestApp, type TestApp, type TestUser } from './testing/harness.js';
 import { describeEnvironments } from './testing/suite.js';
 
 describeEnvironments('admin routes', ({ env, kind }) => {
@@ -21,7 +21,7 @@ describeEnvironments('admin routes', ({ env, kind }) => {
   let adminCookie: string;
   let adminIp: string;
   const notifications: string[] = [];
-  let stopListening: () => Promise<void>;
+  let stopListening: (() => Promise<void>) | undefined;
 
   const send = (method: string, path: string, json?: unknown, cookie = adminCookie) =>
     t.request(method, path, { cookie, ip: adminIp, ...(json === undefined ? {} : { json }) });
@@ -46,7 +46,7 @@ describeEnvironments('admin routes', ({ env, kind }) => {
 
   afterAll(async () => {
     await stopListening?.();
-    await t?.close();
+    await closeIfOpen(t);
   });
 
   /* Sites */
@@ -388,14 +388,19 @@ describeEnvironments('admin routes', ({ env, kind }) => {
     const first = await send('PUT', `/api/admin/users/${target.id}/sites`, {
       siteKeys: [s1.key, s2.key],
     });
-    expect(userSummarySchema.parse(await first.json()).siteKeys).toEqual([s1.key, s2.key].sort());
+    expect(userSummarySchema.parse(await first.json()).siteKeys).toEqual(
+      [s1.key, s2.key].sort((a, b) => a.localeCompare(b)),
+    );
     const second = await send('PUT', `/api/admin/users/${target.id}/sites`, { siteKeys: [s2.key] });
     expect(userSummarySchema.parse(await second.json()).siteKeys).toEqual([s2.key]);
     await send('PUT', `/api/admin/users/${target.id}/sites`, { siteKeys: [s2.key] });
 
     const audit = await auditOf(target.id);
     expect(audit.map((entry) => entry.action)).toEqual(['user.set-sites', 'user.set-sites']);
-    expect(audit[1]?.metadata).toEqual({ before: [s1.key, s2.key].sort(), after: [s2.key] });
+    expect(audit[1]?.metadata).toEqual({
+      before: [s1.key, s2.key].sort((a, b) => a.localeCompare(b)),
+      after: [s2.key],
+    });
 
     const unknown = await send('PUT', `/api/admin/users/${target.id}/sites`, {
       siteKeys: [s1.key, key('nope')],
@@ -450,7 +455,8 @@ describeEnvironments('admin routes', ({ env, kind }) => {
   /* Audit log */
 
   const auditPage = async (cursor: string | undefined) => {
-    const query = `limit=3${cursor === undefined ? '' : `&cursor=${encodeURIComponent(cursor)}`}`;
+    const after = cursor === undefined ? '' : `&cursor=${encodeURIComponent(cursor)}`;
+    const query = `limit=3${after}`;
     const response = await send('GET', `/api/admin/audit?${query}`);
     expect(response.status).toBe(200);
     return auditPageSchema.parse(await response.json());
@@ -470,7 +476,7 @@ describeEnvironments('admin routes', ({ env, kind }) => {
     expect(new Set(seen.map((item) => item.id)).size).toBe(seen.length);
     expect(seen.length).toBeGreaterThan(3);
     const times = seen.map((item) => item.createdAt);
-    expect(times).toEqual([...times].sort().reverse());
+    expect(times).toEqual([...times].sort((a, b) => b.localeCompare(a)));
   });
 
   test('rejects a forged audit cursor', async () => {
@@ -562,7 +568,7 @@ describeEnvironments(
       t = createTestApp(env());
     });
     afterAll(async () => {
-      await t?.close();
+      await closeIfOpen(t);
     });
 
     // Needs a database where this test owns every administrator, so it never runs on the shared one.

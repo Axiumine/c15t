@@ -79,7 +79,7 @@ const SCREENS: readonly Screen[] = [
     signedIn: true,
     ready: async (page, world) => {
       await heading(page, 'Users');
-      await expect(page.getByRole('row', { name: new RegExp(world.adminEmail) })).toBeVisible();
+      await expect(page.getByRole('row', { name: world.adminEmail })).toBeVisible();
     },
   },
   {

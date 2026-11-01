@@ -19,6 +19,7 @@ const HEADERS_FILE = resolve(REPO_ROOT, 'infra/nginx/dashboard-headers.conf');
 /** The `Content-Security-Policy` value nginx sends, read from the snippet itself. */
 export function dashboardCsp(): string {
   const match = /add_header\s+Content-Security-Policy\s+"([^"]+)"/.exec(
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- a fixed file of this repository
     readFileSync(HEADERS_FILE, 'utf8'),
   );
   if (match?.[1] === undefined)
@@ -69,7 +70,7 @@ function watchDocument(): void {
     for (const record of records) {
       for (const node of record.addedNodes) {
         if (node instanceof HTMLScriptElement && !node.hasAttribute('src')) {
-          report('inline-script', (node.textContent ?? '').slice(0, 80));
+          report('inline-script', node.textContent.slice(0, 80));
         }
       }
     }

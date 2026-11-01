@@ -28,30 +28,35 @@ class FixedResizeObserver {
         y: 0,
       },
     } as ResizeObserverEntry;
-    queueMicrotask(() => this.callback([entry], this as unknown as ResizeObserver));
+    queueMicrotask(() => this.callback([entry], this));
   }
 
   unobserve() {}
   disconnect() {}
 }
 
-globalThis.ResizeObserver = FixedResizeObserver as unknown as typeof ResizeObserver;
+globalThis.ResizeObserver = FixedResizeObserver;
 
 // Radix and Recharts read these in jsdom; the browser has them natively.
 Element.prototype.scrollIntoView = () => undefined;
 window.scrollTo = () => undefined;
 Element.prototype.hasPointerCapture = () => false;
 Element.prototype.releasePointerCapture = () => undefined;
-globalThis.matchMedia ??= ((query: string) => ({
+
+/** jsdom has no `matchMedia`; the members the app uses are enough for the stand-in. */
+type MediaStandIn = Pick<
+  MediaQueryList,
+  'matches' | 'media' | 'onchange' | 'addEventListener' | 'removeEventListener' | 'dispatchEvent'
+>;
+const env: { matchMedia?: (query: string) => MediaStandIn } = globalThis;
+env.matchMedia ??= (query) => ({
   matches: false,
   media: query,
   onchange: null,
   addEventListener: () => undefined,
   removeEventListener: () => undefined,
-  addListener: () => undefined,
-  removeListener: () => undefined,
   dispatchEvent: () => false,
-})) as typeof globalThis.matchMedia;
+});
 
 afterEach(() => {
   cleanup();

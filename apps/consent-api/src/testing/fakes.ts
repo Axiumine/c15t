@@ -43,7 +43,7 @@ export class MemoryStore implements SiteStore {
   readonly sites = new Map<string, SiteRecord>();
   finds = 0;
   /** When set, `find` and `check` reject with it. */
-  failure: unknown;
+  failure: Error | undefined;
   /** Runs inside `find`, before it answers. */
   onFind: (() => Promise<void>) | undefined;
 

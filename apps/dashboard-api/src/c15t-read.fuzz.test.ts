@@ -19,7 +19,7 @@ const FORMULA_CHARS = ['=', '+', '-', '@', '\t', '\r'];
 const hostileText = fc.oneof(
   fc.string(),
   fc.string({ unit: 'binary' }),
-  fc.string({ unit: fc.constantFrom(...'ab ,"\r\n\t=+-@\'|;') }),
+  fc.string({ unit: fc.constantFrom(...Array.from('ab ,"\r\n\t=+-@\'|;')) }),
   fc.constantFrom("=cmd|' /C calc'!A0", '@SUM(1+1)', '+1+1', '-2+3', '\t=1+1', 'a,b', '"quoted"'),
 );
 const nullable = fc.option(hostileText, { nil: null });
@@ -85,8 +85,14 @@ test('free-text cells keep the visitor text, bar the one apostrophe that disarms
   fc.assert(
     fc.property(record, (consent) => {
       const cells = parseCsv(consentCsvRow(consent))[0] ?? [];
-      for (const column of ['externalId', 'domain', 'userAgent', 'ipAddress'] as const) {
-        const original = consent[column] ?? '';
+      const freeText = [
+        ['externalId', consent.externalId],
+        ['domain', consent.domain],
+        ['userAgent', consent.userAgent],
+        ['ipAddress', consent.ipAddress],
+      ] as const;
+      for (const [column, value] of freeText) {
+        const original = value ?? '';
         const cell = cells[CONSENT_CSV_COLUMNS.indexOf(column)] ?? '';
         const armed = FORMULA_CHARS.some((char) => original.startsWith(char));
         expect(cell).toBe(armed ? `'${original}` : original);

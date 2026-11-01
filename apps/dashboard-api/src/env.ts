@@ -60,11 +60,13 @@ export const cliEnvSchema = envSchema.pick({
 });
 export type CliEnv = z.output<typeof cliEnvSchema>;
 
+const indentLines = (lines: readonly string[]) => lines.map((line) => `  ${line}`).join('\n');
+
 export class EnvError extends Error {
   readonly problems: readonly string[];
 
   constructor(problems: readonly string[]) {
-    super(`Invalid environment:\n${problems.map((problem) => `  ${problem}`).join('\n')}`);
+    super(`Invalid environment:\n${indentLines(problems)}`);
     this.name = 'EnvError';
     this.problems = problems;
   }

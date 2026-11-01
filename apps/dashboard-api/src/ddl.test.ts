@@ -6,6 +6,7 @@ import { is, sql } from 'drizzle-orm';
 import { getTableConfig, PgTable } from 'drizzle-orm/pg-core';
 import { afterAll, beforeAll, expect, test } from 'vitest';
 import { createPgliteEnvironment, type TestEnvironment } from './testing/environment.js';
+import { closeIfOpen } from './testing/harness.js';
 
 /*
  * The PGlite tests run against hand-written c15t DDL. This keeps it honest: every column of
@@ -19,7 +20,7 @@ beforeAll(async () => {
   environment = await createPgliteEnvironment();
 }, 120_000);
 afterAll(async () => {
-  await environment?.close();
+  await closeIfOpen(environment);
 });
 
 function generatedTables(): PgTable[] {

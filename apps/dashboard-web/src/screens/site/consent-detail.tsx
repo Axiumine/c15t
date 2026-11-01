@@ -14,7 +14,7 @@ import {
 import { formatDateTime } from '../../lib/format';
 
 /** Icon plus word, so a decision never rests on colour alone. */
-export function PurposeBadges({ purposes }: { purposes: Record<string, boolean> }) {
+export function PurposeBadges({ purposes }: Readonly<{ purposes: Record<string, boolean> }>) {
   const entries = Object.entries(purposes).sort(([a], [b]) => a.localeCompare(b));
   if (entries.length === 0) return <span className="text-muted-foreground">–</span>;
   return (
@@ -59,10 +59,10 @@ function rows(record: ConsentRecord): [string, string][] {
 export function ConsentDetailDialog({
   record,
   onClose,
-}: {
+}: Readonly<{
   record: ConsentRecord | null;
   onClose: () => void;
-}) {
+}>) {
   return (
     <Dialog open={record !== null} onOpenChange={() => onClose()}>
       <DialogContent className="max-w-2xl">

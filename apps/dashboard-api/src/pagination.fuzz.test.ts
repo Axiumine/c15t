@@ -124,7 +124,7 @@ test('a page holds at most `limit` rows, and has a next cursor exactly when rows
         );
         expect(page.items).toEqual(rows.slice(0, limit).map((row) => row * 2));
         expect(page.items.length).toBeLessThanOrEqual(limit);
-        if (rows.length > limit) expect(page.nextCursor).toBe(`after:${rows[limit - 1]}`);
+        if (rows.length > limit) expect(page.nextCursor).toBe(`after:${String(rows[limit - 1])}`);
         else expect(page.nextCursor).toBeNull();
       },
     ),

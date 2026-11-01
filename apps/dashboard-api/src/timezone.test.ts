@@ -60,11 +60,22 @@ async function probe(kind: EnvironmentKind, zone: string): Promise<ProbeOutput> 
     return JSON.parse(stdout.trim().split('\n').at(-1) ?? '') as ProbeOutput;
   } catch (error) {
     const failure = error as { stderr?: string; message: string };
-    throw new Error(`probe ${kind} under TZ=${zone} failed: ${failure.stderr ?? failure.message}`);
+    throw new Error(`probe ${kind} under TZ=${zone} failed: ${failure.stderr ?? failure.message}`, {
+      cause: error,
+    });
   }
 }
 
 const iso = (naive: string) => new Date(`${naive.replace(' ', 'T')}Z`).toISOString();
+/** Fixtures per UTC day, read from the fixture text. April 1st is outside the March range. */
+function consentsPerMarchDay(): Map<string, number> {
+  const perDay = new Map<string, number>();
+  for (const fixture of TZ_FIXTURES) {
+    const day = fixture.givenAt.slice(0, 10);
+    if (day < '2026-04-01') perDay.set(day, (perDay.get(day) ?? 0) + 1);
+  }
+  return perDay;
+}
 const newestFirst = [...TZ_FIXTURES].sort((a, b) => b.givenAt.localeCompare(a.givenAt));
 
 describe.each(['pglite', 'postgres'] as const)('the read layer is TZ-independent (%s)', (kind) => {
@@ -103,11 +114,7 @@ describe.each(['pglite', 'postgres'] as const)('the read layer is TZ-independent
       from: '2026-03-01T00:00:00.000Z',
       to: '2026-04-01T00:00:00.000Z',
     });
-    const perDay = new Map<string, number>();
-    for (const fixture of TZ_FIXTURES) {
-      const day = fixture.givenAt.slice(0, 10);
-      if (day < '2026-04-01') perDay.set(day, (perDay.get(day) ?? 0) + 1);
-    }
+    const perDay = consentsPerMarchDay();
     expect(direct.stats.volume).toHaveLength(31);
     for (const row of direct.stats.volume) {
       expect(row.consents, row.date).toBe(perDay.get(row.date) ?? 0);

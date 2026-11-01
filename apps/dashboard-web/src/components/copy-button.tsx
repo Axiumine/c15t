@@ -9,7 +9,7 @@ type CopyState = 'idle' | 'copied' | 'failed';
 
 const RESET_MS = 2500;
 
-export function CopyButton({ text, label = 'Copy' }: { text: string; label?: string }) {
+export function CopyButton({ text, label = 'Copy' }: Readonly<{ text: string; label?: string }>) {
   const [state, setState] = useState<CopyState>('idle');
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
@@ -38,7 +38,7 @@ export function CopyButton({ text, label = 'Copy' }: { text: string; label?: str
   );
 }
 
-export function CodeBlock({ title, code }: { title: string; code: string }) {
+export function CodeBlock({ title, code }: Readonly<{ title: string; code: string }>) {
   return (
     <div className="grid gap-2">
       <div className="flex items-center justify-between gap-2">

@@ -39,16 +39,16 @@ test('cookies are httpOnly, Secure and SameSite=Lax; the session is not cached i
     useSecureCookies: true,
     defaultCookieAttributes: { httpOnly: true, sameSite: 'lax', secure: true },
   });
-  expect(auth.options.session?.cookieCache?.enabled).toBe(false);
+  expect(auth.options.session.cookieCache?.enabled).toBe(false);
 });
 
 test('login and password change are rate limited in the database', () => {
   expect(auth.options.rateLimit).toMatchObject({ enabled: true, storage: 'database' });
-  expect(auth.options.rateLimit?.customRules?.['/sign-in/email']).toEqual({ window: 300, max: 10 });
+  expect(auth.options.rateLimit.customRules?.['/sign-in/email']).toEqual({ window: 300, max: 10 });
 });
 
 test('mustChangePassword cannot be written by a client', () => {
-  expect(auth.options.user?.additionalFields?.['mustChangePassword']).toMatchObject({
+  expect(auth.options.user.additionalFields.mustChangePassword).toMatchObject({
     input: false,
   });
 });
@@ -71,12 +71,12 @@ test('Better Auth warnings and errors are logged as one short line; lower levels
       lines.push(JSON.parse(line) as { level: string; message: string; detail: string }),
     ),
   });
-  const log = logging.options.logger?.log;
+  const log = logging.options.logger.log;
   expect(log).toBeTypeOf('function');
-  expect(logging.options.logger?.level).toBe('warn');
+  expect(logging.options.logger.level).toBe('warn');
 
   log?.('error', 'password hash $scrypt$secret\nat Object.<anonymous> (file.ts:1:1)');
-  log?.('warn', `${'w'.repeat(400)}`);
+  log?.('warn', 'w'.repeat(400));
   log?.('info', 'signed in u1');
   log?.('debug', 'verbose');
 

@@ -7,7 +7,13 @@ import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, expect, test } from 'vitest';
 import { createApp } from './app.js';
 import { silentLogger } from './logger.js';
-import { createTestApp, TEST_ORIGIN, type TestApp, type TestUser } from './testing/harness.js';
+import {
+  closeIfOpen,
+  createTestApp,
+  TEST_ORIGIN,
+  type TestApp,
+  type TestUser,
+} from './testing/harness.js';
 import { describeEnvironments } from './testing/suite.js';
 
 describeEnvironments('app', ({ env }) => {
@@ -36,7 +42,7 @@ describeEnvironments('app', ({ env }) => {
   }, 120_000);
 
   afterAll(async () => {
-    await t?.close();
+    await closeIfOpen(t);
   });
 
   test('an unparsable Referer is not a trusted origin: the write is refused (CSRF)', async () => {

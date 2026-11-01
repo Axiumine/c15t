@@ -44,9 +44,11 @@ let counter = 0;
 beforeAll(() => {
   root = mkdtempSync(join(tmpdir(), 'release-package-'));
   bin = join(root, 'bin');
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- temp path inside the test's own directory
   mkdirSync(bin);
   // Writes the part of a CycloneDX document that release-package.sh edits.
   const fake = join(bin, 'cyclonedx-yarn');
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- temp path inside the test's own directory
   writeFileSync(
     fake,
     `#!${join(NODE_DIR, 'node')}
@@ -55,6 +57,7 @@ const file = args[args.indexOf('--output-file') + 1];
 require('node:fs').writeFileSync(file, JSON.stringify({ metadata: { component: { name: 'app', version: '0.0.0' } } }));
 `,
   );
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- temp path inside the test's own directory
   chmodSync(fake, 0o755);
 });
 
@@ -63,15 +66,19 @@ afterAll(() => {
 });
 
 function write(repo, path, text = 'x\n') {
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- temp path inside the test's own directory
   mkdirSync(dirname(join(repo, path)), { recursive: true });
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- temp path inside the test's own directory
   writeFileSync(join(repo, path), text);
 }
 
 /** A tagged v1.2.3 checkout with the build output the script packs. `notices` is its content. */
 function release({ notices } = { notices: NOTICES_TEXT }) {
   const repo = join(root, `repo-${counter++}`);
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- temp path inside the test's own directory
   mkdirSync(repo);
   git(repo, ['init', '-q', '-b', 'main']);
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- temp path inside the test's own directory
   mkdirSync(join(repo, 'scripts'));
   copyFileSync(SCRIPT, join(repo, 'scripts/release-package.sh'));
   write(repo, 'package.json', '{"name":"c15t-platform","version":"1.2.3"}\n');
@@ -126,6 +133,7 @@ describe('the dashboard-web tarball', () => {
     const extracted = run('tar', ['-xzOf', join(out, `${WEB}.tar.gz`), `${WEB}/${NOTICES}`]);
     expect(extracted.stdout).toBe(NOTICES_TEXT);
 
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- temp path inside the test's own directory
     const sums = readFileSync(join(out, 'SHA256SUMS'), 'utf8');
     expect(sums).toMatch(new RegExp(`^[0-9a-f]{64} {2}${WEB}\\.tar\\.gz$`, 'm'));
     const verify = run('sha256sum', ['--check', '--strict', 'SHA256SUMS'], { cwd: out });
@@ -137,6 +145,7 @@ describe('the dashboard-web tarball', () => {
     expect(status).toBe(1);
     expect(stderr).toContain('THIRD-PARTY-NOTICES.md');
     expect(stderr).toContain('build.license');
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- temp path inside the test's own directory
     expect(() => readFileSync(join(out, 'SHA256SUMS'))).toThrow();
   });
 

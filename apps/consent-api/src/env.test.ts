@@ -73,7 +73,7 @@ describe('parseEnv', () => {
     'rejects the trusted proxy list "%s"',
     (value) => {
       expect(issuesFor({ ...required, CONSENT_API_TRUSTED_PROXIES: value })[0]).toMatch(
-        /^CONSENT_API_TRUSTED_PROXIES(\.\d+)?:/,
+        /^CONSENT_API_TRUSTED_PROXIES(?:\.\d+|):/,
       );
     },
   );

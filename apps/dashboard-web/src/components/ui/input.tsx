@@ -24,7 +24,7 @@ export function Select({ className, children, ...props }: ComponentProps<'select
   );
 }
 
-export function Checkbox({ className, ...props }: Omit<ComponentProps<'input'>, 'type'>) {
+export function Checkbox({ className, ...props }: Readonly<Omit<ComponentProps<'input'>, 'type'>>) {
   return (
     <input
       type="checkbox"

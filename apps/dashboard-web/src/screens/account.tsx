@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from '@tanstack/react-router';
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { type FieldErrors, type UseFormRegister, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { meQueryOptions, useMe } from '../api';
 import { changePassword } from '../auth';
@@ -48,7 +48,8 @@ export const passwordFormSchema = z
 type PasswordForm = z.input<typeof passwordFormSchema>;
 const EMPTY: PasswordForm = { currentPassword: '', newPassword: '', confirmPassword: '' };
 
-function PasswordCard({ forced }: { forced: boolean }) {
+/** The form state, and a submit that changes the password and then refreshes the session. */
+function usePasswordForm(forced: boolean) {
   const queryClient = useQueryClient();
   const router = useRouter();
   const [failure, setFailure] = useState<string | undefined>(undefined);
@@ -74,11 +75,57 @@ function PasswordCard({ forced }: { forced: boolean }) {
     }
     reset(EMPTY);
     queryClient.removeQueries({ queryKey: meQueryOptions().queryKey });
-    await queryClient.fetchQuery(meQueryOptions());
+    await queryClient.query(meQueryOptions());
     if (forced) router.history.push('/sites');
     else setDone(true);
   }
 
+  return { register, errors, isSubmitting, failure, done, submit: handleSubmit(onSubmit) };
+}
+
+function PasswordFields({
+  errors,
+  register,
+}: Readonly<{
+  errors: FieldErrors<PasswordForm>;
+  register: UseFormRegister<PasswordForm>;
+}>) {
+  return (
+    <>
+      <Field id="current-password" label="Current password" error={errors.currentPassword?.message}>
+        <Input
+          {...fieldProps('current-password', errors.currentPassword?.message)}
+          {...register('currentPassword')}
+          type="password"
+          autoComplete="current-password"
+        />
+      </Field>
+      <Field id="new-password" label="New password" error={errors.newPassword?.message}>
+        <Input
+          {...fieldProps('new-password', errors.newPassword?.message)}
+          {...register('newPassword')}
+          type="password"
+          autoComplete="new-password"
+        />
+      </Field>
+      <Field
+        id="confirm-password"
+        label="Repeat new password"
+        error={errors.confirmPassword?.message}
+      >
+        <Input
+          {...fieldProps('confirm-password', errors.confirmPassword?.message)}
+          {...register('confirmPassword')}
+          type="password"
+          autoComplete="new-password"
+        />
+      </Field>
+    </>
+  );
+}
+
+function PasswordCard({ forced }: Readonly<{ forced: boolean }>) {
+  const { register, errors, isSubmitting, failure, done, submit } = usePasswordForm(forced);
   return (
     <Card>
       <CardHeader>
@@ -88,7 +135,7 @@ function PasswordCard({ forced }: { forced: boolean }) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form className="grid max-w-md gap-4" onSubmit={handleSubmit(onSubmit)} noValidate>
+        <form className="grid max-w-md gap-4" onSubmit={submit} noValidate>
           <FormError message={failure} />
           {done ? (
             <p
@@ -98,38 +145,7 @@ function PasswordCard({ forced }: { forced: boolean }) {
               Password changed.
             </p>
           ) : null}
-          <Field
-            id="current-password"
-            label="Current password"
-            error={errors.currentPassword?.message}
-          >
-            <Input
-              {...fieldProps('current-password', errors.currentPassword?.message)}
-              {...register('currentPassword')}
-              type="password"
-              autoComplete="current-password"
-            />
-          </Field>
-          <Field id="new-password" label="New password" error={errors.newPassword?.message}>
-            <Input
-              {...fieldProps('new-password', errors.newPassword?.message)}
-              {...register('newPassword')}
-              type="password"
-              autoComplete="new-password"
-            />
-          </Field>
-          <Field
-            id="confirm-password"
-            label="Repeat new password"
-            error={errors.confirmPassword?.message}
-          >
-            <Input
-              {...fieldProps('confirm-password', errors.confirmPassword?.message)}
-              {...register('confirmPassword')}
-              type="password"
-              autoComplete="new-password"
-            />
-          </Field>
+          <PasswordFields errors={errors} register={register} />
           <div>
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? 'Saving…' : 'Change password'}

@@ -24,9 +24,7 @@ describe('createPool', () => {
   test('notices from the server are swallowed instead of printed', async () => {
     const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
     const sql = createPool({ url, role: 'primary', applicationName: 'test' });
-    expect(
-      sql.options.onnotice({ severity: 'NOTICE', message: 'relation exists' }),
-    ).toBeUndefined();
+    sql.options.onnotice({ severity: 'NOTICE', message: 'relation exists' });
     expect(log).not.toHaveBeenCalled();
     log.mockRestore();
     await sql.end({ timeout: 0 });

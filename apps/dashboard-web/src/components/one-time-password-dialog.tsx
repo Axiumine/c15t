@@ -29,10 +29,10 @@ export function useOneTimeSecret() {
 export function OneTimePasswordDialog({
   secret,
   onClose,
-}: {
+}: Readonly<{
   secret: OneTimeSecret | null;
   onClose: () => void;
-}) {
+}>) {
   return (
     <Dialog open={secret !== null}>
       <DialogContent dismissible={false}>

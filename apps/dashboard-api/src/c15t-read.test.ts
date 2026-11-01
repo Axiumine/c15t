@@ -85,14 +85,15 @@ describeEnvironments('c15t-read', ({ env }) => {
   const first = { limit: 50 };
   const idsOf = (page: { items: { subjectId: string }[] }) =>
     page.items.map((item) => item.subjectId);
+  const alphabetical = (a: string, b: string) => a.localeCompare(b);
 
   test('only returns rows of the tenants in the scope', async () => {
     const pageA = await listConsents(db, tenantScope([tenantA]), {}, first);
     const pageB = await listConsents(db, tenantScope([tenantB]), {}, first);
-    expect(idsOf(pageA).sort()).toEqual(
-      [sub('a1'), sub('a2'), sub('a3'), sub('a4'), sub('a5')].sort(),
+    expect(idsOf(pageA).sort(alphabetical)).toEqual(
+      [sub('a1'), sub('a2'), sub('a3'), sub('a4'), sub('a5')].sort(alphabetical),
     );
-    expect(idsOf(pageB).sort()).toEqual([sub('b1'), sub('shared')].sort());
+    expect(idsOf(pageB).sort(alphabetical)).toEqual([sub('b1'), sub('shared')].sort(alphabetical));
     const both = await listConsents(db, tenantScope([tenantA, tenantB]), {}, first);
     expect(both.items).toHaveLength(pageA.items.length + pageB.items.length);
   });
@@ -145,7 +146,9 @@ describeEnvironments('c15t-read', ({ env }) => {
       { from: new Date('2026-03-02T00:00:00Z'), to: new Date('2026-03-03T00:00:00Z') },
       first,
     );
-    expect(idsOf(day).sort()).toEqual([sub('a2'), sub('a3'), sub('a4')].sort());
+    expect(idsOf(day).sort(alphabetical)).toEqual(
+      [sub('a2'), sub('a3'), sub('a4')].sort(alphabetical),
+    );
     const upperEdge = await listConsents(
       db,
       scope,
@@ -316,6 +319,7 @@ test('derivePurposes copes with malformed data', () => {
 test('isNaiveTimestamp accepts only real UTC timestamps in the stored shape', () => {
   expect(isNaiveTimestamp('2026-03-01 12:00:00')).toBe(true);
   expect(isNaiveTimestamp('2026-03-01T12:00:00.123456')).toBe(true);
+  expect(isNaiveTimestamp('2026-03-01 12:00:00.1')).toBe(true);
   // Wrong shape: text, a zone suffix, a missing part, too many fraction digits.
   for (const value of [
     '',
@@ -325,6 +329,11 @@ test('isNaiveTimestamp accepts only real UTC timestamps in the stored shape', ()
     '2026-03-01 12:00',
     '2026-03-01 12:00:00.1234567',
     ' 2026-03-01 12:00:00',
+    '2026-03-01 12:00:00.',
+    '2026-03-01 12:00:00:1',
+    '2026-03-01 12:00:00\n',
+    '2026-03-01 12:00:00.1\n',
+    '2026-03-01 12:00:001',
   ]) {
     expect(isNaiveTimestamp(value)).toBe(false);
   }

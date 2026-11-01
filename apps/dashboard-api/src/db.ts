@@ -58,7 +58,9 @@ export function wrapDatabase(pools: DatabasePools): AppDatabase {
     get(target, property) {
       const current: Database | Transaction = openTransaction.getStore() ?? target;
       const value: unknown = Reflect.get(current, property, current);
-      return typeof value === 'function' ? value.bind(current) : value;
+      if (typeof value !== 'function') return value;
+      const bound: unknown = value.bind(current);
+      return bound;
     },
   });
 

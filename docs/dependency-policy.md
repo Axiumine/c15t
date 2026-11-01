@@ -14,6 +14,8 @@ A new dependency must meet all of these:
    Apache-2.0, Unlicense, 0BSD, CC0, MPL-2.0 and similar). GPL-2.0-only and proprietary or "source
    available" licences are not allowed. The `dependency-review` workflow enforces an allow-list on pull
    requests.
+   LGPL-3.0 is compatible with AGPL-3.0 and is accepted for development tools that are not shipped in a
+   release (today `eslint-plugin-sonarjs`, `LGPL-3.0-only`, a devDependency of `yarn lint:eslint`).
 2. **Maintained.** It had a release or a maintainer response in the last 12 months, is not archived or
    deprecated, and has more than one maintainer or a credible organisation behind it, if possible.
 3. **Reputation and provenance.** Prefer packages published with npm provenance, with a public source

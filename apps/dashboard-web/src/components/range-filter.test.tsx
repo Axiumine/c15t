@@ -21,10 +21,10 @@ afterEach(() => {
 function Harness({
   initial = {},
   onChange,
-}: {
+}: Readonly<{
   initial?: RangeSearch;
   onChange: (next: RangeSearch) => void;
-}) {
+}>) {
   const [value, setValue] = useState<RangeSearch>(initial);
   return (
     <RangeFilter

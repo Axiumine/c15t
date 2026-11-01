@@ -6,6 +6,13 @@ import { cleanupRun } from './support/db.js';
 import { stopNginx } from './support/nginx.js';
 import { runtime } from './support/runtime.js';
 
+/** Keeps the cause of a rejection that is not an Error. */
+function asError(value: unknown): Error {
+  return value instanceof Error
+    ? value
+    : new Error('A non-Error value was thrown', { cause: value });
+}
+
 /**
  * Removes everything the run created: the nginx container (if a scenario left one), then its
  * rows in the shared database (exact run id only), then its scratch directory. Each step runs
@@ -13,11 +20,11 @@ import { runtime } from './support/runtime.js';
  */
 export default async function globalTeardown(): Promise<void> {
   const rt = runtime();
-  const failures: unknown[] = [];
+  const failures: Error[] = [];
   try {
     await stopNginx(rt);
   } catch (error) {
-    failures.push(error);
+    failures.push(asError(error));
   }
   try {
     const report = await cleanupRun(rt);
@@ -25,8 +32,9 @@ export default async function globalTeardown(): Promise<void> {
       `e2e cleanup ${rt.runId}: ${report.users} users, ${report.sites} sites, ${report.consents} consents removed\n`,
     );
   } catch (error) {
-    failures.push(error);
+    failures.push(asError(error));
   }
   rmSync(rt.runDir, { recursive: true, force: true });
-  if (failures[0] !== undefined) throw failures[0];
+  const [first] = failures;
+  if (first !== undefined) throw first;
 }

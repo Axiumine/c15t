@@ -40,12 +40,18 @@ export interface ConsentFilters extends TimeBounds {
 
 export const EXPORT_BATCH_SIZE = 500;
 
+const NAIVE_SECONDS = /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}$/;
+const NAIVE_FRACTION = /^\.\d{1,6}$/;
+
 /**
  * `YYYY-MM-DD[ T]HH:MM:SS[.ffffff]` that is a real UTC date: the shape check alone lets month 13,
  * 31 February or hour 24 through, and Postgres answers those with an error instead of a 400.
  */
 export function isNaiveTimestamp(value: string): boolean {
-  if (!/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?$/.test(value)) return false;
+  // The seconds part is fixed-width (19 characters). What follows it is empty or `.f` to `.ffffff`.
+  const fraction = value.slice(19);
+  if (!NAIVE_SECONDS.test(value.slice(0, 19))) return false;
+  if (fraction !== '' && !NAIVE_FRACTION.test(fraction)) return false;
   const seconds = `${value.slice(0, 10)}T${value.slice(11, 19)}`;
   const ms = Date.parse(`${seconds}Z`);
   // Round trip: JavaScript rolls 31 February over to 3 March, so the text must come back as it went in.
@@ -90,13 +96,14 @@ async function purposeCodes(db: Database, scope: TenantScope): Promise<Map<strin
   return new Map(rows.map((row) => [row.id, row.code]));
 }
 
-async function fetchRows(
-  db: Database,
-  scope: TenantScope,
-  filters: ConsentFilters,
-  after: ConsentCursor | undefined,
-  limit: number,
-) {
+interface FetchRowsOptions {
+  readonly scope: TenantScope;
+  readonly filters: ConsentFilters;
+  readonly after: ConsentCursor | undefined;
+  readonly limit: number;
+}
+
+async function fetchRows(db: Database, { scope, filters, after, limit }: FetchRowsOptions) {
   return db
     .select({
       id: consent.id,
@@ -152,7 +159,7 @@ function unwrapJson(value: unknown): unknown {
     !Array.isArray(current) &&
     'json' in current
   ) {
-    return unwrapJson((current as { json: unknown }).json);
+    return unwrapJson(current.json);
   }
   return current;
 }
@@ -227,7 +234,7 @@ export async function listConsents(
 ): Promise<ConsentPage> {
   const after = decodeCursor(page.cursor, consentCursorSchema);
   const [rows, codes] = await Promise.all([
-    fetchRows(db, scope, filters, after, page.limit + 1),
+    fetchRows(db, { scope, filters, after, limit: page.limit + 1 }),
     purposeCodes(db, scope),
   ]);
   return toPage(rows, page.limit, (row) => toConsentRecord(row, codes), cursorOf);
@@ -246,7 +253,7 @@ export async function* consentBatches(
   const codes = await purposeCodes(db, scope);
   let after: ConsentCursor | undefined;
   for (;;) {
-    const rows = await fetchRows(db, scope, filters, after, batchSize);
+    const rows = await fetchRows(db, { scope, filters, after, limit: batchSize });
     if (rows.length > 0) yield rows.map((row) => toConsentRecord(row, codes));
     const last = rows.at(-1);
     if (rows.length < batchSize || last === undefined) return;
@@ -259,9 +266,24 @@ export const CSV_HEADER = csvRow(CONSENT_CSV_COLUMNS);
 export function consentCsvRow(record: ConsentRecord): string {
   return csvRow(
     CONSENT_CSV_COLUMNS.map((column) =>
+      // eslint-disable-next-line security/detect-object-injection -- column comes from the closed CONSENT_CSV_COLUMNS tuple
       column === 'purposes' ? JSON.stringify(record.purposes) : record[column],
     ),
   );
+}
+
+const csvEncoder = new TextEncoder();
+
+/** Sends the text as bytes. An empty text (the end of the batches, header already sent) sends nothing. */
+function enqueueText(controller: ReadableStreamDefaultController<Uint8Array>, text: string): void {
+  if (text !== '') controller.enqueue(csvEncoder.encode(text));
+}
+
+/** The text for one step: the header before the first rows, then the rows of the batch. */
+function csvChunk(step: IteratorResult<ConsentRecord[]>, headerSent: boolean): string {
+  const header = headerSent ? '' : CSV_HEADER;
+  const rows = step.done === true ? '' : step.value.map(consentCsvRow).join('');
+  return header + rows;
 }
 
 /**
@@ -273,7 +295,6 @@ export function consentCsvStream(
   batches: AsyncGenerator<ConsentRecord[]>,
   first: IteratorResult<ConsentRecord[]>,
 ): ReadableStream<Uint8Array> {
-  const encoder = new TextEncoder();
   let pending: IteratorResult<ConsentRecord[]> | undefined = first;
   let headerSent = false;
   return new ReadableStream<Uint8Array>({
@@ -281,10 +302,8 @@ export function consentCsvStream(
       try {
         const step = pending ?? (await batches.next());
         pending = undefined;
-        const header = headerSent ? '' : CSV_HEADER;
+        enqueueText(controller, csvChunk(step, headerSent));
         headerSent = true;
-        const rows = step.done === true ? '' : step.value.map(consentCsvRow).join('');
-        if (header !== '' || rows !== '') controller.enqueue(encoder.encode(header + rows));
         if (step.done === true) controller.close();
       } catch (error) {
         controller.error(error);
@@ -322,6 +341,22 @@ function zeroFilledDays(range: StatsRange, counts: ReadonlyMap<string, number>) 
   return days;
 }
 
+/** Granted and denied answers per category, from the `choice` receipts. */
+function purposeStats(db: Database, where: SQL | undefined) {
+  // Only receipts (`choice`) say what was denied, so older rows are left out of the rates.
+  const categories = sql`case when jsonb_typeof(${consent.choice}::jsonb -> 'categories') = 'object' then ${consent.choice}::jsonb -> 'categories' end`;
+  return db
+    .select({
+      purpose: sql<string>`cat.key`,
+      granted: sql<number>`count(*) filter (where cat.value ->> 'value' = 'true')`.mapWith(Number),
+      denied: sql<number>`count(*) filter (where cat.value ->> 'value' = 'false')`.mapWith(Number),
+    })
+    .from(sql`${consent}, jsonb_each(${categories}) as cat`)
+    .where(where)
+    .groupBy(sql`cat.key`)
+    .orderBy(sql`cat.key`);
+}
+
 export async function consentStats(
   db: Database,
   scope: TenantScope,
@@ -330,8 +365,6 @@ export async function consentStats(
   const where = rangeConditions(scope, range);
   const day = sql<string>`to_char(${consent.givenAt}, 'YYYY-MM-DD')`;
   const jurisdiction = sql<string>`coalesce(${consent.jurisdiction}, 'unknown')`;
-  // Only receipts (`choice`) say what was denied, so older rows are left out of the rates.
-  const categories = sql`case when jsonb_typeof(${consent.choice}::jsonb -> 'categories') = 'object' then ${consent.choice}::jsonb -> 'categories' end`;
 
   const [totals, volume, purposes, jurisdictions] = await Promise.all([
     db
@@ -342,20 +375,7 @@ export async function consentStats(
       .from(consent)
       .where(where),
     db.select({ date: day, consents: count }).from(consent).where(where).groupBy(day).orderBy(day),
-    db
-      .select({
-        purpose: sql<string>`cat.key`,
-        granted: sql<number>`count(*) filter (where cat.value ->> 'value' = 'true')`.mapWith(
-          Number,
-        ),
-        denied: sql<number>`count(*) filter (where cat.value ->> 'value' = 'false')`.mapWith(
-          Number,
-        ),
-      })
-      .from(sql`${consent}, jsonb_each(${categories}) as cat`)
-      .where(where)
-      .groupBy(sql`cat.key`)
-      .orderBy(sql`cat.key`),
+    purposeStats(db, where),
     db
       .select({ jurisdiction, consents: count })
       .from(consent)

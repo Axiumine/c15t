@@ -47,8 +47,10 @@ describe('buildInstanceOptions', () => {
 
   test.each(POLICY_PRESETS)('builds the policy rules of the %s preset in order', (preset) => {
     const rules = policyRulesFor(siteRecord('shop', { policyPreset: preset }));
+    // eslint-disable-next-line security/detect-object-injection -- `preset` is the closed PolicyPreset union
     expect(rules).toHaveLength(POLICY_PRESET_RULES[preset].length);
     expect(rules.map((rule) => rule.id)).toEqual(
+      // eslint-disable-next-line security/detect-object-injection -- `preset` is the closed PolicyPreset union
       {
         'eu-opt-in': ['europe_opt_in', 'world_none'],
         'eu-us-opt-out': [

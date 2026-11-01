@@ -29,7 +29,7 @@ test('a 401 that arrives on the login screen does not start another redirect', a
   await screen.findByRole('heading', { name: 'Sign in' });
   const navigate = vi.spyOn(app.router, 'navigate');
 
-  await app.queryClient.fetchQuery(sitesQueryOptions()).catch(() => undefined);
+  await app.queryClient.query(sitesQueryOptions()).catch(() => undefined);
 
   expect(navigate).not.toHaveBeenCalled();
   expect(app.router.state.location.pathname).toBe('/login');
@@ -46,7 +46,7 @@ test('PASSWORD_CHANGE_REQUIRED that arrives on the account page leaves the sessi
   await screen.findByText('Choose a new password to continue');
   const navigate = vi.spyOn(app.router, 'navigate');
 
-  await app.queryClient.fetchQuery(sitesQueryOptions()).catch(() => undefined);
+  await app.queryClient.query(sitesQueryOptions()).catch(() => undefined);
 
   expect(navigate).not.toHaveBeenCalled();
   expect(app.router.state.location.pathname).toBe('/account');

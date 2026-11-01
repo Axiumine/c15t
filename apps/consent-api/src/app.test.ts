@@ -739,7 +739,9 @@ describe('health and status', () => {
     const response = await h.send('/status');
     expect(response.status).toBe(503);
     const text = await response.text();
-    expect(JSON.parse(text).error.code).toBe('SERVICE_UNAVAILABLE');
+    expect((JSON.parse(text) as { error: { code: string } }).error.code).toBe(
+      'SERVICE_UNAVAILABLE',
+    );
     expect(text).not.toContain('10.0.0.9');
     await h.registry.close();
   });
