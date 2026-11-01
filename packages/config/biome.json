@@ -12,6 +12,7 @@
       "!**/.vite",
       "!**/.yarn",
       "!**/.idea",
+      "!**/.qodana",
       "!**/.claude",
       "!**/.gitnexus",
       "!**/playwright-report",
