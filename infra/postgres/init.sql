@@ -2,9 +2,10 @@
 -- Copyright (C) 2026 Axiumine
 
 -- One-time, idempotent bootstrap of roles, database, schemas and grants (README D2, D9).
--- Run as a role that can create roles and databases, once, on the Patroni PRIMARY. Everything
--- replicates to the other nodes. Safe to rerun: nothing is dropped, and existing roles keep
--- their passwords (rotate with ALTER ROLE).
+-- Run as a SUPERUSER, once, on the Patroni PRIMARY. On PostgreSQL 16 and newer a role with only
+-- CREATEROLE and CREATEDB is not enough: it stops at the first ALTER ROLE below with "permission
+-- denied to alter role". Everything replicates to the other nodes. Safe to rerun: nothing is
+-- dropped, and existing roles keep their passwords (rotate with ALTER ROLE).
 --
 --   export C15T_API_PW=$(openssl rand -hex 24)
 --   export DASHBOARD_PW=$(openssl rand -hex 24)

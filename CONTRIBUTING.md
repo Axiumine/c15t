@@ -189,11 +189,16 @@ They read this environment contract (Yarn injects it from your local env file; i
 | `DATABASE_URL_DASHBOARD` | PostgreSQL URL of role `dashboard` (owns schema `app`, `SELECT` on `c15t.*`), the primary |
 | `C15T_ADMIN_API_KEY` | a random string of at least 16 characters, used by the consent-api tests |
 
-Set up a local database with [`docs/database-setup.md`](./docs/database-setup.md) (roles and schemas come
-from `infra/postgres/init.sql`), then run `yarn c15t:migrate` and `yarn db:migrate`, and finally
-`yarn workspace @consent/consent-api test` (the same for `@consent/dashboard-api`).
+Set up a local database with [`docs/local-database.md`](./docs/local-database.md), which takes you from no
+PostgreSQL at all to a running test suite: a throwaway server without root, a separate test database, every
+environment variable and the e2e suite. The roles and schemas come from `infra/postgres/init.sql`
+([`docs/database-setup.md`](./docs/database-setup.md) explains them and has the production notes). Then run
+`yarn c15t:migrate` and `yarn db:migrate`, and finally `yarn test` (or `yarn vitest run --project consent-api` for
+one workspace; the consent-api workspace does not list `vitest`, so `yarn workspace @consent/consent-api test`
+fails with `command not found: vitest`).
 Tests only touch rows they created, marked with a run prefix, and clean up after themselves. Use a
-disposable database, never a production one.
+disposable database, never a production one. In a git worktree below another checkout, Yarn also injects the outer
+checkout's env file: read rule 5 of section 5.1 in that guide first.
 
 ## Coding standards
 

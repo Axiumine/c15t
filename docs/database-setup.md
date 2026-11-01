@@ -26,7 +26,9 @@ One database with two schemas and two login roles. Postgres itself enforces the 
 ## Prerequisites
 
 - PostgreSQL 16 or newer, and `psql` on the machine you run the setup from.
-- A role that can create roles and databases. It is needed once, for the bootstrap, and never by the apps.
+- A superuser role (for example `postgres`). It is needed once, for the bootstrap, and never by the apps.
+  On PostgreSQL 16 and newer a role with only `CREATEROLE` and `CREATEDB` is not enough: `init.sql` runs
+  `ALTER ROLE ... NOSUPERUSER` and stops with `permission denied to alter role`.
 - Node.js 26 and Yarn 4 for the migrations (see the toolchain notes in [`CLAUDE.md`](../CLAUDE.md)).
 - `openssl`, or any other way to generate random passwords.
 
@@ -45,7 +47,7 @@ psql -v ON_ERROR_STOP=1 \
      -d postgres -f infra/postgres/init.sql
 ```
 
-Connect as your admin role (add `-h`, `-U` or a connection URL as needed). `db` defaults to
+Connect as your superuser (add `-h`, `-U` or a connection URL as needed). `db` defaults to
 `consent_dev`; use another name for production.
 
 What the script does:
@@ -193,6 +195,9 @@ The integration tests run against a real Postgres and need no extra privileges: 
 each run uses unique prefixes for site keys and email addresses and deletes only the rows it created. CI starts a
 throwaway Postgres, runs `init.sql` and the same migrations. Do not point tests at a database that holds real
 consent data.
+
+To run these tests on your own machine, start from [`local-database.md`](./local-database.md): a throwaway server
+without root, a separate test database, every environment variable and the e2e suite.
 
 ## Troubleshooting
 

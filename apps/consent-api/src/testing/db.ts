@@ -7,7 +7,8 @@ import type postgres from 'postgres';
 /*
  * Real-database tests. They fail loudly, and never skip, when the environment is missing: a
  * green run must mean the database was exercised. Yarn injects the variables from the dev env
- * file, so run them as `yarn workspace @consent/consent-api test`.
+ * file, so run them as `yarn vitest run --project consent-api`. Not as
+ * `yarn workspace @consent/consent-api test`: that workspace does not list `vitest`.
  */
 
 export interface IntegrationEnv {
@@ -37,7 +38,7 @@ export function integrationEnv(): IntegrationEnv {
   ) {
     throw new Error(
       `The consent-api integration tests need ${missing.join(', ')}. They are not skipped: run them with ` +
-        '`yarn workspace @consent/consent-api test` so Yarn injects the dev env file.',
+        '`yarn vitest run --project consent-api` so Yarn injects the dev env file.',
     );
   }
   return { c15tUrl, dashboardUrl, apiKey };
