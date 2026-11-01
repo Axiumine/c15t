@@ -58,7 +58,7 @@ They are built by [`.github/workflows/release.yml`](../.github/workflows/release
 with the workflow's identity, so the signature proves which workflow and tag produced the file.
 
 ```bash
-VERSION=0.1.0
+VERSION=0.2.0
 BASE=https://github.com/Axiumine/c15t/releases/download/v$VERSION
 mkdir c15t-release && cd c15t-release
 for f in c15t-platform-$VERSION-source.tar.gz c15t-platform-$VERSION-source.tar.gz.sigstore.json SHA256SUMS multiple.intoto.jsonl; do

@@ -16,6 +16,12 @@ their own "Security" heading and name the advisory.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-01
+
+Adds `deploy.sh install` and `uninstall`, the security and cryptography documentation, a reproducible-build check and
+a 100% coverage gate. There is no intended change in the behaviour of consent-api, dashboard-api or dashboard-web:
+the code changes are test-driven clean-ups, with the same behaviour.
+
 ### Added
 
 - `infra/deploy.sh install` and `uninstall` (both with `--dry-run`; `--purge-config` and `--remove-cloudflare` for uninstall;
@@ -84,5 +90,6 @@ First release. The project is pre-1.0: minor versions may contain breaking chang
   absolute checkout path reaching a shell command in `scripts/check-dco.test.mjs`.
 - The cursor pagination fuzz test no longer times out on a loaded CI runner.
 
-[Unreleased]: https://github.com/Axiumine/c15t/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/Axiumine/c15t/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/Axiumine/c15t/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Axiumine/c15t/releases/tag/v0.1.0
