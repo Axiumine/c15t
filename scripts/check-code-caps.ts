@@ -51,7 +51,8 @@ const CAPS: Record<Kind, number> = {
 const BASELINE = '.code-caps-baseline.json';
 const ROOTS = ['apps/*/src/**/*.{ts,tsx}', 'packages/*/src/**/*.{ts,tsx}', 'scripts/**/*.{ts,tsx}'];
 const SKIPPED = /\.d\.ts$|\.(generated|gen)\.tsx?$/;
-const TEST_CODE = /\.(test|spec)\.tsx?$|\/(test|testing)\//;
+const TEST_SUFFIXES = ['.test.ts', '.test.tsx', '.spec.ts', '.spec.tsx'];
+const TEST_DIRECTORIES = ['/test/', '/testing/'];
 const USAGE = 'usage: node scripts/check-code-caps.ts [--update]\n';
 
 // Measuring one file
@@ -141,12 +142,20 @@ function walk(node: ts.Node, scope: readonly string[], frame: Frame, ctx: Ctx): 
 }
 
 /** Every cap that the content `text` of the file `path` exceeds. */
+/** Test code only counts towards the file cap: its bodies are nested describe/test callbacks. */
+function isTestCode(path: string): boolean {
+  return (
+    TEST_SUFFIXES.some((suffix) => path.endsWith(suffix)) ||
+    TEST_DIRECTORIES.some((directory) => path.includes(directory))
+  );
+}
+
 export function measure(path: string, text: string): Violation[] {
   const kind = path.endsWith('x') ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
   const source = ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true, kind);
   const ctx: Ctx = { path, source, found: [], seen: new Map() };
   add(ctx, 'file-lines', '(file)', lineCount(text));
-  if (!TEST_CODE.test(path)) {
+  if (!isTestCode(path)) {
     ts.forEachChild(source, (child) => walk(child, [], { depth: 0, max: 0 }, ctx));
   }
   return ctx.found;

@@ -47,8 +47,14 @@ jobs:
             MIT, MIT-0, ISC, BSD-2-Clause, BSD-3-Clause, Apache-2.0, 0BSD, CC0-1.0, Unlicense,
             BlueOak-1.0.0, Python-2.0, Zlib, MPL-2.0, CC-BY-4.0, LGPL-2.1-or-later,
             LGPL-3.0-only, LGPL-3.0-or-later, GPL-3.0-or-later, AGPL-3.0-or-later
-          # The repository's own workspace packages are private and carry no registry metadata.
+          # The repository's own workspace packages are private and carry no registry metadata. The three
+          # others are permissive licenses that the dependency graph reports as compound expressions
+          # no allow-list entry can match: uri-js "BSD-2-Clause AND BSD-2-Clause-Views" (a dependency of
+          # ESLint, dev only), protobuf "BSD-3-Clause AND LicenseRef-scancode-protobuf" (BSD-3-Clause plus
+          # Google's patent notice, installed from .github/ci-tools/semgrep for the Security scan job) and
+          # pywin32 "PSF-2.0" (listed in that lockfile for Windows only, never installed on the runner).
           allow-dependencies-licenses: >-
             pkg:npm/%40consent/consent-api, pkg:npm/%40consent/dashboard-api,
             pkg:npm/%40consent/dashboard-web, pkg:npm/%40consent/db, pkg:npm/%40consent/shared,
-            pkg:npm/%40consent/config, pkg:npm/c15t-platform
+            pkg:npm/%40consent/config, pkg:npm/c15t-platform, pkg:npm/uri-js,
+            pkg:pypi/protobuf, pkg:pypi/pywin32
