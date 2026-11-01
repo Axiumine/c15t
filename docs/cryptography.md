@@ -44,9 +44,9 @@ own documentation, or could not be checked from the repository, the text says so
 
 ### Visitors and administrators to Cloudflare
 
-Cloudflare terminates TLS for every website and for the dashboard (README D7). The protocol versions and
+Cloudflare terminates TLS for every website and for the dashboard (decisions.md D7). The protocol versions and
 cipher suites at the edge, the certificate and HSTS are Cloudflare account settings. They are not in
-this repository and the repository cannot enforce them. README D7 asks for SSL mode "Full (strict)".
+this repository and the repository cannot enforce them. decisions.md D7 asks for SSL mode "Full (strict)".
 HSTS is set at the edge, not in nginx (comment in
 [`infra/nginx/dashboard.conf`](../infra/nginx/dashboard.conf)).
 
@@ -63,7 +63,7 @@ Change them in the Cloudflare dashboard (SSL/TLS, Edge Certificates). No deploym
 - `ssl_verify_client on;` with `ssl_client_certificate`. This is Authenticated Origin Pulls: nginx
   accepts only TLS clients that present a certificate signed by the configured CA. The shared
   Cloudflare CA proves "some Cloudflare zone". A per-zone certificate binds it to your zone (comment in
-  the vhost, README D7).
+  the vhost, decisions.md D7).
 - The origin certificate is a Cloudflare Origin CA certificate that the operator creates. Its key type
   is chosen when the operator creates it. The repository does not contain one.
 
@@ -84,13 +84,13 @@ The hop from nginx to consent-api and dashboard-api is plain HTTP (`proxy_pass h
 meant for loopback. Env validation lets the services bind only to a loopback or private address
 (`hostSchema` in [`packages/shared/src/host.ts`](../packages/shared/src/host.ts), tested in
 `apps/consent-api/src/env.test.ts`, "rejects the bind address"). If an operator binds a private LAN
-address, that traffic is not encrypted. README D1 says to limit the port in the firewall. It also says
+address, that traffic is not encrypted. decisions.md D1 says to limit the port in the firewall. It also says
 that `@c15t/node-sdk` refuses plain `http:` together with an API key for non-loopback hosts; that
-statement comes from the README and was not re-checked here.
+statement comes from decisions.md and was not re-checked here.
 
 ### Node.js to PostgreSQL
 
-Two drivers read the connection URL differently (README D9, "TLS to PostgreSQL"). What the installed
+Two drivers read the connection URL differently (decisions.md D9, "TLS to PostgreSQL"). What the installed
 sources do:
 
 | Driver | Used by | `sslmode=require` | `sslmode=verify-full` |
@@ -100,7 +100,7 @@ sources do:
 
 Operators should use `verify-full` when the database is on another host. A private CA goes into
 `NODE_EXTRA_CA_CERTS` in the service environment file, never into the URL as `sslrootcert`
-(README D9). TLS versions and suites come from Node.js and its bundled OpenSSL, and from the
+(decisions.md D9). TLS versions and suites come from Node.js and its bundled OpenSSL, and from the
 PostgreSQL server settings. I checked Node's default minimum on Node 24 only (`TLSv1.2`), not on the
 pinned Node 26.
 

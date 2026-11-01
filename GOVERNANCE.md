@@ -29,7 +29,7 @@ copyright (see [`LICENSE`](./LICENSE) and the SPDX headers).
    dependency with a wide reach): open an issue first and describe the problem and the options. A
    maintainer decides after the discussion, aiming for consensus among those who took part. Disagreements
    are settled by the maintainers.
-3. Architecture decisions are recorded in the README ("Decisions", D1 to D11) with the reasoning, and a
+3. Architecture decisions are recorded in docs/decisions.md (D1 to D11) with the reasoning, and a
    superseded decision is amended there, not silently deleted.
 4. Security fixes are developed in private advisories and are not subject to public discussion before
    release.

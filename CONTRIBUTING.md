@@ -9,7 +9,7 @@ follow the [Code of Conduct](./CODE_OF_CONDUCT.md). How the project is run is de
 
 - Found a vulnerability? Do **not** open an issue. Follow [`SECURITY.md`](./SECURITY.md).
 - Need help using it? See [`SUPPORT.md`](./SUPPORT.md).
-- Design decisions (D1 to D11): [`README.md`](./README.md). Engineering rules: [`CLAUDE.md`](./CLAUDE.md).
+- Design decisions (D1 to D11): [`docs/decisions.md`](./docs/decisions.md). Engineering rules: [`CLAUDE.md`](./CLAUDE.md).
 
 ## Reporting a bug
 
@@ -23,7 +23,7 @@ follow the [Code of Conduct](./CODE_OF_CONDUCT.md). How the project is run is de
 
 - Small fixes (a bug, a typo, a missing test) can go straight to a pull request.
 - For anything larger, open a **Feature request** issue first, so that the approach can be agreed before
-  you invest time. The README decisions (D1 to D11) explain why the design is the way it is. If your idea
+  you invest time. The decisions in docs/decisions.md (D1 to D11) explain why the design is the way it is. If your idea
   conflicts with one of them, say which and why.
 - Keep a pull request focused on one change. Unrelated clean-ups belong in a separate pull request.
 

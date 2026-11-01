@@ -57,7 +57,7 @@ Line numbers are left out on purpose, because they go stale.
 
 In scope: consent-api, dashboard-api, dashboard-web, the `c15t` and `app` database schemas and their
 roles, the nginx and systemd files in [`infra/`](../infra), and the build and release pipeline. The
-platform runs on one operator-controlled server behind Cloudflare, with a PostgreSQL cluster (README D7,
+platform runs on one operator-controlled server behind Cloudflare, with a PostgreSQL cluster (decisions.md D7,
 D9). It was written against release 0.2.0. When the code changes, the questions at the end of
 `security-model.md` ("Reviewing a change for security") apply.
 
@@ -163,7 +163,7 @@ Website server code ----------------------------------------> consent-api (CONSE
 
 | Id | Boundary | Untrusted side | Trusted side | What enforces it |
 |---|---|---|---|---|
-| B1 | Internet to nginx | Everyone | nginx and Cloudflare, for the headers they set | Firewall allowlist and Authenticated Origin Pulls (operator, README D7). `real_ip` trusts only Cloudflare ranges ([`update-cloudflare-ips.sh`](../infra/nginx/update-cloudflare-ips.sh)). |
+| B1 | Internet to nginx | Everyone | nginx and Cloudflare, for the headers they set | Firewall allowlist and Authenticated Origin Pulls (operator, decisions.md D7). `real_ip` trusts only Cloudflare ranges ([`update-cloudflare-ips.sh`](../infra/nginx/update-cloudflare-ips.sh)). |
 | B2 | nginx to consent-api | The request, including all its headers | The tenant mapping (`set $c15t_site`) and `CF-*` headers, from configured proxies only | [`c15t.conf`](../infra/nginx/c15t.conf) replaces `X-Forwarded-*`. [`request-guard.ts`](../apps/consent-api/src/request-guard.ts) strips what a non-proxy peer sends. |
 | B3 | nginx to dashboard-api | The request | `X-Forwarded-For` set by nginx | [`dashboard-locations.conf`](../infra/nginx/dashboard-locations.conf), then [`authz.ts`](../apps/dashboard-api/src/authz.ts) |
 | B4 | Anything that can reach the consent-api port | The caller | The tenant, taken from the path | The bind address (loopback or private only) and the firewall. A direct caller by IP or `localhost` skips the `Host` check, so any caller that reaches the port can address any active `siteKey`. |
@@ -385,7 +385,7 @@ code. Sign-in failures show one generic message.
 `SAFE_MESSAGES` in [`error-response.ts`](../apps/dashboard-api/src/error-response.ts).
 
 **Test.** `password.test.ts`: `meets the platform password rules and avoids look-alike characters`.
-`site-mapping.test.ts`: `the nginx snippet is exactly the two lines of the README`.
+`site-mapping.test.ts`: `the nginx snippet is exactly the two lines of docs/adding-a-website.md`.
 `one-time-password.test.tsx`: `the one-time password is shown once, survives Escape, and is gone after closing`.
 `login.test.tsx`: `wrong credentials show one generic message and keep the form` and
 `first login with a temporary password forces a change, then opens the app`. `errors.test.ts`:
@@ -541,7 +541,7 @@ which has the operator advice.
     `site A's reader gets the record, site B's does not`). Within the same site, that same test shows that the
     ID alone is the gate: it reads the record with no API key. No test covers `PATCH /subjects/:id`. The platform
     adds no check of its own on these routes. Short or predictable IDs, or IDs placed in URLs, logs or analytics,
-    expose the record. The README (D4) says c15t's admin API covers
+    expose the record. The decisions page (D4) says c15t's admin API covers
     "subject lookup by `externalId`". That holds for `GET /subjects` only, not for the routes above.
 - **The origin must be locked down by the operator.** Without the firewall allowlist (and Authenticated
   Origin Pulls on the dashboard vhost), a direct caller can send any `CF-IPCountry` and `cf-region-code`, and so

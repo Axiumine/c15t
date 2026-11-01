@@ -1,8 +1,8 @@
 # Security model
 
 This is a summary of what the platform protects, against whom, and where it does not protect you. It is
-written for operators and reviewers. The design reasoning is in the [README](../README.md) (decisions
-D1 to D11), the coding rules are in [`CLAUDE.md`](../CLAUDE.md), and vulnerabilities are reported as
+written for operators and reviewers. The design reasoning is in the [decisions](./decisions.md) (D1
+to D11), the coding rules are in [`CLAUDE.md`](../CLAUDE.md), and vulnerabilities are reported as
 described in [`SECURITY.md`](../SECURITY.md).
 
 See also the [assurance case](./assurance-case.md) and [`cryptography.md`](./cryptography.md).
@@ -14,7 +14,7 @@ See also the [assurance case](./assurance-case.md) and [`cryptography.md`](./cry
 | Consent records (`c15t` schema) | Legal proof of what a visitor agreed to. Integrity and per-site confidentiality matter. |
 | Dashboard accounts, sessions and the audit log (`app` schema) | They control who can see which site. |
 | `C15T_ADMIN_API_KEY`, `BETTER_AUTH_SECRET`, database URLs | Server-side secrets. They live in the systemd environment files under `/etc/c15t-platform/` (mode 0600), never in the repository or in the browser bundle. |
-| The visitor's IP address and country | Used to resolve the jurisdiction. c15t masks IP addresses by default. |
+| The visitor's IP address and country | Used to resolve the jurisdiction. c15t masks IP addresses by default. Keep it that way unless legal advice says otherwise. |
 
 ## Actors and trust boundaries
 
@@ -61,7 +61,7 @@ Website server code ----------------------------------------> consent-api (CONSE
 - The firewall allowlist (nftables table `inet c15t_cloudflare`) is what keeps other hosts away from ports
   80 and 443. It is loaded into the kernel only after `CF_NFT_APPLY=1`, and it survives a reboot only after
   `systemctl enable --now c15t-cloudflare-nft.service` (or an `include` line in `/etc/nftables.conf`). Until
-  then the origin is open at every boot (README D7 and [nginx.md](./nginx.md)). The `cloudflare-ips` unit runs as root
+  then the origin is open at every boot (decisions.md D7 and [nginx.md](./nginx.md)). The `cloudflare-ips` unit runs as root
   with a systemd sandbox; `/run` stays writable for it because `nginx -t` opens `/run/nginx.pid`.
 - consent-api reads the TCP peer address. When the peer is not in `CONSENT_API_TRUSTED_PROXIES`, it deletes
   `X-Forwarded-*`, `CF-*` and `Forwarded` before the request reaches c15t. Visitor overrides for country,
@@ -96,7 +96,7 @@ Website server code ----------------------------------------> consent-api (CONSE
 - Two roles with least privilege: `c15t_api` owns `c15t` and can `SELECT` only `app.site`; `dashboard`
   owns `app` and can `SELECT` only on `c15t.*`. dashboard-api never writes consent data.
 - No role can create databases, roles or schemas. Migrations run against the primary.
-- Pools are small, and drop connections after a failover. What each client does differs (README D9 has the
+- Pools are small, and drop connections after a failover. What each client does differs (decisions.md D9 has the
   table): the postgres.js pools (dashboard-api, migrations, the site registry and the `LISTEN` connection)
   require `target_session_attrs=read-write` on the primary, a 5 s connect timeout, TCP keepalive and a
   5-minute connection lifetime. consent-api's per-site c15t pools use `@effect/sql-pg` 4.0.0, which has no
@@ -105,7 +105,7 @@ Website server code ----------------------------------------> consent-api (CONSE
   on a demoted node can therefore live for up to five minutes. A write on it is rejected with `25006` and the
   client gets 503; a read on it may be stale until the connection is replaced. Consent records are never deleted from the dashboard.
 - TLS to PostgreSQL is the operator's choice (`sslmode` in the URL). A private CA needs
-  `NODE_EXTRA_CA_CERTS`, not `sslrootcert` (README D9, "TLS to PostgreSQL").
+  `NODE_EXTRA_CA_CERTS`, not `sslrootcert` (decisions.md D9, "TLS to PostgreSQL").
 
 ### Dashboard delivery
 
@@ -129,11 +129,11 @@ Please read this section before you rely on the platform.
 
 | Gap | Consequence | What you can do |
 |---|---|---|
-| The origin is reachable without Cloudflare (the firewall and Authenticated Origin Pulls are the operator's job, README D7) | Anyone who reaches the origin can send any `CF-IPCountry` and `cf-region-code`, and so choose the jurisdiction. Their `CF-Connecting-IP` is ignored: nginx `real_ip` trusts only Cloudflare ranges, and consent-api strips the header. The recorded IP is then their own address. | Restrict ports 80 and 443 to Cloudflare ranges and enable Authenticated Origin Pulls. |
+| The origin is reachable without Cloudflare (the firewall and Authenticated Origin Pulls are the operator's job, decisions.md D7) | Anyone who reaches the origin can send any `CF-IPCountry` and `cf-region-code`, and so choose the jurisdiction. Their `CF-Connecting-IP` is ignored: nginx `real_ip` trusts only Cloudflare ranges, and consent-api strips the header. The recorded IP is then their own address. | Restrict ports 80 and 443 to Cloudflare ranges and enable Authenticated Origin Pulls. |
 | Consent saves are not authenticated. In c15t 3.1.0 `trustedOrigins` only sets CORS response headers (browsers enforce them, other clients ignore them) and no route checks the `Origin` | Anyone who can reach a site's public endpoint can submit fake consent records, with or without an `Origin` header. The platform does not prove that a record came from a real visitor. | Use Cloudflare rate limiting and treat counts as indicative. |
 | No tamper evidence | A database administrator, or an attacker with write access to the primary, can change consent records. There is no signing or hash chain. | Restrict database access, keep backups and database auditing. |
 | No application-level encryption | Records are protected by Postgres permissions and by disk or backup encryption only. | Encrypt disks and backups. |
-| No built-in multi-factor authentication for dashboard accounts | A stolen password gives access to that user's sites. | Put Cloudflare Access (Zero Trust) in front of the dashboard (README, Security notes). |
+| No built-in multi-factor authentication for dashboard accounts | A stolen password gives access to that user's sites. | Put Cloudflare Access (Zero Trust) in front of the dashboard. |
 | Subject IDs are unique across the whole database, not per site (c15t behaviour) | A conflicting save returns `409 SUBJECT_CONFLICT`. | Do not use predictable subject IDs. |
 | c15t's `GET /subjects/:id` and `PATCH /subjects/:id` need no API key (checked in `@c15t/backend` 3.1.0, `dist/http/routes/subject.js`). The subject ID is chosen by the client (`sub_` plus base58, any length) | The ID works as a bearer secret. Anyone who knows an ID and reaches that site's endpoint can read the subject's choices and `externalId`. They can also set or replace its `externalId` unless it is already verified (verified needs the API key or an identity token, and the platform configures no identity token). A different site answers 404. The platform adds no check of its own. | Treat subject IDs as secrets: generate long random ones, and keep them out of URLs, logs and analytics. See the [assurance case](./assurance-case.md#44-residual-risks-what-is-not-protected). |
 | The audit triggers on `app.admin_audit` are owned by the `dashboard` role, which dashboard-api uses | The log is append-only for the application's own statements. Code running as dashboard-api, or a database administrator, can drop or disable the triggers. | Restrict database access, ship the log to an external store if you need proof. |
@@ -142,7 +142,7 @@ Please read this section before you rely on the platform.
 | A compromised server or root user | Secrets under `/etc/c15t-platform/` and the database are exposed. systemd hardening limits damage but is not a sandbox against root. | Standard host hardening. |
 | XSS in the dashboard is mitigated by the CSP, not eliminated | A script injection bug could act with the victim's session. | Keep the CSP strict, and report any bypass. |
 | Third-party code (c15t, Better Auth, Hono, ...) | A vulnerability upstream is a vulnerability here until patched. | Follow the dependency policy and update promptly. |
-| Legal compliance (GDPR, ePrivacy, CCPA, ...) | The software records consent, it does not make a site compliant. Retention rules and purging are not implemented (README, Open questions). | Get legal advice. |
+| Legal compliance (GDPR, ePrivacy, CCPA, ...) | The software records consent, it does not make a site compliant. Retention rules and purging are not implemented ([status.md](./status.md#open-questions), Open questions). | Get legal advice. |
 
 ## Assumptions
 
@@ -150,6 +150,7 @@ Please read this section before you rely on the platform.
 - Only Cloudflare (or other trusted proxies listed in `CONSENT_API_TRUSTED_PROXIES`) can reach the
   services, and the services are not exposed on a public interface.
 - Admins are trusted and keep their credentials safe.
+- The cluster's existing backups must include this database (decisions.md D9).
 
 ## Reviewing a change for security
 
