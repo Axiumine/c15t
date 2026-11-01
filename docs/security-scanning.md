@@ -115,6 +115,14 @@ target. "The first run" below says what the maintainer does next.
 - On a developer machine: `QODANA_TOKEN=...` in the dotenv file that Yarn loads (`env.example` has the line),
   Docker, and the Qodana CLI.
 
+**One scan and one token for the whole repository.** consent-api, dashboard-api, dashboard-web and the
+packages are all TypeScript, so one linter (`qodana-js`) covers them and one Qodana Cloud project holds the
+results. Qodana's own advice for a monorepo is a separate Cloud project and token per sub-project only when
+the parts need different linters (for example a JVM backend next to a JavaScript frontend); that is not the
+case here. If a part ever needs another linter, give it its own `qodana.yaml`, its own workflow job and its
+own token, and limit each scan to its directory (`--only-directory` in Qodana 2026.2, `--source-directory`
+in 2025.x). See <https://www.jetbrains.com/help/qodana/2026.2/monorepo-project.html>.
+
 ### What leaves the repository
 
 - **To Qodana Cloud:** the token (license check; the report is attached to the project the token belongs to)
