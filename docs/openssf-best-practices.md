@@ -969,7 +969,7 @@ Select: **Met** | URL required: no | N/A allowed: yes
 Justification to paste:
 
 ```text
-Generated passwords use node:crypto randomInt (CSPRNG) and Better Auth creates session tokens and IDs with crypto.getRandomValues. The only Math.random use is jitter for reconnect backoff in apps/consent-api/src/listener.ts, which is not a key or a nonce.
+Generated passwords use node:crypto randomInt (CSPRNG) and Better Auth creates session tokens and IDs with crypto.getRandomValues. The only Math.random use is jitter for reconnect backoff in apps/consent-api/src/listener-timing.ts, which is not a key or a nonce.
 ```
 
 Evidence: [apps/dashboard-api/src/password.ts](https://github.com/Axiumine/c15t/blob/main/apps/dashboard-api/src/password.ts), [apps/consent-api/src/listener.ts](https://github.com/Axiumine/c15t/blob/main/apps/consent-api/src/listener.ts)
@@ -1159,7 +1159,7 @@ Select: **Unmet** | URL required: no
 Justification to paste (optional for Unmet):
 
 ```text
-Production code validates inputs with zod and has a few explicit invariant checks that throw (for example assertTrustedOrigins in apps/consent-api/src/instance.ts, which the property-based tests exercise), but it does not use assert statements (node:assert) or any systematic set of run-time assertions, so "many" is not met.
+Production code validates inputs with zod and has a few explicit invariant checks that throw (for example assertTrustedOrigins in apps/consent-api/src/instance-checks.ts, which the property-based tests exercise), but it does not use assert statements (node:assert) or any systematic set of run-time assertions, so "many" is not met.
 ```
 
 To reach Met: SUGGESTED, so it does not block the badge. Add invariant checks (assert from node:assert) in the parsers and registry and run the fuzz tests with them.
@@ -2415,7 +2415,7 @@ Select: **Unmet** | URL required: no | N/A allowed: yes
 Justification to paste (optional for Unmet):
 
 ```text
-Production code validates inputs with zod and has a few explicit invariant checks that throw (for example assertTrustedOrigins in apps/consent-api/src/instance.ts, which the property-based tests exercise), but it does not use assert statements (node:assert) or any systematic set of run-time assertions, so "many" is not met.
+Production code validates inputs with zod and has a few explicit invariant checks that throw (for example assertTrustedOrigins in apps/consent-api/src/instance-checks.ts, which the property-based tests exercise), but it does not use assert statements (node:assert) or any systematic set of run-time assertions, so "many" is not met.
 ```
 
 To reach Met: SHOULD criterion. Add invariant checks (assert from node:assert) in the parsers and registry and run the fuzz tests with them.
@@ -2499,7 +2499,7 @@ Every file referenced above, with its link. "Present" is checked against the wor
 
 - `yarn lint` (`biome check .`) reported no diagnostics on 268 files on 2026-10-30 (so `warnings_fixed`).
 - Three clean builds (`tsc -b` for every workspace plus `vite build`) of commit a8cc136, two in one directory and one in a second directory, gave identical SHA-256 sums for all 271 files under `dist/` (Node v26.13.0, Yarn 4.18.1). This backs silver `build_repeatable`. It is a one-off manual check, not a CI job, and the source tree has changed since: repeat it after larger changes.
-- `scrypt` parameters and the random per-password salt were read in `@better-auth/utils` 0.5.1 (`password.node.mjs`), used by `better-auth` 1.7.14. The source tree has no `createHash`, `createCipher`, `rejectUnauthorized` or `NODE_TLS_REJECT_UNAUTHORIZED`. The only `Math.random` call is reconnect jitter in `apps/consent-api/src/listener.ts`.
+- `scrypt` parameters and the random per-password salt were read in `@better-auth/utils` 0.5.1 (`password.node.mjs`), used by `better-auth` 1.7.14. The source tree has no `createHash`, `createCipher`, `rejectUnauthorized` or `NODE_TLS_REJECT_UNAUTHORIZED`. The only `Math.random` call is reconnect jitter in `apps/consent-api/src/listener-timing.ts`.
 - `https://github.com/Axiumine/c15t` answered over HTTP/2 with `strict-transport-security`, `x-frame-options: deny`, `x-content-type-options: nosniff` and a `content-security-policy` header (checked with `curl -I` on 2026-10-30), which is what gold `hardened_site` asks for.
 - `node scripts/add-spdx-headers.mjs --check` reports that every file has an SPDX header or is covered by `REUSE.toml`. The only `.ts`, `.tsx`, `.sh`, `.mjs` and `.sql` files without the copyright line are generated (`routeTree.gen.ts`, `c15t.generated.ts` and the Drizzle migrations), and all of them are listed in `REUSE.toml`; CI runs the same check as `yarn spdx:check`.
 - Checked against the repository on 2026-10-30: the names and triggers of the jobs in `.github/workflows` (the required status checks in M4), the scripts in the root `package.json`, what `.github/dependabot.yml` covers, the root `.gitignore`, the wording of `SECURITY.md`, `SUPPORT.md`, `CONTRIBUTING.md` and `GOVERNANCE.md`, the number of `*.fuzz.test.ts` files (13), and that every file linked in this document exists (section 7).

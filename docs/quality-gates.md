@@ -32,9 +32,9 @@ maintainer adds them to the ruleset.
 | Typed lint | ESLint, typescript-eslint `strictTypeChecked`, sonarjs, security, no-unsanitized | `yarn lint:eslint` | zero findings (`--max-warnings 0`); `complexity` 10, `max-lines` 500, `max-lines-per-function` 50, `max-params` 4, `max-depth` 4 |
 | Unused code | knip | `yarn knip` | no unused files, exports, types or dependencies |
 | Maintainability | FTA | `yarn fta` | no file above `score_cap` in `fta.json` (lower score is better) |
-| Size caps, ratchet | `scripts/check-code-caps.ts` | `yarn code-caps` | file 500, function 50, class 300 lines, 4 parameters, nesting 4; no new or grown violation against `.code-caps-baseline.json` |
+| Size caps, ratchet | `scripts/check-code-caps.ts` (the parts are in `scripts/code-caps/`) | `yarn code-caps` | file 500, function 50, class 300 lines, 4 parameters, nesting 4; no new or grown violation against `.code-caps-baseline.json` |
 | Unit and integration tests | Vitest, `@vitest/coverage-v8` | `yarn test`, `yarn test:coverage` | 100% statements, branches, functions and lines of `apps/*/src` and `packages/*/src` |
-| Script tests | `node:test` | `yarn test:scripts-coverage` | 100% of `scripts/check-code-caps.ts` and `scripts/git-hooks.mjs` |
+| Script tests | `node:test` | `yarn test:scripts-coverage` | 100% of `scripts/check-code-caps.ts`, `scripts/code-caps/` and `scripts/git-hooks.mjs` |
 | End to end | Playwright | `yarn test:e2e` | the dashboard and the consent flow in a real browser (needs the dev database; see `docs/e2e.md`) |
 | SAST | Semgrep (`p/typescript`, `p/javascript`, `p/react`, `p/nodejsscan`, `p/secrets`) | `yarn semgrep` | zero findings; CI uses a hash-pinned install |
 | Vulnerabilities, secrets, misconfiguration | Trivy `fs` | `yarn trivy` | no HIGH or CRITICAL finding in `yarn.lock` and the CI tool lockfiles; no committed secret |
@@ -64,6 +64,6 @@ How to fix a failure of each analyser, and the reasons for its settings, are in 
 |---|---|
 | Node.js 24 | Not used. The runtime is Node 26 LTS, pinned by `.nvmrc`, `engines.node` and `packageManager` (README D8); `scripts/check-code-caps.ts` and the other tools run on it. |
 | Qodana (`jetbrains/qodana-js`) | Not added. The JS/TS linter needs a paid license token, which only the maintainer can create and store as a repository secret; the project has no repository secrets today (releases are keyless). It overlaps CodeQL, Semgrep and ESLint. It can be added when there is a token and a reason. |
-| FTA `score_cap` | **65**, not 50. When the check was added, 36 hand-written files scored between 50 and 65 (the "could be better" band), so a cap of 50 would have meant splitting all of them in one change. The cap is the worst score the code has today, so no file can get worse than that. Lower it as files are split (CONTRIBUTING.md, "Static analysers"); the goal stays 50. |
+| FTA `score_cap` | **50**, the upper end of the "OK" band. When the check was added the cap was 65 (36 files scored between 50 and 65); those files were split into smaller modules and the cap was lowered to 50 (CONTRIBUTING.md, "Static analysers"). The worst file now scores about 49, so a change that makes a file worse than 50 must split it. |
 | gitnexus | Stays optional (`.gitnexus/` is not in a clone). The pre-commit hook runs `detect-changes` for the staged change when the index exists and never blocks. |
 | Rules relaxed in ESLint | Listed with their finding counts in `eslint.config.mjs`; none for security rules. Per-line disables carry a reason. |

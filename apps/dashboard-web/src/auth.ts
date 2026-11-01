@@ -7,7 +7,7 @@ import { createAuthClient } from 'better-auth/react';
 /*
  * dashboard-api exposes four Better Auth endpoints over HTTP: sign-in/email, sign-out,
  * get-session and change-password. Everything else under /api/auth answers 404, and admin actions
- * go through /api/admin/* (see api.ts). That is why the admin plugin's client is not added: its
+ * go through /api/admin/* (see src/api/). That is why the admin plugin's client is not added: its
  * methods would call endpoints that do not exist here. Role and mustChangePassword come from
  * GET /api/me.
  */

@@ -28,7 +28,7 @@ login, and neither sends anything from this repository anywhere.
 - **Flags:** `--metrics=off` (no telemetry), `--disable-version-check`, `--error` (exit 1 on a finding).
   There is no `semgrep login`. The only network access is fetching the rule sets.
 - Partial-parse warnings (`importOriginal<typeof import('./x.js')>()` in four test files, one JSX line in
-  `setup.tsx`) are Semgrep's TypeScript parser, not a failure: about 99.9 percent of the lines parse.
+  `setup-snippets.tsx`) are Semgrep's TypeScript parser, not a failure: about 99.9 percent of the lines parse.
 
 ### Suppress a finding
 

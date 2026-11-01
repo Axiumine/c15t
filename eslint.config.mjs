@@ -161,7 +161,8 @@ export default defineConfig([
     languageOptions: { globals: globals.browser },
   },
 
-  // Size and complexity caps. They mirror scripts/check-code-caps.ts; change both together.
+  // Size and complexity caps. They mirror the CAPS in scripts/code-caps/types.ts (run by
+  // scripts/check-code-caps.ts); change both together.
   {
     files: ['**/*.{js,mjs,cjs,ts,tsx,mts,cts}'],
     rules: {

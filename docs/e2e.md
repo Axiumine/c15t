@@ -102,7 +102,7 @@ All three were fixed. The tests that found them stay as regression tests.
 - The setup code blocks (`<pre>`) scrolled sideways at phone width with no keyboard access. They are now
   focusable regions (`copy-button.tsx`).
 - The "Show" link in the audit log used `text-primary` on the dark card (about 3.2:1). It uses the
-  `--link` token now (`audit.tsx`, `styles.css`).
+  `--link` token now (`audit-table.tsx`, `styles.css`).
 - A page with no declared categories records only `necessary`, because c15t v3 infers categories from
   the page's scripts. The Setup screen's script tag and the README now carry
   `data-categories="measurement,marketing"`. The test website page is built from that very tag

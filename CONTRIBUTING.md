@@ -64,7 +64,7 @@ and do not switch to Plug'n'Play: Vite, drizzle-kit and the c15t CLI need `node_
 | `yarn type-coverage` | `any` and unsafe type assertions, per tsconfig project |
 | `yarn fta` | maintainability score of each source file |
 | `yarn code-caps` | size and shape caps with a ratchet baseline |
-| `yarn test:scripts-coverage` | the `node:test` suites of `scripts/check-code-caps.ts` and `scripts/git-hooks.mjs`, with a 100% coverage gate |
+| `yarn test:scripts-coverage` | the `node:test` suites of `scripts/check-code-caps.ts` (with `scripts/code-caps/`) and `scripts/git-hooks.mjs`, with a 100% coverage gate |
 
 **Run `yarn typecheck && yarn lint && yarn lint:eslint && yarn test` before you open a pull request.** ESLint and the
 four analysers below are part of the same gate: they all pass on the current code, so a failure is yours.
@@ -105,14 +105,12 @@ tooling projects may use assertions to build test doubles, and dashboard-web and
 
 **`yarn fta`** ([FTA](https://ftaproject.dev/), `fta.json`) scores every source file; a higher score is worse
 (50 and below is "OK", 50 to 60 "Could be better", above 60 "Needs improvement"). It exits non-zero and names
-the first file above `score_cap`. The cap is 65, the worst score the code had when the check was added: it
-stops any file from getting worse than today's worst, but it is not the 50 we want, because 36 files are
-between 50 and 65. Tests, generated files and build output are excluded. The score falls with fewer lines and
+the first file above `score_cap`. The cap is 50, the upper end of the "OK" band: no hand-written file may score
+higher, and a change that pushes a file over it must split that file. Tests, generated files and build output are excluded. The score falls with fewer lines and
 less Halstead volume, so the fix is to split a file into smaller modules, not to compress it. Run
-`yarn fta --score-cap 1000` to see the whole table. When you split files so that the worst score drops, lower
-`score_cap` to the new worst (rounded up) in the same pull request.
+`yarn fta --score-cap 1000` to see the whole table (the worst file scores about 49).
 
-**`yarn code-caps`** (`scripts/check-code-caps.ts`) caps a file at 500 lines, a function at 50, a class at 300,
+**`yarn code-caps`** (`scripts/check-code-caps.ts`, whose parts are in `scripts/code-caps/`) caps a file at 500 lines, a function at 50, a class at 300,
 a function at 4 parameters and control-flow nesting at depth 4, for the TypeScript under `apps/*/src`,
 `packages/*/src` and `scripts/`. Test files (and `src/test`, `src/testing`) only count towards the file cap,
 because their bodies are nested `describe`/`test` callbacks. The code that is over a cap today is recorded in
@@ -121,7 +119,7 @@ the baseline and for one whose value grew, and only reports a violation that shr
 by splitting the function or file. When you reduced a violation, run `node scripts/check-code-caps.ts --update`
 and commit the lowered baseline: `--update` writes the baseline only if nothing is new or worse, and refuses
 otherwise. The baseline never needs to go up. Its own test, `yarn test:scripts-coverage`, uses `node:test` and
-must keep the script at 100% lines, branches and functions.
+must keep the script and `scripts/code-caps/` at 100% lines, branches and functions.
 
 ### Testing changes to `infra/`
 

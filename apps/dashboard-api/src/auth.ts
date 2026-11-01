@@ -31,9 +31,9 @@ export interface AuthOptions {
  *   rejects a "change" to the same password (the one-time password must be replaced, whatever the
  *   client sends) and forces `revokeOtherSessions`, so a leaked one-time password cannot keep a
  *   session.
- * - Sign-up is disabled. Admins create users through `auth.api.createUser` (routes/admin-users).
- * - The HTTP surface is narrowed to four routes in app.ts, so the admin plugin's own endpoints
- *   (which would skip our audit log) are never reachable from a browser.
+ * - Sign-up is disabled. Admins create users through `auth.api.createUser` (admin-users/create.ts).
+ * - The HTTP surface is narrowed to four routes in auth-endpoints.ts, so the admin plugin's own
+ *   endpoints (which would skip our audit log) are never reachable from a browser.
  */
 export function createAuth({ db, env, logger }: AuthOptions) {
   const secure = new URL(env.BETTER_AUTH_URL).protocol === 'https:';

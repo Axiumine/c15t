@@ -44,19 +44,23 @@ Status: **implemented, pre-1.0 (0.x)**. consent-api, dashboard-api and dashboard
 apps/
   consent-api/          Node + Hono; site registry -> c15t instance per site
     src/env.ts          zod env: CONSENT_API_HOST/PORT/TRUSTED_PROXIES, DB URL, API key, CONSENT_API_{INSTANCE,REGISTRY}_POOL_MAX (1-3), CONSENT_API_DB_PREPARE
-    src/registry.ts     loads app.site rows, builds/caches/disposes c15tInstance
-    src/server.ts       serve({ fetch, hostname, port }); /s/:siteKey/* -> instance.handler(request)
+    src/registry.ts     SiteRegistry: loads app.site rows, builds/caches/disposes c15tInstance (state and lookup in registry-*.ts)
+    src/instance.ts     one c15tInstance per site (instance-database.ts: the pool layer; instance-checks.ts: trustedOrigins, policy rules)
+    src/listener.ts     LISTEN site_changed with reconnect and resync (listener-*.ts: postgres.js settings, ping, backoff)
+    src/request-guard.ts  strips forwarded and visitor-override headers from untrusted peers (override-*.ts, request-path.ts, request-host.ts)
+    src/app.ts          createApp: guards.ts, status-routes.ts, site-routes.ts (/s/:siteKey/* -> instance.handler(request), via site-server.ts)
+    src/server.ts       process entry, wiring only (server-*.ts: serve({ fetch, hostname, port }), signals, shutdown)
   dashboard-api/        Node + Hono JSON API (package @consent/dashboard-api)
     src/env.ts          zod env: DASHBOARD_API_HOST/PORT, DB URLs, auth secrets; CONSENT_API_URL and C15T_ADMIN_API_KEY are optional (reserved for future @c15t/node-sdk calls, not used yet)
-    src/auth.ts         Better Auth (admin plugin, disableSignUp), mounted at /api/auth/*
-    src/authz.ts        ALL access checks: requireSession / requireAdmin / requireSiteAccess middleware
+    src/auth.ts         Better Auth (admin plugin, disableSignUp), mounted at /api/auth/* (auth-options.ts, auth-hooks.ts; auth-endpoints.ts: the four exposed endpoints)
+    src/authz.ts        ALL access checks: requireSession / requireAdmin / requireSiteAccess middleware (helpers: session.ts, site-access.ts, authz-types.ts)
     src/db.ts           db.primary and db.analytics pools (D9)
-    src/c15t-read.ts    read-only queries against the c15t schema
-    src/routes/         me.ts, sites.ts (detail, stats, consents, CSV stream), admin-sites.ts, admin-users.ts, admin-audit.ts, health.ts
-    src/app.ts          route tree; exports `type AppType` for the RPC client
+    src/c15t-read.ts    read-only queries against the c15t schema (entry point; the queries are in consent-*.ts)
+    src/routes/         me.ts, sites.ts (detail, stats, consents, CSV stream), admin-sites.ts, admin-users.ts, admin-audit.ts, health.ts (admin handlers in admin-sites/ and admin-users/)
+    src/app.ts          route tree; exports `type AppType` for the RPC client (http-guards.ts: Origin check, body limit, response headers)
     src/server.ts       serve({ fetch, hostname, port })
   dashboard-web/        React 19 + Vite SPA, static build to dist/
-    src/api.ts          hc<AppType>('/api') client + TanStack Query hooks
+    src/api.ts          barrel for src/api/ (client.ts: hc<AppType>('/api'); the TanStack Query hooks, keys and error mapping in the other files)
     src/auth.ts         better-auth/react createAuthClient (sign-in, sign-out, session, change-password only)
     src/routes/         TanStack Router file routes (route guards are UX only)
     index.html          <meta name="robots" content="noindex, nofollow">
@@ -83,7 +87,7 @@ infra/
 eslint.config.mjs       ESLint flat config (type-aware via each workspace's tsconfig.json + tsconfig.test.json, tsconfig.tools.json for configs and e2e)
 c15t-backend.config.ts  config used by the c15t migration CLI
 knip.json, fta.json      analyser configs (yarn knip, yarn fta); typeCoverage in package.json configures yarn type-coverage
-scripts/check-code-caps.ts + .code-caps-baseline.json   size caps with a ratchet baseline (yarn code-caps)
+scripts/check-code-caps.ts (+ scripts/code-caps/) + .code-caps-baseline.json   size caps with a ratchet baseline (yarn code-caps)
 .yarnrc.yml             nodeLinker, injectEnvironmentFiles, packageExtensions
 ```
 
@@ -109,7 +113,7 @@ yarn knip                # unused files, exports, types and dependencies (knip.j
 yarn type-coverage       # 100% strict type coverage per tsconfig project (scripts/type-coverage.mjs; no any, no casts in src)
 yarn fta                 # FTA maintainability score per file, fails above score_cap in fta.json (lower is better)
 yarn code-caps           # file 500 / function 50 / class 300 lines, 4 params, depth 4; ratchet in .code-caps-baseline.json (--update only lowers it)
-yarn test:scripts-coverage  # node:test for scripts/check-code-caps.ts, gated at 100% (Vitest's scripts project skips that file)
+yarn test:scripts-coverage  # node:test for scripts/check-code-caps.ts and scripts/code-caps/, gated at 100% (Vitest's scripts project skips that test file)
 yarn build && infra/deploy.sh               # yarn workspaces foreach -Apt run build; systemd restart
 scripts/verify-reproducible-build.sh       # two clean builds of HEAD in different dirs/time zones; every dist/ and release file must match (CI job "Reproducible build")
 ```
@@ -163,7 +167,7 @@ Run `yarn typecheck && yarn lint && yarn lint:eslint && yarn test` before you ca
 ### Authorization (dashboard-api only)
 
 - dashboard-api is the security boundary. Guards in dashboard-web are UX only, and the API never trusts them.
-- All checks live in `apps/dashboard-api/src/authz.ts`:
+- All checks live in `apps/dashboard-api/src/authz.ts` (it wires the guards; the session loader, the site lookup and the `TenantScope` type are in `session.ts`, `site-access.ts` and `authz-types.ts` next to it):
   - `requireSession`
   - `requireAdmin`
   - `requireSiteAccess`, which resolves `:siteKey` against `accessibleSiteKeys(session)`.
@@ -190,8 +194,8 @@ Run `yarn typecheck && yarn lint && yarn lint:eslint && yarn test` before you ca
   - Never cache or pin the resolved IP.
   - On primary pools, set `target_session_attrs: 'read-write'` (postgres.js), `connect_timeout` of about 5 s, TCP keepalive, and a capped `max_lifetime` (a few minutes). Together these flush connections that are still on the old leader after a DNS flip.
   - c15t's `database: { dialect, url, schema }` shortcut builds `PgClient.layer({ url })` with **default pool settings** (10 connections, 10 s idle timeout, no lifetime cap) and passes nothing else through. For pool control pass a layer instead: `database: PgClient.layer({ url: Redacted.make(url), maxConnections: 3, connectionTTL: '5 minutes', connectTimeout: '5 seconds', startupParameters: { search_path: 'c15t', timezone: 'UTC' } })`. The shortcut sets that `search_path` and UTC for you, a layer must do it itself.
-  - `@effect/sql-pg` 4 is its own protocol client, not `pg`: it has **no** `target_session_attrs` and no keepalive option. consent-api's per-site c15t pools (`createDatabaseLayer` in `apps/consent-api/src/instance.ts`) therefore have no `read-write` check. They get a keepalive socket from a custom `stream: () => net.connect({ keepAlive: true, ... })` (not for a `?host=` unix-socket URL), `connectTimeout` 5 s and `connectionTTL` 5 minutes, and rely on the failover error handling: evict the instance on a database error, retry reads once, never retry writes.
-  - `@consent/db` `createPool`/`createDatabase` set all four for postgres.js: `target_session_attrs` (`read-write` on the primary, `prefer-standby` on the replica), `connect_timeout`, TCP keepalive and `max_lifetime`. Used by dashboard-api, `yarn db:migrate`, `yarn admin:create` and the consent-api site registry. The `LISTEN` connection (`apps/consent-api/src/listener.ts`) sets them too, plus a periodic ping.
+  - `@effect/sql-pg` 4 is its own protocol client, not `pg`: it has **no** `target_session_attrs` and no keepalive option. consent-api's per-site c15t pools (`createDatabaseLayer` in `apps/consent-api/src/instance-database.ts`) therefore have no `read-write` check. They get a keepalive socket from a custom `stream: () => net.connect({ keepAlive: true, ... })` (not for a `?host=` unix-socket URL), `connectTimeout` 5 s and `connectionTTL` 5 minutes, and rely on the failover error handling: evict the instance on a database error, retry reads once, never retry writes.
+  - `@consent/db` `createPool`/`createDatabase` set all four for postgres.js: `target_session_attrs` (`read-write` on the primary, `prefer-standby` on the replica), `connect_timeout`, TCP keepalive and `max_lifetime`. Used by dashboard-api, `yarn db:migrate`, `yarn admin:create` and the consent-api site registry. The `LISTEN` connection sets them too (`listenConfig` in `apps/consent-api/src/listener-config.ts`), plus a periodic ping (`listener-watch.ts`).
   - TLS: postgres.js honours `sslmode` (`require` encrypts without verifying) and sends an unknown `sslrootcert=<file>` to Postgres as a startup parameter, which Postgres rejects, so never put `sslrootcert` in a URL. `@effect/sql-pg` turns `require`, `verify-ca` and `verify-full` into plain TLS with Node's trust store, so it always verifies. For a private CA set `NODE_EXTRA_CA_CERTS` in the service env file; it covers both drivers.
 - Use these URLs only:
   - `DATABASE_URL_C15T` and `DATABASE_URL_DASHBOARD` → the primary.

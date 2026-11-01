@@ -28,7 +28,7 @@ const anyText = fc.oneof(ipish, fc.string(), fc.string({ unit: 'binary' }));
 const ipv4Number = (text: string): number =>
   text.split('.').reduce((acc, octet) => acc * 256 + Number(octet), 0);
 
-/** IPv4 containment by integer division, independent of the bit masks used in network.ts. */
+/** IPv4 containment by integer division, independent of the bit masks used in cidr.ts. */
 function referenceContains(address: string, base: string, prefix: number): boolean {
   const block = 2 ** (32 - prefix);
   return Math.floor(ipv4Number(address) / block) === Math.floor(ipv4Number(base) / block);

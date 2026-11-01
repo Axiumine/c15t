@@ -25,12 +25,27 @@
 /apps/dashboard-api/src/audit-actor.ts @giovannimanzoni
 /apps/dashboard-api/src/audit-cursor.ts @giovannimanzoni
 /apps/dashboard-api/src/audit-list.ts @giovannimanzoni
+/apps/dashboard-api/src/auth-endpoints.ts @giovannimanzoni
+/apps/dashboard-api/src/http-guards.ts @giovannimanzoni
 /apps/dashboard-api/src/users.ts @giovannimanzoni
 /apps/consent-api/src/request-guard.ts @giovannimanzoni
+/apps/consent-api/src/request-host.ts @giovannimanzoni
+/apps/consent-api/src/request-path.ts @giovannimanzoni
+/apps/consent-api/src/request-source.ts @giovannimanzoni
+/apps/consent-api/src/forwarding-headers.ts @giovannimanzoni
+/apps/consent-api/src/override-headers.ts @giovannimanzoni
+/apps/consent-api/src/override-params.ts @giovannimanzoni
 /apps/consent-api/src/registry.ts @giovannimanzoni
+/apps/consent-api/src/registry-*.ts @giovannimanzoni
 /apps/consent-api/src/instance.ts @giovannimanzoni
+/apps/consent-api/src/instance-checks.ts @giovannimanzoni
+/apps/consent-api/src/instance-database.ts @giovannimanzoni
 /packages/shared/src/network.ts @giovannimanzoni
+/packages/shared/src/host.ts @giovannimanzoni
+/packages/shared/src/cidr.ts @giovannimanzoni
+/packages/shared/src/origin.ts @giovannimanzoni
 /packages/shared/src/site.ts @giovannimanzoni
+/packages/shared/src/domain.ts @giovannimanzoni
 
 # Database roles, schema and migrations
 /packages/db/ @giovannimanzoni
