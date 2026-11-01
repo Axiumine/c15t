@@ -2,7 +2,8 @@
 // Copyright (C) 2026 Axiumine
 
 import { expect, test } from 'vitest';
-import { changedPasswordUserId, createAuth } from './auth.js';
+import { createAuth } from './auth.js';
+import { changedPasswordUserId } from './auth-hooks.js';
 import { wrapDatabase } from './db.js';
 import { createLogger, silentLogger } from './logger.js';
 

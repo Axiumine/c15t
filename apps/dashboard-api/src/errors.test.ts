@@ -6,7 +6,8 @@ import { APIError } from 'better-auth/api';
 import { Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { expect, test } from 'vitest';
-import { createErrorHandler, HttpError, notFound, notFoundHandler } from './errors.js';
+import { createErrorHandler, notFoundHandler } from './error-handler.js';
+import { HttpError, notFound } from './errors.js';
 import { createLogger } from './logger.js';
 
 const lines: string[] = [];

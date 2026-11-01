@@ -2,7 +2,7 @@
 // Copyright (C) 2026 Axiumine
 
 import { expect, test } from 'vitest';
-import { changePasswordBody } from './auth.js';
+import { changePasswordBody } from './auth-hooks.js';
 import { cookieHeader, createTestApp, type TestApp } from './testing/harness.js';
 import { describeEnvironments } from './testing/suite.js';
 

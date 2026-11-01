@@ -4,7 +4,7 @@
 import { isIP } from 'node:net';
 import * as fc from 'fast-check';
 import { expect, test } from 'vitest';
-import { clientIp } from './audit.js';
+import { clientIp } from './audit-actor.js';
 
 const RUNS = { numRuns: 300 };
 

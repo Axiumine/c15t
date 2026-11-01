@@ -7,7 +7,7 @@ import { Hono } from 'hono';
 import { createMiddleware } from 'hono/factory';
 import { expect, test } from 'vitest';
 import type { AuthedEnv } from '../authz.js';
-import { createErrorHandler } from '../errors.js';
+import { createErrorHandler } from '../error-handler.js';
 import { createLogger } from '../logger.js';
 import { adminSiteRoutes } from './admin-sites.js';
 
