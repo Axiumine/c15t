@@ -2,12 +2,8 @@
 // Copyright (C) 2026 Axiumine
 
 import { afterEach, describe, expect, test, vi } from 'vitest';
-import {
-  type ListenerDriver,
-  type ListenerHandlers,
-  type ListenerSession,
-  SiteChangeListener,
-} from './listener.js';
+import { SiteChangeListener } from './listener.js';
+import type { ListenerDriver, ListenerHandlers, ListenerSession } from './listener-types.js';
 import { capturingLogger, deferred } from './testing/fakes.js';
 
 class FakeSession implements ListenerSession {

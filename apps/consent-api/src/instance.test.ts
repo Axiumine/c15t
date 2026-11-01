@@ -4,13 +4,9 @@
 import { POLICY_PRESET_RULES, POLICY_PRESETS, type PolicyPreset } from '@consent/shared';
 import { afterEach, describe, expect, test } from 'vitest';
 import { SiteConfigError } from './errors.js';
-import {
-  assertTrustedOrigins,
-  buildInstanceOptions,
-  createDatabaseLayer,
-  createSiteInstance,
-  policyRulesFor,
-} from './instance.js';
+import { buildInstanceOptions, createSiteInstance } from './instance.js';
+import { assertTrustedOrigins, policyRulesFor } from './instance-checks.js';
+import { createDatabaseLayer } from './instance-database.js';
 import { siteRecord } from './testing/fakes.js';
 
 const database = {
