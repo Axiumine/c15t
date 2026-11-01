@@ -54,7 +54,8 @@ risk on one condition:
 | `psql` (`postgresql-client`) | `scripts/ci-bootstrap-db.sh` |
 | `ss` (`iproute2`) | `scripts/ci-start-postgres.sh` and `infra/test/nginx-snippet.test.sh` pick a port nobody listens on |
 
-Node.js is not needed: `actions/setup-node` installs the version in `.nvmrc`. On Debian and Ubuntu the two
+Node.js is not installed on the hosts and is not needed: every job that runs `node` gets the version in `.nvmrc`
+from `actions/setup-node`, the CodeQL JavaScript analysis included (its extractor starts `node`). On Debian and Ubuntu the two
 packages that are usually missing are installed with:
 
 ```bash
