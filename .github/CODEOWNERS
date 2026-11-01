@@ -15,8 +15,16 @@
 # Security-critical code: authentication, authorization, tenant isolation, network trust
 /apps/dashboard-api/src/auth.ts @giovannimanzoni
 /apps/dashboard-api/src/authz.ts @giovannimanzoni
+/apps/dashboard-api/src/authz-types.ts @giovannimanzoni
+/apps/dashboard-api/src/session.ts @giovannimanzoni
+/apps/dashboard-api/src/site-access.ts @giovannimanzoni
+/apps/dashboard-api/src/auth-hooks.ts @giovannimanzoni
+/apps/dashboard-api/src/auth-options.ts @giovannimanzoni
 /apps/dashboard-api/src/password.ts @giovannimanzoni
 /apps/dashboard-api/src/audit.ts @giovannimanzoni
+/apps/dashboard-api/src/audit-actor.ts @giovannimanzoni
+/apps/dashboard-api/src/audit-cursor.ts @giovannimanzoni
+/apps/dashboard-api/src/audit-list.ts @giovannimanzoni
 /apps/dashboard-api/src/users.ts @giovannimanzoni
 /apps/consent-api/src/request-guard.ts @giovannimanzoni
 /apps/consent-api/src/registry.ts @giovannimanzoni
