@@ -175,10 +175,10 @@ Select: **Met** | URL required: no
 Justification to paste:
 
 ```text
-The project site is the GitHub repository https://github.com/Axiumine/c15t . Obtain: git clone https://github.com/Axiumine/c15t.git (README Getting started, step 1) or download the signed release files from https://github.com/Axiumine/c15t/releases . Feedback (bug reports and enhancements): GitHub Issues with a bug report form and a feature request form, described in SUPPORT.md and CONTRIBUTING.md. Contribute: CONTRIBUTING.md, linked from the README. https://github.com/Axiumine/c15t#readme
+The project site is the GitHub repository https://github.com/Axiumine/c15t . Obtain: git clone https://github.com/Axiumine/c15t.git (docs/getting-started.md, step 1, and the README Quick start) or download the signed release files from https://github.com/Axiumine/c15t/releases . Feedback (bug reports and enhancements): GitHub Issues with a bug report form and a feature request form, described in SUPPORT.md and CONTRIBUTING.md. Contribute: CONTRIBUTING.md, linked from the README. https://github.com/Axiumine/c15t#readme
 ```
 
-Evidence: [README.md](https://github.com/Axiumine/c15t/blob/main/README.md), [SUPPORT.md](https://github.com/Axiumine/c15t/blob/main/SUPPORT.md), [CONTRIBUTING.md](https://github.com/Axiumine/c15t/blob/main/CONTRIBUTING.md)
+Evidence: [README.md](https://github.com/Axiumine/c15t/blob/main/README.md), [docs/getting-started.md](https://github.com/Axiumine/c15t/blob/main/docs/getting-started.md), [SUPPORT.md](https://github.com/Axiumine/c15t/blob/main/SUPPORT.md), [CONTRIBUTING.md](https://github.com/Axiumine/c15t/blob/main/CONTRIBUTING.md)
 
 ##### `contribution` (MUST): Met
 
@@ -263,10 +263,10 @@ Select: **Met** | URL required: no | N/A allowed: yes
 Justification to paste:
 
 ```text
-README.md documents how to install (Getting started, prerequisites, yarn install), start (yarn dev; systemd units for production), use (Dashboard screens, Adding a website) and use it securely (Security notes and docs/security-model.md). https://github.com/Axiumine/c15t/blob/main/README.md
+README.md (Quick start) and docs/getting-started.md document how to install (prerequisites, yarn install), start (yarn dev; systemd units for production, docs/installation.md), use (docs/dashboard.md for the screens, docs/adding-a-website.md) and use it securely (docs/security-model.md). https://github.com/Axiumine/c15t/blob/main/README.md
 ```
 
-Evidence: [README.md](https://github.com/Axiumine/c15t/blob/main/README.md), [docs/security-model.md](https://github.com/Axiumine/c15t/blob/main/docs/security-model.md)
+Evidence: [README.md](https://github.com/Axiumine/c15t/blob/main/README.md), [docs/getting-started.md](https://github.com/Axiumine/c15t/blob/main/docs/getting-started.md), [docs/dashboard.md](https://github.com/Axiumine/c15t/blob/main/docs/dashboard.md), [docs/adding-a-website.md](https://github.com/Axiumine/c15t/blob/main/docs/adding-a-website.md), [docs/security-model.md](https://github.com/Axiumine/c15t/blob/main/docs/security-model.md)
 
 ##### `documentation_interface` (MUST): Met
 
@@ -277,10 +277,10 @@ Select: **Met** | URL required: no | N/A allowed: yes
 Justification to paste:
 
 ```text
-README.md documents the external interface: the dashboard-api route table (method, path, guard, purpose), the consent-api URL layout /s/<siteKey>/* that serves the documented c15t HTTP endpoints, and every configuration variable (README Configuration and env.example). https://github.com/Axiumine/c15t/blob/main/README.md
+docs/dashboard.md documents the external interface: the dashboard-api route table (method, path, guard, purpose), the consent-api URL layout /s/<siteKey>/* that serves the documented c15t HTTP endpoints, and docs/configuration.md lists every configuration variable (with env.example). https://github.com/Axiumine/c15t/blob/main/docs/dashboard.md
 ```
 
-Evidence: [README.md](https://github.com/Axiumine/c15t/blob/main/README.md), [env.example](https://github.com/Axiumine/c15t/blob/main/env.example)
+Evidence: [docs/dashboard.md](https://github.com/Axiumine/c15t/blob/main/docs/dashboard.md), [docs/configuration.md](https://github.com/Axiumine/c15t/blob/main/docs/configuration.md), [env.example](https://github.com/Axiumine/c15t/blob/main/env.example)
 
 #### Other
 
@@ -673,10 +673,10 @@ Select: **Met** | URL required: no
 Justification to paste:
 
 ```text
-The automated test suite is Vitest (unit tests, component tests, property-based tests, and integration tests on PGlite and on a real PostgreSQL), stored next to the code as *.test.ts / *.test.tsx. It is run with yarn test, documented in the README (Getting started) and CONTRIBUTING.md, and run by CI. https://github.com/Axiumine/c15t/blob/main/CONTRIBUTING.md
+The automated test suite is Vitest (unit tests, component tests, property-based tests, and integration tests on PGlite and on a real PostgreSQL), stored next to the code as *.test.ts / *.test.tsx. It is run with yarn test, documented in docs/getting-started.md and CONTRIBUTING.md, and run by CI. https://github.com/Axiumine/c15t/blob/main/CONTRIBUTING.md
 ```
 
-Evidence: [CONTRIBUTING.md](https://github.com/Axiumine/c15t/blob/main/CONTRIBUTING.md), [README.md](https://github.com/Axiumine/c15t/blob/main/README.md), [vitest.config.ts](https://github.com/Axiumine/c15t/blob/main/vitest.config.ts), [apps/dashboard-api/src/authz.test.ts](https://github.com/Axiumine/c15t/blob/main/apps/dashboard-api/src/authz.test.ts)
+Evidence: [CONTRIBUTING.md](https://github.com/Axiumine/c15t/blob/main/CONTRIBUTING.md), [README.md](https://github.com/Axiumine/c15t/blob/main/README.md), [docs/getting-started.md](https://github.com/Axiumine/c15t/blob/main/docs/getting-started.md), [vitest.config.ts](https://github.com/Axiumine/c15t/blob/main/vitest.config.ts), [apps/dashboard-api/src/authz.test.ts](https://github.com/Axiumine/c15t/blob/main/apps/dashboard-api/src/authz.test.ts)
 
 ##### `test_invocation` (SHOULD): Met
 
@@ -1319,12 +1319,12 @@ Select: **Met** | URL required: yes
 Justification to paste:
 
 ```text
-The README section "Status and what is next" lists what is done (foundation, access control, consent views, hardening) and what is still open (a 1.0 release, a retention job for consent records, monitoring and cluster backups, calling the c15t admin endpoints through the node-sdk), the "Open questions" section lists the undecided points, and the design decisions D1 to D11 state what the project deliberately does not do (no Docker, no SSR, no SEO, no deletion of consent records). https://github.com/Axiumine/c15t/blob/main/README.md
+The page docs/status.md ("Status and what is next") lists what is done (foundation, access control, consent views, hardening) and what is still open (a 1.0 release, a retention job for consent records, monitoring and cluster backups, calling the c15t admin endpoints through the node-sdk), its "Open questions" section lists the undecided points, and the design decisions D1 to D11 in docs/decisions.md state what the project deliberately does not do (no Docker, no SSR, no SEO, no deletion of consent records). https://github.com/Axiumine/c15t/blob/main/docs/status.md
 ```
 
-Evidence: [README.md](https://github.com/Axiumine/c15t/blob/main/README.md)
+Evidence: [docs/status.md](https://github.com/Axiumine/c15t/blob/main/docs/status.md), [docs/decisions.md](https://github.com/Axiumine/c15t/blob/main/docs/decisions.md)
 
-Note: Be honest about this one. Phases 1 to 4 in the README are done, so the forward-looking part is the "Still open" list and the Open questions. Before pasting, check that those two lists really say what the project intends to do over the next 12 months and what it will not do (the D1 to D11 non-goals cover the second part). If they are too thin, add one sentence per item to the README, or switch this answer to Unmet (silver MUST); the summary tables then change by one criterion.
+Note: Be honest about this one. The items listed as done in docs/status.md are done, so the forward-looking part is the "Still open" list and the Open questions. Before pasting, check that those two lists really say what the project intends to do over the next 12 months and what it will not do (the D1 to D11 non-goals cover the second part). If they are too thin, add one sentence per item to docs/status.md, or switch this answer to Unmet (silver MUST); the summary tables then change by one criterion.
 
 ##### `documentation_architecture` (MUST): Met
 
@@ -1335,10 +1335,10 @@ Select: **Met** | URL required: yes | N/A allowed: yes
 Justification to paste:
 
 ```text
-The architecture (components, request flow, data model, decisions D1 to D11) is documented in the README Architecture and Decisions sections and mapped in docs/architecture.md. https://github.com/Axiumine/c15t/blob/main/docs/architecture.md
+The architecture (components, request flow, data model, decisions D1 to D11) is documented in the README Architecture section and in docs/decisions.md, and mapped in docs/architecture.md. https://github.com/Axiumine/c15t/blob/main/docs/architecture.md
 ```
 
-Evidence: [docs/architecture.md](https://github.com/Axiumine/c15t/blob/main/docs/architecture.md), [README.md](https://github.com/Axiumine/c15t/blob/main/README.md)
+Evidence: [docs/architecture.md](https://github.com/Axiumine/c15t/blob/main/docs/architecture.md), [README.md](https://github.com/Axiumine/c15t/blob/main/README.md), [docs/decisions.md](https://github.com/Axiumine/c15t/blob/main/docs/decisions.md), [docs/dashboard.md](https://github.com/Axiumine/c15t/blob/main/docs/dashboard.md)
 
 ##### `documentation_security` (MUST): Met
 
@@ -1363,10 +1363,10 @@ Select: **Met** | URL required: yes | N/A allowed: yes
 Justification to paste:
 
 ```text
-The README Getting started section is the quick start: install with Yarn, prepare PostgreSQL, create the first admin and run yarn dev. https://github.com/Axiumine/c15t/blob/main/README.md
+The README Quick start and docs/getting-started.md are the quick start: install with Yarn, prepare PostgreSQL, create the first admin and run yarn dev. https://github.com/Axiumine/c15t/blob/main/docs/getting-started.md
 ```
 
-Evidence: [README.md](https://github.com/Axiumine/c15t/blob/main/README.md)
+Evidence: [README.md](https://github.com/Axiumine/c15t/blob/main/README.md), [docs/getting-started.md](https://github.com/Axiumine/c15t/blob/main/docs/getting-started.md)
 
 ##### `documentation_current` (MUST): Met
 
@@ -1382,7 +1382,7 @@ The documentation is kept in step with the code: the pull request template asks 
 
 Evidence: [.github/PULL_REQUEST_TEMPLATE.md](https://github.com/Axiumine/c15t/blob/main/.github/PULL_REQUEST_TEMPLATE.md), [CONTRIBUTING.md](https://github.com/Axiumine/c15t/blob/main/CONTRIBUTING.md)
 
-Note: This answer describes a process, so it holds only while the documentation really is kept current. Before pasting, spot-check the README commands, variable names and route table against the scripts in package.json, env.example and the code, and fix any difference as a documentation defect.
+Note: This answer describes a process, so it holds only while the documentation really is kept current. Before pasting, spot-check the commands in the README and docs/getting-started.md, the variable names in docs/configuration.md and the route table in docs/dashboard.md against the scripts in package.json, env.example and the code, and fix any difference as a documentation defect.
 
 ##### `documentation_achievements` (MUST): Met
 
@@ -1648,7 +1648,7 @@ Justification to paste:
 A developer installs everything with npm install -g corepack (Node 26 does not bundle Corepack), corepack enable and yarn install, then runs yarn typecheck && yarn lint && yarn test. Most suites need no server (PGlite runs in process); the consent-api integration tests and the PostgreSQL variants of the dashboard-api suites need a disposable PostgreSQL and fail loudly without one. CONTRIBUTING.md and docs/database-setup.md describe how to set it up; scripts/ci-bootstrap-db.sh does it in CI only.
 ```
 
-Evidence: [CONTRIBUTING.md](https://github.com/Axiumine/c15t/blob/main/CONTRIBUTING.md), [README.md](https://github.com/Axiumine/c15t/blob/main/README.md), [package.json](https://github.com/Axiumine/c15t/blob/main/package.json), [scripts/ci-bootstrap-db.sh](https://github.com/Axiumine/c15t/blob/main/scripts/ci-bootstrap-db.sh)
+Evidence: [CONTRIBUTING.md](https://github.com/Axiumine/c15t/blob/main/CONTRIBUTING.md), [README.md](https://github.com/Axiumine/c15t/blob/main/README.md), [docs/getting-started.md](https://github.com/Axiumine/c15t/blob/main/docs/getting-started.md), [package.json](https://github.com/Axiumine/c15t/blob/main/package.json), [scripts/ci-bootstrap-db.sh](https://github.com/Axiumine/c15t/blob/main/scripts/ci-bootstrap-db.sh)
 
 #### Externally-maintained components
 
@@ -1882,7 +1882,7 @@ Justification to paste (optional for Unmet):
 The hops between nginx and the services are plain HTTP on loopback or private addresses by design, and PostgreSQL TLS depends on operator configuration; see the silver answer.
 ```
 
-Evidence: [docs/security-model.md](https://github.com/Axiumine/c15t/blob/main/docs/security-model.md), [README.md](https://github.com/Axiumine/c15t/blob/main/README.md), [infra/nginx/dashboard.conf](https://github.com/Axiumine/c15t/blob/main/infra/nginx/dashboard.conf)
+Evidence: [docs/security-model.md](https://github.com/Axiumine/c15t/blob/main/docs/security-model.md), [README.md](https://github.com/Axiumine/c15t/blob/main/README.md), [docs/decisions.md](https://github.com/Axiumine/c15t/blob/main/docs/decisions.md), [infra/nginx/dashboard.conf](https://github.com/Axiumine/c15t/blob/main/infra/nginx/dashboard.conf)
 
 To reach Met: SHOULD criterion (MUST at gold). Would need TLS for the internal hops and a required sslmode for PostgreSQL, or a documented exemption for loopback.
 
@@ -1909,10 +1909,10 @@ Select: **Met** | URL required: no | N/A allowed: yes
 Justification to paste:
 
 ```text
-The code never disables TLS certificate verification: there is no rejectUnauthorized:false or NODE_TLS_REJECT_UNAUTHORIZED anywhere, Node and curl verify by default (curl only fetches Cloudflare's public IP lists), and the README and docs/database-setup.md tell operators to use sslmode=verify-full for PostgreSQL across hosts. The README also warns that the postgres.js driver does not verify the certificate with sslmode=require, so verification there depends on the URL the operator sets.
+The code never disables TLS certificate verification: there is no rejectUnauthorized:false or NODE_TLS_REJECT_UNAUTHORIZED anywhere, Node and curl verify by default (curl only fetches Cloudflare's public IP lists), and docs/decisions.md (D9) and docs/database-setup.md tell operators to use sslmode=verify-full for PostgreSQL across hosts. docs/decisions.md also warns that the postgres.js driver does not verify the certificate with sslmode=require, so verification there depends on the URL the operator sets.
 ```
 
-Evidence: [README.md](https://github.com/Axiumine/c15t/blob/main/README.md), [infra/nginx/update-cloudflare-ips.sh](https://github.com/Axiumine/c15t/blob/main/infra/nginx/update-cloudflare-ips.sh)
+Evidence: [docs/decisions.md](https://github.com/Axiumine/c15t/blob/main/docs/decisions.md), [infra/nginx/update-cloudflare-ips.sh](https://github.com/Axiumine/c15t/blob/main/infra/nginx/update-cloudflare-ips.sh)
 
 ##### `crypto_verification_private` (MUST): Met
 
@@ -2466,12 +2466,18 @@ Every file referenced above, with its link. "Present" is checked against the wor
 | [apps/dashboard-web/index.html](https://github.com/Axiumine/c15t/blob/main/apps/dashboard-web/index.html) | yes |
 | [apps/dashboard-web/src/components/form-field.tsx](https://github.com/Axiumine/c15t/blob/main/apps/dashboard-web/src/components/form-field.tsx) | yes |
 | [apps/dashboard-web/src/lib/format.ts](https://github.com/Axiumine/c15t/blob/main/apps/dashboard-web/src/lib/format.ts) | yes |
+| [docs/adding-a-website.md](https://github.com/Axiumine/c15t/blob/main/docs/adding-a-website.md) | yes |
 | [docs/architecture.md](https://github.com/Axiumine/c15t/blob/main/docs/architecture.md) | yes |
 | [docs/assurance-case.md](https://github.com/Axiumine/c15t/blob/main/docs/assurance-case.md) | yes |
+| [docs/configuration.md](https://github.com/Axiumine/c15t/blob/main/docs/configuration.md) | yes |
 | [docs/cryptography.md](https://github.com/Axiumine/c15t/blob/main/docs/cryptography.md) | yes |
+| [docs/dashboard.md](https://github.com/Axiumine/c15t/blob/main/docs/dashboard.md) | yes |
+| [docs/decisions.md](https://github.com/Axiumine/c15t/blob/main/docs/decisions.md) | yes |
 | [docs/dependency-policy.md](https://github.com/Axiumine/c15t/blob/main/docs/dependency-policy.md) | yes |
+| [docs/getting-started.md](https://github.com/Axiumine/c15t/blob/main/docs/getting-started.md) | yes |
 | [docs/installation.md](https://github.com/Axiumine/c15t/blob/main/docs/installation.md) | yes |
 | [docs/security-model.md](https://github.com/Axiumine/c15t/blob/main/docs/security-model.md) | yes |
+| [docs/status.md](https://github.com/Axiumine/c15t/blob/main/docs/status.md) | yes |
 | [env.example](https://github.com/Axiumine/c15t/blob/main/env.example) | yes |
 | [infra/deploy.sh](https://github.com/Axiumine/c15t/blob/main/infra/deploy.sh) | yes |
 | [infra/nginx/dashboard-headers.conf](https://github.com/Axiumine/c15t/blob/main/infra/nginx/dashboard-headers.conf) | yes |
