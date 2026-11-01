@@ -7,7 +7,8 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, test, vi } from 'vitest';
 import { stats } from '../../test/fixtures';
 import { type BarDatum, RankedBars } from './ranked-bars';
-import { foldJurisdictions, overallOptInRate, StatsCharts } from './stats-charts';
+import { overallOptInRate, StatsCharts } from './stats-charts';
+import { foldJurisdictions } from './stats-figures';
 import { VolumeChart } from './volume-chart';
 
 type Jurisdiction = StatsResponse['jurisdictions'][number];
