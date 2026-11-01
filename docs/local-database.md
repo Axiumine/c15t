@@ -514,14 +514,14 @@ The run id is `e2e-<8 hex>`, and the teardown prints how many rows it removed:
 
 ## 7. The same thing in CI
 
-CI does not run the e2e suite. It runs `yarn test` against a service container.
+CI does not run the e2e suite. It runs `yarn test` against a PostgreSQL container that the job starts itself.
 
 | What | In [`ci.yml`](../.github/workflows/ci.yml) |
 |---|---|
-| Runner | `ubuntu-24.04`, job `test` |
-| Server | Service container `postgres:17`, pinned by digest, port 5432, health check `pg_isready -U postgres` |
+| Runner | The self-hosted runners, job `test` (a pull request from a fork: `ubuntu-24.04`), see [`ci-runners.md`](./ci-runners.md) |
+| Server | Container `postgres:17`, pinned by digest, started by `scripts/ci-start-postgres.sh` on a random free port from 50001 to 65535, published on `127.0.0.1` only. The bootstrap script waits until it accepts connections |
 | Admin | User `postgres`, password in `CI_PG_ADMIN_PASSWORD` (a throwaway literal in the workflow) |
-| Bootstrap | `bash scripts/ci-bootstrap-db.sh` with `PGHOST=127.0.0.1 PGPORT=5432 PGUSER=postgres PGPASSWORD=...` |
+| Bootstrap | `bash scripts/ci-bootstrap-db.sh` with `PGHOST=127.0.0.1 PGPORT=<the random port> PGUSER=postgres PGPASSWORD=...`. `PGPORT` has no default |
 | What the script does | Runs `init.sql` with generated passwords (database `consent_ci`), `yarn c15t:migrate --yes`, `yarn db:migrate`, then checks roles, ownership and grants as in `database-setup.md` section 4 |
 | Variables it writes to `GITHUB_ENV` | `DATABASE_URL_C15T`, `DATABASE_URL_DASHBOARD`, `C15T_ADMIN_API_KEY` (masked). That is all `yarn test` needs: `YARN_INJECT_ENVIRONMENT_FILES=<that file> yarn test` passed here (1392 tests). |
 | Test step | `yarn test --coverage.enabled ...` with `TZ=UTC` |

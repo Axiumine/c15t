@@ -41,7 +41,7 @@ trap 'exit 130' INT TERM
 free_port() { # free_port VARNAME: a loopback port nobody listens on and not handed out before
   local p
   for _ in $(seq 1 200); do
-    p=$((20000 + RANDOM % 30000))
+    p=$((50001 + RANDOM % 15535)) # 50001 to 65535
     case " $USED_PORTS " in *" $p "*) continue ;; esac
     if [[ -z $(ss -ltnH "sport = :$p") ]]; then
       USED_PORTS="$USED_PORTS $p"

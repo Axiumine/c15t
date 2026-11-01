@@ -19,7 +19,9 @@ concurrency:
 jobs:
   analyze:
     name: Analyze (${{ matrix.language }})
-    runs-on: ubuntu-24.04
+    # Self-hosted runners (docs/ci-runners.md). A pull request from a fork, or one whose head repository
+    # cannot be read, runs on a GitHub-hosted VM instead.
+    runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository && 'ubuntu-24.04' || fromJSON('["self-hosted","Linux","X64"]') }}
     timeout-minutes: 30
     permissions:
       security-events: write # upload the SARIF results

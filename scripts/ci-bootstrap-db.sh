@@ -17,7 +17,7 @@
 # PostgreSQL 16 and newer, because init.sql runs ALTER ROLE ... NOSUPERUSER):
 #   PGPASSWORD   required
 #   PGHOST       default 127.0.0.1
-#   PGPORT       default 5432
+#   PGPORT       required (no default: the port of a CI database is random, and 5432 could be a real server)
 #   PGUSER       default postgres
 #   CI_DB_NAME   default consent_ci (the database init.sql creates)
 #   C15T_API_PW, DASHBOARD_PW   optional; 32+ lowercase hex characters. Generated when unset.
@@ -37,7 +37,8 @@ cd "$repo_root"
 
 [[ -n "${PGPASSWORD:-}" ]] || die 'PGPASSWORD (the administrator password) is not set'
 [[ -n "${GITHUB_ENV:-}" ]] || die 'GITHUB_ENV is not set; refusing to print secrets (run this inside GitHub Actions)'
-export PGHOST="${PGHOST:-127.0.0.1}" PGPORT="${PGPORT:-5432}" PGUSER="${PGUSER:-postgres}" PGDATABASE=postgres
+[[ -n "${PGPORT:-}" ]] || die 'PGPORT is not set'
+export PGHOST="${PGHOST:-127.0.0.1}" PGPORT PGUSER="${PGUSER:-postgres}" PGDATABASE=postgres
 db_name="${CI_DB_NAME:-consent_ci}"
 [[ "$db_name" =~ ^[a-z][a-z0-9_]{0,40}$ ]] || die 'CI_DB_NAME must match ^[a-z][a-z0-9_]{0,40}$'
 

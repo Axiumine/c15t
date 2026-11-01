@@ -5,7 +5,7 @@
 
 What checks a change, where each one runs and in what order. Every gate is a yarn script that works the same
 on a laptop and in CI; the Git hooks are lefthook running those scripts earlier, so a failure shows up in
-seconds instead of after a push. **CI is the authority.** A hook can be skipped (see below), CI cannot.
+seconds instead of after a push. **CI is the authority.** A hook can be skipped (see below), CI cannot. Where CI runs and what its runners need: [`ci-runners.md`](./ci-runners.md).
 
 ## The pipeline, in order
 
