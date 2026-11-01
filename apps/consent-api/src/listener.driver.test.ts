@@ -3,7 +3,9 @@
 
 import type postgres from 'postgres';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { createPostgresListenerDriver, SITE_CHANNEL, SiteChangeListener } from './listener.js';
+import { SiteChangeListener } from './listener.js';
+import { createPostgresListenerDriver } from './listener-driver.js';
+import { SITE_CHANNEL } from './listener-types.js';
 
 /*
  * The postgres.js driver of the listener, against a stand-in for postgres.js: the real connection,

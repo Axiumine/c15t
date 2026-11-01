@@ -8,17 +8,12 @@ import {
   REGION_HEADERS,
 } from '@c15t/schema/geo';
 import { describe, expect, test } from 'vitest';
-import {
-  clientAddress,
-  isSafePath,
-  rawPathname,
-  requestHostAllowed,
-  sanitizeHeaders,
-  siteKeyFromPath,
-  stripOverrideParams,
-  VISITOR_OVERRIDE_HEADERS,
-  VISITOR_OVERRIDE_PARAMS,
-} from './request-guard.js';
+import { clientAddress } from './forwarding-headers.js';
+import { VISITOR_OVERRIDE_HEADERS } from './override-headers.js';
+import { stripOverrideParams, VISITOR_OVERRIDE_PARAMS } from './override-params.js';
+import { sanitizeHeaders } from './request-guard.js';
+import { requestHostAllowed } from './request-host.js';
+import { isSafePath, rawPathname, siteKeyFromPath } from './request-path.js';
 
 const TRUSTED = ['127.0.0.1/32', '::1/128'];
 

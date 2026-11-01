@@ -5,7 +5,7 @@ import { domainSchema } from '@consent/shared';
 import * as fc from 'fast-check';
 import { expect, test } from 'vitest';
 import { SiteConfigError } from './errors.js';
-import { assertTrustedOrigins } from './instance.js';
+import { assertTrustedOrigins } from './instance-checks.js';
 
 /*
  * c15t 3.1.0 honours `*` in `trustedOrigins`, and an empty list only changes CORS. Whatever the
