@@ -24,7 +24,7 @@ export interface SessionUser {
   readonly mustChangePassword: boolean;
 }
 
-declare const tenantScopeBrand: unique symbol;
+const tenantScopeBrand: unique symbol = Symbol('tenantScope');
 
 /**
  * The c15t `tenantId` values a request may read. Every query against `c15t.*` takes one, and
@@ -36,7 +36,7 @@ export interface TenantScope {
 }
 
 export function tenantScope(siteKeys: readonly string[]): TenantScope {
-  return { tenantIds: [...siteKeys] } as unknown as TenantScope;
+  return { [tenantScopeBrand]: true, tenantIds: [...siteKeys] };
 }
 
 export type AuthedEnv = { Variables: { user: SessionUser } };
@@ -70,18 +70,18 @@ export interface AuthzDeps {
   readonly now?: () => Date;
 }
 
+/** What the guards need from a request context, so one signature fits every route group's env. */
+interface SessionSlot {
+  get(key: 'user'): SessionUser | undefined;
+  set(key: 'user', value: SessionUser): void;
+  readonly req: { readonly raw: Request };
+}
+
 const isRole = (value: unknown): value is Role => ROLES.some((role) => role === value);
 
 type SessionDeps = Pick<AuthzDeps, 'auth'> & { readonly now: () => Date };
 
-/** The part of a Hono context that session loading uses: both `AuthedEnv` and `SiteEnv` fit. */
-interface SessionContext {
-  readonly req: { readonly raw: Request };
-  get(key: 'user'): SessionUser | undefined;
-  set(key: 'user', value: SessionUser): void;
-}
-
-async function readSession({ auth, now }: SessionDeps, c: SessionContext): Promise<SessionUser> {
+async function readSession({ auth, now }: SessionDeps, c: SessionSlot): Promise<SessionUser> {
   const result = await auth.api.getSession({ headers: c.req.raw.headers });
   if (result === null) throw new HttpError('UNAUTHORIZED', 'Authentication is required');
   const { user } = result;
@@ -101,7 +101,7 @@ async function readSession({ auth, now }: SessionDeps, c: SessionContext): Promi
 
 async function loadUser(
   deps: SessionDeps,
-  c: SessionContext,
+  c: SessionSlot,
   allowPasswordChange: boolean,
 ): Promise<SessionUser> {
   const cached: SessionUser | undefined = c.get('user');
@@ -117,7 +117,7 @@ async function loadUser(
 }
 
 export function createAuthz({ auth, db, now = () => new Date() }: AuthzDeps) {
-  const load = (c: SessionContext, allowPasswordChange: boolean) =>
+  const load = (c: SessionSlot, allowPasswordChange: boolean) =>
     loadUser({ auth, now }, c, allowPasswordChange);
 
   /** Valid session, and the password has been changed if an admin required it. */

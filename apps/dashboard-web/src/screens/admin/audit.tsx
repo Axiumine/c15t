@@ -18,7 +18,7 @@ import {
 } from '../../components/ui/table';
 import { formatDateTime } from '../../lib/format';
 
-export const ACTION_LABELS: Readonly<Record<AuditAction, string>> = {
+const ACTION_LABELS: Readonly<Record<AuditAction, string>> = {
   'site.create': 'Site created',
   'site.update': 'Site updated',
   'site.disable': 'Site disabled',

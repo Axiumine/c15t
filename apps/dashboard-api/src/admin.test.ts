@@ -385,22 +385,16 @@ describeEnvironments('admin routes', ({ env, kind }) => {
     const target = await t.createUser({ label: 'sites' });
     const s1 = await t.createSite({ label: 'set-a' });
     const s2 = await t.createSite({ label: 'set-b' });
-    const first = await send('PUT', `/api/admin/users/${target.id}/sites`, {
-      siteKeys: [s1.key, s2.key],
-    });
-    expect(userSummarySchema.parse(await first.json()).siteKeys).toEqual(
-      [s1.key, s2.key].sort((a, b) => a.localeCompare(b)),
-    );
+    const keys = [s1.key, s2.key].sort((a, b) => a.localeCompare(b));
+    const first = await send('PUT', `/api/admin/users/${target.id}/sites`, { siteKeys: keys });
+    expect(userSummarySchema.parse(await first.json()).siteKeys).toEqual(keys);
     const second = await send('PUT', `/api/admin/users/${target.id}/sites`, { siteKeys: [s2.key] });
     expect(userSummarySchema.parse(await second.json()).siteKeys).toEqual([s2.key]);
     await send('PUT', `/api/admin/users/${target.id}/sites`, { siteKeys: [s2.key] });
 
     const audit = await auditOf(target.id);
     expect(audit.map((entry) => entry.action)).toEqual(['user.set-sites', 'user.set-sites']);
-    expect(audit[1]?.metadata).toEqual({
-      before: [s1.key, s2.key].sort((a, b) => a.localeCompare(b)),
-      after: [s2.key],
-    });
+    expect(audit[1]?.metadata).toEqual({ before: keys, after: [s2.key] });
 
     const unknown = await send('PUT', `/api/admin/users/${target.id}/sites`, {
       siteKeys: [s1.key, key('nope')],
@@ -455,8 +449,7 @@ describeEnvironments('admin routes', ({ env, kind }) => {
   /* Audit log */
 
   const auditPage = async (cursor: string | undefined) => {
-    const after = cursor === undefined ? '' : `&cursor=${encodeURIComponent(cursor)}`;
-    const query = `limit=3${after}`;
+    const query = cursor === undefined ? 'limit=3' : `limit=3&cursor=${encodeURIComponent(cursor)}`;
     const response = await send('GET', `/api/admin/audit?${query}`);
     expect(response.status).toBe(200);
     return auditPageSchema.parse(await response.json());

@@ -34,7 +34,8 @@ import {
   TableRow,
 } from '../../components/ui/table';
 import { formatDateTime } from '../../lib/format';
-import { BanUserDialog, CreateUserDialog, EditUserDialog, UserSitesDialog } from './user-dialogs';
+import { BanUserDialog } from './ban-user-dialog';
+import { CreateUserDialog, EditUserDialog, UserSitesDialog } from './user-dialogs';
 
 type UserAction = 'edit' | 'sites' | 'ban' | 'unban' | 'reset' | 'revoke';
 interface Pending {

@@ -7,5 +7,11 @@
     "emitDeclarationOnly": true,
     "lib": ["ES2024", "DOM", "DOM.Iterable"]
   },
-  "include": ["*.config.ts", "packages/*/*.config.ts", "apps/*/*.config.ts", "e2e/**/*.ts"]
+  "include": [
+    "*.config.ts",
+    "packages/*/*.config.ts",
+    "apps/*/*.config.ts",
+    "e2e/**/*.ts",
+    "scripts/**/*.ts"
+  ]
 }

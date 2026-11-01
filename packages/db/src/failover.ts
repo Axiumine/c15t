@@ -6,6 +6,8 @@
  * of a few errors; the caller returns 503 and retries only idempotent reads.
  */
 
+import { fieldOf } from '@consent/shared';
+
 const MAX_CAUSE_DEPTH = 6;
 
 /** SQLSTATEs that mean "this connection went to a demoted, stopping or unreachable node". */
@@ -47,14 +49,14 @@ function* causeChain(error: unknown): Generator {
     depth++
   ) {
     yield current;
-    current = typeof current === 'object' ? (current as { cause?: unknown }).cause : undefined;
+    current = fieldOf(current, 'cause');
   }
 }
 
 /** The `code` of the first error in the cause chain that has a string one (Drizzle wraps errors). */
 export function dbErrorCode(error: unknown): string | undefined {
   for (const candidate of causeChain(error)) {
-    const code = typeof candidate === 'object' ? (candidate as { code?: unknown }).code : undefined;
+    const code = fieldOf(candidate, 'code');
     if (typeof code === 'string') return code;
   }
   return undefined;
@@ -63,7 +65,7 @@ export function dbErrorCode(error: unknown): string | undefined {
 /** True for errors that a failover or a stale connection after a DNS flip produces. */
 export function isFailoverError(error: unknown): boolean {
   for (const candidate of causeChain(error)) {
-    const code = typeof candidate === 'object' ? (candidate as { code?: unknown }).code : undefined;
+    const code = fieldOf(candidate, 'code');
     if (
       typeof code === 'string' &&
       (FAILOVER_SQLSTATES.has(code) || FAILOVER_ERROR_CODES.has(code))
@@ -77,12 +79,9 @@ export function isFailoverError(error: unknown): boolean {
 /** Unique violation (23505). Pass the constraint name to tell which one was hit. */
 export function isUniqueViolation(error: unknown, constraint?: string): boolean {
   for (const candidate of causeChain(error)) {
-    if (typeof candidate !== 'object') continue;
-    const { code, constraint_name: name } = candidate as {
-      code?: unknown;
-      constraint_name?: unknown;
-    };
-    if (code === '23505') return constraint === undefined || name === constraint;
+    if (fieldOf(candidate, 'code') === '23505') {
+      return constraint === undefined || fieldOf(candidate, 'constraint_name') === constraint;
+    }
   }
   return false;
 }

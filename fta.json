@@ -1,0 +1,16 @@
+{
+  "score_cap": 65,
+  "output_limit": 15,
+  "exclude_filenames": ["*.test.ts", "*.test.tsx", "*.spec.ts", "*.generated.ts", "*.gen.ts"],
+  "exclude_directories": [
+    "/apps/dashboard-api/src/testing",
+    "/apps/consent-api/src/testing",
+    "/apps/dashboard-web/src/test",
+    "/apps/consent-api/dist",
+    "/apps/dashboard-api/dist",
+    "/apps/dashboard-web/dist",
+    "/packages/db/dist",
+    "/packages/shared/dist",
+    "/infra/test"
+  ]
+}

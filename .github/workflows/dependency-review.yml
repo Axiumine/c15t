@@ -40,11 +40,13 @@ jobs:
           # Unlicense, BlueOak-1.0.0, CC0-1.0, CC-BY-4.0 (caniuse-lite data), 0BSD and
           # "MIT OR Apache-2.0" / "MIT AND ISC AND BSD-3-Clause" expressions, plus the project's
           # own AGPL-3.0-or-later. GPL-2.0-only is deliberately absent: it cannot be combined
-          # with AGPL-3.0.
+          # with AGPL-3.0. LGPL-3.0-only is allowed for eslint-plugin-sonarjs (a devDependency of
+          # `yarn lint:eslint`, never shipped in a release): LGPL-3.0 is compatible with AGPL-3.0
+          # (docs/dependency-policy.md).
           allow-licenses: >-
             MIT, MIT-0, ISC, BSD-2-Clause, BSD-3-Clause, Apache-2.0, 0BSD, CC0-1.0, Unlicense,
             BlueOak-1.0.0, Python-2.0, Zlib, MPL-2.0, CC-BY-4.0, LGPL-2.1-or-later,
-            LGPL-3.0-or-later, GPL-3.0-or-later, AGPL-3.0-or-later
+            LGPL-3.0-only, LGPL-3.0-or-later, GPL-3.0-or-later, AGPL-3.0-or-later
           # The repository's own workspace packages are private and carry no registry metadata.
           allow-dependencies-licenses: >-
             pkg:npm/%40consent/consent-api, pkg:npm/%40consent/dashboard-api,

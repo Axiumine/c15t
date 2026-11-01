@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Axiumine
 
-import { afterEach, beforeEach, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, expect, type MockInstance, test, vi } from 'vitest';
 
 /*
  * admin-create.ts is the `yarn admin:create` entry point: it runs on import. Each test imports it
@@ -9,9 +9,24 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest';
  * so no database is opened, no secret is read from the real environment and the worker stays up.
  */
 
+interface AuthOptions {
+  db: unknown;
+  env: unknown;
+  logger: { error(message: string): void };
+}
+
+interface Created {
+  userId: string;
+  email: string;
+  oneTimePassword: string;
+}
+
 const mocks = vi.hoisted(() => ({
-  createAuth: vi.fn(),
-  createAdmin: vi.fn(),
+  createAuth: vi.fn<(options: AuthOptions) => unknown>(),
+  createAdmin:
+    vi.fn<
+      (auth: unknown, input: { email: string; name: string | undefined }) => Promise<Created>
+    >(),
   openDatabase: vi.fn(),
   db: { close: vi.fn() },
   auth: { name: 'auth' },
@@ -41,8 +56,8 @@ const config = {
 
 const originalArgv = process.argv;
 const silence = (stream: NodeJS.WriteStream) => vi.spyOn(stream, 'write').mockReturnValue(true);
-let stdout: ReturnType<typeof silence>;
-let stderr: ReturnType<typeof silence>;
+let stdout: MockInstance<typeof process.stdout.write>;
+let stderr: MockInstance<typeof process.stderr.write>;
 
 function written(spy: {
   readonly mock: { readonly calls: readonly (readonly unknown[])[] };
@@ -182,16 +197,12 @@ test('Better Auth gets the CLI configuration and a logger that writes nothing', 
     oneTimePassword: 'p',
   });
   await run(['--email', 'a@example.test']);
-  const options = mocks.createAuth.mock.calls[0]?.[0] as {
-    db: unknown;
-    env: unknown;
-    logger: { error(message: string): void };
-  };
-  expect(options.db).toBe(mocks.db);
-  expect(options.env).toEqual(config);
+  const options = mocks.createAuth.mock.calls[0]?.[0];
+  expect(options?.db).toBe(mocks.db);
+  expect(options?.env).toEqual(config);
   stderr.mockClear();
   stdout.mockClear();
-  options.logger.error('anything');
+  options?.logger.error('anything');
   expect(stderr).not.toHaveBeenCalled();
   expect(stdout).not.toHaveBeenCalled();
 });

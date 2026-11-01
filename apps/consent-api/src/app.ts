@@ -7,6 +7,7 @@ import type { HttpBindings } from '@hono/node-server';
 import { getConnInfo } from '@hono/node-server/conninfo';
 import { type Context, Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
+import type { Input } from 'hono/types';
 import { z } from 'zod';
 import { SiteConfigError } from './errors.js';
 import { errorFields, type Logger, silentLogger } from './log.js';
@@ -20,6 +21,9 @@ import {
 } from './request-guard.js';
 
 export type AppEnv = { Bindings: HttpBindings };
+
+// Hono's own `Context<AppEnv>` leaves the route path and the input as `any` and `{}`.
+type AppContext = Context<AppEnv, string, Input>;
 
 export interface AppDeps {
   readonly registry: Pick<SiteRegistry, 'use' | 'evict' | 'size'>;
@@ -92,7 +96,7 @@ async function isDatabaseFailure(response: Response): Promise<boolean> {
   }
 }
 
-function peerAddress(c: Context<AppEnv>): string | undefined {
+function peerAddress(c: AppContext): string | undefined {
   try {
     return getConnInfo(c).remote.address;
   } catch {
@@ -102,10 +106,7 @@ function peerAddress(c: Context<AppEnv>): string | undefined {
 }
 
 /** The request target as the client wrote it. `new URL` has already resolved `..` in `c.req.url`. */
-function requestTarget(c: {
-  readonly env: unknown;
-  readonly req: { readonly url: string };
-}): string {
+function requestTarget(c: AppContext): string {
   const incoming = (c.env as Partial<HttpBindings> | undefined)?.incoming;
   return incoming?.url ?? c.req.url;
 }
@@ -127,7 +128,7 @@ function forwardable(request: Request, headers: Headers): Request {
 function addGuards(app: Hono<AppEnv>): void {
   // No response from this service is cacheable by Cloudflare: /init depends on the visitor's
   // country. c15t's own browser cache lifetime for the manifest and the script is kept.
-  app.use('*', async (c, next) => {
+  app.use('*', async (c: AppContext, next) => {
     await next();
     const { headers, status } = c.res;
     headers.set('Cloudflare-CDN-Cache-Control', NO_STORE);
@@ -135,7 +136,7 @@ function addGuards(app: Hono<AppEnv>): void {
     if (status >= 400 || !headers.has('cache-control')) headers.set('Cache-Control', NO_STORE);
   });
 
-  app.use('*', async (c, next) => {
+  app.use('*', async (c: AppContext, next) => {
     if (!isSafePath(requestTarget(c))) return jsonError('BAD_REQUEST', 'Invalid request path.');
     return next();
   });
@@ -196,7 +197,7 @@ function unavailable(): Response {
 function createSiteServer(
   deps: AppDeps,
   log: Logger,
-): (c: Context<AppEnv>, siteKey: string) => Promise<Response> {
+): (c: AppContext, siteKey: string) => Promise<Response> {
   return async (c, siteKey) => {
     const { headers, trusted } = sanitizeHeaders(c.req.raw.headers, {
       peer: peerAddress(c),
@@ -233,7 +234,8 @@ function addSiteRoutes(app: Hono<AppEnv>, deps: AppDeps, log: Logger): void {
     '/s/*',
     bodyLimit({
       maxSize: MAX_BODY_BYTES,
-      onError: (c) => c.json(apiError('BAD_REQUEST', 'Request body is too large.'), 413),
+      onError: (c: AppContext) =>
+        c.json(apiError('BAD_REQUEST', 'Request body is too large.'), 413),
     }),
   );
 

@@ -77,7 +77,7 @@ const PREFIX_PATTERN = /^dapi-[0-9a-f]{16}$/;
  * Not a short or generic stem like `t-`: other suites share the dev database, and a cleanup of
  * theirs (or ours) must never be able to match rows that belong to another run.
  */
-export function newPrefix(): string {
+function newPrefix(): string {
   return `dapi-${randomBytes(8).toString('hex')}`;
 }
 
@@ -378,7 +378,7 @@ function requireVariable(name: string, value: string | undefined): string {
   return value;
 }
 
-export async function createPostgresEnvironment(): Promise<TestEnvironment> {
+async function createPostgresEnvironment(): Promise<TestEnvironment> {
   const dashboardUrl = requireVariable(
     'DATABASE_URL_DASHBOARD',
     process.env['DATABASE_URL_DASHBOARD'],

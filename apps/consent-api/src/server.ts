@@ -115,7 +115,7 @@ function handleSignals(resources: Resources): void {
   };
   for (const signal of ['SIGTERM', 'SIGINT'] as const) process.once(signal, () => stop(signal));
   // Most often EADDRINUSE: release the pools and exit non-zero so systemd retries.
-  resources.server.on('error', (error) => {
+  resources.server.on('error', (error: unknown) => {
     log.error('server error', errorFields(error));
     process.exitCode = 1;
     stop('server error');

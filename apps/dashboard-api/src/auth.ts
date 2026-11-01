@@ -2,6 +2,7 @@
 // Copyright (C) 2026 Axiumine
 
 import { authSchema } from '@consent/db';
+import { fieldOf } from '@consent/shared';
 import { type BetterAuthOptions, betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { APIError, createAuthMiddleware } from 'better-auth/api';
@@ -70,7 +71,7 @@ function authHooks(): NonNullable<BetterAuthOptions['hooks']> {
     // eslint-disable-next-line @typescript-eslint/require-await -- createAuthMiddleware needs a Promise-returning handler, and `async` turns the APIError thrown by changePasswordBody into a rejection
     before: createAuthMiddleware(async (ctx) => {
       if (ctx.path !== '/change-password') return;
-      return changePasswordBody(ctx.body);
+      return changePasswordBody(fieldOf(ctx, 'body'));
     }),
     after: createAuthMiddleware(async (ctx) => {
       if (ctx.path !== '/change-password') return;

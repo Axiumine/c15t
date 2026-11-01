@@ -11,7 +11,7 @@ export function isBanActive(row: Pick<UserRow, 'banned' | 'banExpires'>, now: Da
   return row.banned && (row.banExpires === null || row.banExpires > now);
 }
 
-export function toUserSummary(row: UserRow, siteKeys: readonly string[], now: Date): UserSummary {
+function toUserSummary(row: UserRow, siteKeys: readonly string[], now: Date): UserSummary {
   return {
     id: row.id,
     name: row.name,

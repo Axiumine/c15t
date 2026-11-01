@@ -14,7 +14,6 @@ import {
   siteKeySchema,
   siteSchema,
   siteUpdateSchema,
-  trustedOriginsSchema,
 } from './site.js';
 
 describe('siteKeySchema', () => {
@@ -78,9 +77,9 @@ describe('domainsSchema', () => {
     expect(domainsSchema.safeParse(many).success).toBe(false);
   });
 
-  test('trustedOriginsSchema is the same contract', () => {
-    expect(trustedOriginsSchema.safeParse([]).success).toBe(false);
-    expect(trustedOriginsSchema.safeParse(['*']).success).toBe(false);
+  test('rejects an empty list and a wildcard, which must never become trustedOrigins', () => {
+    expect(domainsSchema.safeParse([]).success).toBe(false);
+    expect(domainsSchema.safeParse(['*']).success).toBe(false);
   });
 });
 

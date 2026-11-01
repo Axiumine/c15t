@@ -14,13 +14,13 @@ import {
   userUpdateSchema,
 } from '@consent/shared';
 import { and, eq, inArray, notInArray } from 'drizzle-orm';
-import { type Context, Hono } from 'hono';
+import { Hono } from 'hono';
 import { z } from 'zod';
 import { type AuditActor, auditActor, writeAudit } from '../audit.js';
 import type { Auth } from '../auth.js';
 import type { AuthedEnv, Authz } from '../authz.js';
 import type { AppDatabase, Executor, Transaction } from '../db.js';
-import { HttpError, notFound } from '../errors.js';
+import { HttpError, notFound, type RequestContext } from '../errors.js';
 import { generatePassword } from '../password.js';
 import {
   countOtherActiveAdmins,
@@ -42,10 +42,7 @@ const idParamSchema = z.object({ id: noNul(z.string().min(1).max(128)) });
 type Change = { from: unknown; to: unknown };
 
 /** Fields the request would actually change. Equal values are not changes. */
-export function diffUser(
-  current: typeof user.$inferSelect,
-  input: UserUpdate,
-): Record<string, Change> {
+function diffUser(current: typeof user.$inferSelect, input: UserUpdate): Record<string, Change> {
   const changes: Record<string, Change> = {};
   if (input.name !== undefined && input.name !== current.name) {
     changes['name'] = { from: current.name, to: input.name };
@@ -88,7 +85,7 @@ interface AdminCall {
   readonly headers: Headers;
 }
 
-const callOf = (c: Context<AuthedEnv>): AdminCall => ({
+const callOf = (c: RequestContext<AuthedEnv>): AdminCall => ({
   actor: auditActor(c),
   headers: c.req.raw.headers,
 });

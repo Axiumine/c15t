@@ -7,6 +7,7 @@ import { expect, test } from 'vitest';
 import { admin, blog, shop, userSummary } from './test/fixtures';
 import { json, mockFetch, renderApp, route } from './test/harness';
 
+// nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_password -- test fixture: a made-up one-time password rendered by the component under test
 const PASSWORD = 'example-one-time-password';
 const adminRow = userSummary({ ...admin, siteKeys: [] });
 const created = userSummary({ id: 'u-new', name: 'Nia New', email: 'nia@example.com' });

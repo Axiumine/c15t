@@ -141,6 +141,7 @@ test('loadEnv and loadCliEnv read the process environment', () => {
       BETTER_AUTH_SECRET: valid.BETTER_AUTH_SECRET,
       BETTER_AUTH_URL: valid.BETTER_AUTH_URL,
     });
+    // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- test input: "short" is the too-short value the schema must reject, not a credential
     vi.stubEnv('BETTER_AUTH_SECRET', 'short');
     expect(() => loadEnv()).toThrow(EnvError);
     expect(() => loadCliEnv()).toThrow(/BETTER_AUTH_SECRET/);

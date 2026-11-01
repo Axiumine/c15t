@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Axiumine
 
+import { buffer } from 'node:stream/consumers';
 import { type Browser, type BrowserContext, request as playwrightRequest } from '@playwright/test';
 import { DashboardClient } from './support/api.js';
 import { bootstrapAdmin } from './support/bootstrap.js';
@@ -277,9 +278,7 @@ test.describe
           `consents-${siteA.key}-${new Date().toISOString().slice(0, 10)}.csv`,
         );
         const stream = await file.createReadStream();
-        const chunks: Buffer[] = [];
-        for await (const chunk of stream) chunks.push(Buffer.from(chunk as Uint8Array));
-        const csv = Buffer.concat(chunks).toString('utf8');
+        const csv = (await buffer(stream)).toString('utf8');
         expect(csv).toContain(consents.a);
         expect(csv).not.toContain(consents.b);
       } finally {

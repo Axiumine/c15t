@@ -32,7 +32,7 @@ type Change = { from: unknown; to: unknown };
 const UPDATABLE_FIELDS = ['name', 'domains', 'policyPreset', 'status'] as const;
 
 /** Fields the request would actually change. Equal values are not changes. */
-export function diffSite(current: SiteRow, input: SiteUpdate): Record<string, Change> {
+function diffSite(current: SiteRow, input: SiteUpdate): Record<string, Change> {
   const entries = UPDATABLE_FIELDS.flatMap((field): [string, Change][] => {
     // eslint-disable-next-line security/detect-object-injection -- field is a member of the closed UPDATABLE_FIELDS tuple
     const [next, previous] = [input[field], current[field]];

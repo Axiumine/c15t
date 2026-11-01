@@ -65,10 +65,10 @@ const h = vi.hoisted(() => {
     FakeListener,
     createPool: vi.fn(),
     createPgSiteStore: vi.fn(),
-    createApp: vi.fn<(options: AppDeps) => unknown>(),
+    createApp: vi.fn<(deps: AppDeps) => unknown>(),
     createSiteInstance: vi.fn(),
     createDriver: vi.fn(),
-    serve: vi.fn(),
+    serve: vi.fn<(options: Served['options'], onListening: Served['onListening']) => unknown>(),
   };
 });
 
@@ -203,12 +203,10 @@ beforeEach(() => {
   h.createApp.mockReset().mockReturnValue(app);
   h.createSiteInstance.mockReset().mockReturnValue(instance);
   h.createDriver.mockReset().mockReturnValue(driver);
-  h.serve
-    .mockReset()
-    .mockImplementation((options: Served['options'], onListening: Served['onListening']) => {
-      served = { options, onListening };
-      return server;
-    });
+  h.serve.mockReset().mockImplementation((options, onListening) => {
+    served = { options, onListening };
+    return server;
+  });
 
   // The test must not install real signal or rejection handlers on the test worker.
   const realOn = process.on.bind(process);

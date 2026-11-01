@@ -16,13 +16,8 @@ import type { Auth } from './auth.js';
 import { accessibleSiteKeys, accessibleSites, createAuthz, type SessionUser } from './authz.js';
 import { createErrorHandler } from './errors.js';
 import { silentLogger } from './logger.js';
-import {
-  closeIfOpen,
-  cookieHeader,
-  createTestApp,
-  type TestApp,
-  type TestUser,
-} from './testing/harness.js';
+import type { TestUser } from './testing/harness.js';
+import { closeIfOpen, cookieHeader, createTestApp, type TestApp } from './testing/harness.js';
 import { describeEnvironments } from './testing/suite.js';
 
 /*
@@ -117,18 +112,12 @@ describeEnvironments('authz', ({ env }) => {
     const { items } = (await (await get('/api/sites', adminCookie)).json()) as {
       items: { key: string; status: string }[];
     };
-    const byKey = (a: readonly string[], b: readonly string[]) =>
-      (a[0] ?? '').localeCompare(b[0] ?? '');
-    const mine = items
-      .filter((s) => s.key.startsWith(env().prefix))
-      .map((s) => [s.key, s.status])
-      .sort(byKey);
-    const expected = [
-      [site1.key, 'active'],
-      [site2.key, 'active'],
-      [siteOff.key, 'disabled'],
-    ].sort(byKey);
-    expect(mine).toEqual(expected);
+    const mine = items.filter((s) => s.key.startsWith(env().prefix));
+    expect(Object.fromEntries(mine.map((s) => [s.key, s.status] as const))).toEqual({
+      [site1.key]: 'active',
+      [site2.key]: 'active',
+      [siteOff.key]: 'disabled',
+    });
   });
 
   test('a user reads their own site: detail, stats, records and CSV', async () => {
@@ -472,6 +461,7 @@ describeEnvironments('authz', ({ env }) => {
         .mustChangePassword,
     ).toBe(true);
 
+    // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_password -- test input: throwaway password of a user created in the test database
     const newPassword = 'a-brand-new-password-1';
     const changed = await t.request('POST', '/api/auth/change-password', {
       cookie,

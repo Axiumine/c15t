@@ -350,8 +350,7 @@ test('an absolute-form request target gets the same verdict as its path', () => 
       hostname,
       fc.option(fc.integer({ min: 1, max: 65535 }), { nil: undefined }),
       (path, scheme, host, port) => {
-        const portPart = port === undefined ? '' : `:${port}`;
-        const target = `${scheme}://${host}${portPart}${path}`;
+        const target = `${scheme}://${host}`.concat(port === undefined ? '' : `:${port}`, path);
         expect(isSafePath(target)).toBe(isSafePath(path));
       },
     ),
@@ -475,8 +474,7 @@ test('stripping removes every jurisdiction parameter and keeps the rest in order
       ),
       (pairs) => {
         const query = pairs.map(([name, value]) => `${name}=${value}`).join('&');
-        const search = query === '' ? '' : `?${query}`;
-        const input = `http://localhost/s/shop/init${search}`;
+        const input = 'http://localhost/s/shop/init'.concat(query === '' ? '' : `?${query}`);
         const output = new URL(stripOverrideParams(input));
         for (const name of VISITOR_OVERRIDE_PARAMS)
           expect(output.searchParams.has(name)).toBe(false);
@@ -497,8 +495,7 @@ test('a URL without a jurisdiction parameter comes back unchanged, byte for byte
       fc.array(fc.tuple(otherParam, fc.stringMatching(/^[A-Za-z0-9%]{0,6}$/)), { maxLength: 6 }),
       (pairs) => {
         const query = pairs.map(([name, value]) => `${name}=${value}`).join('&');
-        const search = query === '' ? '' : `?${query}`;
-        const input = `http://localhost/s/shop/init${search}`;
+        const input = 'http://localhost/s/shop/init'.concat(query === '' ? '' : `?${query}`);
         expect(stripOverrideParams(input)).toBe(input);
       },
     ),
@@ -630,10 +627,8 @@ test('a Host that is an IP address or a localhost name is not tied to the site d
 });
 
 test('the host check never throws, and only a listed or direct host passes', () => {
-  const hostish = fc.string({
-    unit: fc.constantFrom(...Array.from('abcdez019.-:[]@/\\ %*,_')),
-    maxLength: 30,
-  });
+  const chars = 'abcdez019.-:[]@/\\ %*,_'.split('');
+  const hostish = fc.string({ unit: fc.constantFrom(...chars), maxLength: 30 });
   fc.assert(
     fc.property(domainList, fc.oneof(hostish, fc.string()), (domains, host) => {
       let headers: Headers;

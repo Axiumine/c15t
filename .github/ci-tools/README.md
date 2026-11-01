@@ -15,3 +15,7 @@ proposes updates.
 
 To change a version by hand, edit `package.json`, then run
 `npm install --package-lock-only --ignore-scripts --prefix .github/ci-tools` and commit both files.
+
+The `semgrep/` directory is the Python side: `semgrep/requirements.txt` holds Semgrep and everything it
+needs, with a SHA-256 for every file, for `pip install --require-hashes` in the "Security scan" workflow.
+Dependabot does not update it; `docs/security-scanning.md` says how to regenerate it.
