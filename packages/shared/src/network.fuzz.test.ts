@@ -4,17 +4,11 @@
 import { BlockList, isIP } from 'node:net';
 import * as fc from 'fast-check';
 import { expect, test } from 'vitest';
-import {
-  cidrListSchema,
-  cidrSchema,
-  classifyHost,
-  hostSchema,
-  ipInCidrs,
-  originSchema,
-  parseCidr,
-  parseIp,
-  portSchema,
-} from './network.js';
+import { ipInCidrs } from './cidr.js';
+import { classifyHost, hostSchema } from './host.js';
+import { parseCidr, parseIp } from './ip.js';
+import { cidrListSchema, cidrSchema, portSchema } from './network.js';
+import { originSchema } from './origin.js';
 
 /*
  * Property-based tests for the bind-address and trusted-proxy rules. Node's own `net` module

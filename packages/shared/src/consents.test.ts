@@ -3,14 +3,12 @@
 
 import { describe, expect, test } from 'vitest';
 import {
-  CONSENT_CSV_COLUMNS,
   consentExportQuerySchema,
   consentListQuerySchema,
-  consentPageSchema,
-  consentRecordSchema,
   statsQuerySchema,
-  statsResponseSchema,
-} from './consents.js';
+} from './consent-query.js';
+import { CONSENT_CSV_COLUMNS, consentPageSchema, consentRecordSchema } from './consents.js';
+import { statsResponseSchema } from './stats.js';
 
 const record = {
   id: 'c1',

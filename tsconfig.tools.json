@@ -5,6 +5,7 @@
     "outDir": ".tsbuild/tools",
     "tsBuildInfoFile": ".tsbuild/tools.tsbuildinfo",
     "emitDeclarationOnly": true,
+    "allowImportingTsExtensions": true,
     "lib": ["ES2024", "DOM", "DOM.Iterable"]
   },
   "include": [
