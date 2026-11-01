@@ -29,7 +29,7 @@ export function createNotifier(options: ListenerOptions, log: Logger): Notifier 
       return;
     }
     // Not a key we know how to scope: stay safe and forget everything.
-    log.warn('unexpected payload on the site channel, resync');
+    log.warn('unexpected payload on the site channel, resyncing');
     resync();
   };
   return { notified, resync };

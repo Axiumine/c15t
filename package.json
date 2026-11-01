@@ -36,7 +36,7 @@
     "type-coverage": "node scripts/type-coverage.mjs",
     "fta": "fta .",
     "code-caps": "node scripts/check-code-caps.ts",
-    "test:scripts-coverage": "node --test --experimental-test-coverage --test-coverage-include=scripts/check-code-caps.ts --test-coverage-include=scripts/git-hooks.mjs --test-coverage-lines=100 --test-coverage-branches=100 --test-coverage-functions=100 scripts/check-code-caps.test.mjs scripts/git-hooks.test.mjs",
+    "test:scripts-coverage": "node --test --experimental-test-coverage --test-coverage-include=scripts/check-code-caps.ts '--test-coverage-include=scripts/code-caps/*.ts' --test-coverage-include=scripts/git-hooks.mjs --test-coverage-lines=100 --test-coverage-branches=100 --test-coverage-functions=100 scripts/check-code-caps.test.mjs scripts/git-hooks.test.mjs",
     "postinstall": "node scripts/git-hooks.mjs install"
   },
   "devDependencies": {

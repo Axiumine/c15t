@@ -1,5 +1,5 @@
 {
-  "score_cap": 65,
+  "score_cap": 50,
   "output_limit": 15,
   "exclude_filenames": ["*.test.ts", "*.test.tsx", "*.spec.ts", "*.generated.ts", "*.gen.ts"],
   "exclude_directories": [
