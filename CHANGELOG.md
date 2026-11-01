@@ -51,6 +51,15 @@ their own "Security" heading and name the advisory.
   role with `CREATEROLE` and `CREATEDB` can run the bootstrap. On PostgreSQL 16 and newer only a superuser can (the
   `ALTER ROLE ... NOSUPERUSER` statements stop with `permission denied to alter role`).
 
+### Security
+
+- Resolved every `minimatch` in the tree to 11.0.1, not only the one under `@ts-morph/common`
+  ([GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249), fixed only in 11.x). The quality-gate
+  tools added in 0.2.0 (ESLint, `@eslint/config-array`, typescript-eslint, eslint-plugin-sonarjs, type-coverage) had
+  brought back 10.2.6. All of them are development tools and none ships in a release asset. They call only
+  `minimatch()` and `Minimatch#match()`, which 11.x keeps; 11.x drops `makeRe`, `AST` and `matchOne`, which none of
+  them uses.
+
 ## [0.2.0] - 2026-11-01
 
 Adds `deploy.sh install` and `uninstall`, the security and cryptography documentation, a reproducible-build check and
