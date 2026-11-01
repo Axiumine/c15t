@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { beforeAll, describe, expect, test } from 'vitest';
 import type { EnvironmentKind } from './testing/environment.js';
+import { ENVIRONMENT_KINDS } from './testing/suite.js';
 import { TZ_FIXTURES } from './testing/tz-fixtures.js';
 
 /*
@@ -78,7 +79,7 @@ function consentsPerMarchDay(): Map<string, number> {
 }
 const newestFirst = [...TZ_FIXTURES].sort((a, b) => b.givenAt.localeCompare(a.givenAt));
 
-describe.each(['pglite', 'postgres'] as const)('the read layer is TZ-independent (%s)', (kind) => {
+describe.each(ENVIRONMENT_KINDS)('the read layer is TZ-independent (%s)', (kind) => {
   const outputs = new Map<string, ProbeOutput | Error>();
 
   beforeAll(async () => {

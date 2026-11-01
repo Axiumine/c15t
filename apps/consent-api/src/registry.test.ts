@@ -3,52 +3,8 @@
 
 import { describe, expect, test, vi } from 'vitest';
 import { SiteConfigError } from './errors.js';
-import { SiteRegistry } from './registry.js';
-import type { InstanceFactory } from './registry-types.js';
-import type { SiteRecord } from './site-store.js';
-import {
-  capturingLogger,
-  deferred,
-  type FakeInstance,
-  fakeInstance,
-  MemoryStore,
-  siteRecord,
-} from './testing/fakes.js';
-
-function setup(...records: ReturnType<typeof siteRecord>[]) {
-  const store = new MemoryStore(...records);
-  const built: FakeInstance[] = [];
-  const factory: InstanceFactory = vi.fn((site: SiteRecord) => {
-    const instance = fakeInstance(() => Response.json({ site: site.key }));
-    built.push(instance);
-    return instance;
-  });
-  let clock = 1_000_000;
-  const logger = capturingLogger();
-  const registry = new SiteRegistry({
-    store,
-    factory,
-    logger,
-    ttlMs: 60_000,
-    negativeTtlMs: 10_000,
-    evictCooldownMs: 5_000,
-    drainMs: 200,
-    now: () => clock,
-  });
-  return {
-    store,
-    built,
-    factory,
-    registry,
-    logger,
-    advance: (ms: number) => {
-      clock += ms;
-    },
-  };
-}
-
-const run = (registry: SiteRegistry, key: string) =>
-  registry.use(key, async (handle) => handle.instance);
+import { deferred, siteRecord } from './testing/fakes.js';
+import { run, setup } from './testing/registry-harness.js';
 
 describe('SiteRegistry lookup and cache', () => {
   test('builds one instance per active site, lazily, and reuses it', async () => {

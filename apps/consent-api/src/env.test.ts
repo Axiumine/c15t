@@ -127,6 +127,46 @@ describe('parseEnv', () => {
   });
 });
 
+describe('what an operator reads when the environment is wrong', () => {
+  test('the database URL: scheme and host, without echoing the value', () => {
+    const message = 'Must be a postgres:// or postgresql:// URL with a host';
+    expect(issuesFor({ ...required, DATABASE_URL_C15T: 'mysql://u:secret-pw@h/db' })).toEqual([
+      `DATABASE_URL_C15T: ${message}`,
+    ]);
+    expect(issuesFor({ ...required, DATABASE_URL_C15T: 'postgres:///db' })).toEqual([
+      `DATABASE_URL_C15T: ${message}`,
+    ]);
+    expect(issuesFor({ ...required, DATABASE_URL_C15T: 'not a url secret-pw' })).toEqual([
+      `DATABASE_URL_C15T: ${message}`,
+    ]);
+    expect(parseEnv({ ...required, DATABASE_URL_C15T: 'postgresql://u:p@h/db' })).toBeDefined();
+  });
+
+  test('the admin key: its length, not its value', () => {
+    expect(issuesFor({ ...required, C15T_ADMIN_API_KEY: 'short-secret' })).toEqual([
+      'C15T_ADMIN_API_KEY: Must be at least 16 characters',
+    ]);
+  });
+
+  test('the error lists one indented line per problem', () => {
+    try {
+      parseEnv({ DATABASE_URL_C15T: 'nope', C15T_ADMIN_API_KEY: 'short' });
+    } catch (error) {
+      expect((error as EnvError).message).toBe(
+        'Invalid environment:\n' +
+          '  DATABASE_URL_C15T: Must be a postgres:// or postgresql:// URL with a host\n' +
+          '  C15T_ADMIN_API_KEY: Must be at least 16 characters',
+      );
+      return;
+    }
+    throw new Error('parseEnv accepted the environment');
+  });
+
+  test('an unset value is not the same as a value that is a space', () => {
+    expect(issuesFor({ ...required, CONSENT_API_PORT: ' ' })[0]).toMatch(/^CONSENT_API_PORT:/);
+  });
+});
+
 describe('loadEnv', () => {
   afterEach(() => {
     vi.unstubAllEnvs();

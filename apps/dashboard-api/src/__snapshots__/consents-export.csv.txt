@@ -1,0 +1,4 @@
+id,subjectId,externalId,domain,givenAt,validUntil,purposes,consentAction,jurisdiction,jurisdictionModel,countryCode,regionCode,uiSource,ipAddress,userAgent<CRLF>
+<run>-c3,<run>-snap-c,"a,b ""quoted""",shop.example.test,2026-03-14T23:59:59.000Z,,"{""measurement"":false,""marketing"":false}",custom,,,US,CA,,,"'=HYPERLINK(""https://evil.example"",""click"")<LF>second line"<CRLF>
+<run>-c2,<run>-snap-b,,shop.example.test,2026-03-12T18:05:00.000Z,,"{""measurement"":true,""marketing"":true}",custom,GDPR,,FR,,,,curl/8.9<CRLF>
+<run>-c1,<run>-snap-a,customer-1,shop.example.test,2026-03-10T09:30:00.000Z,,"{""measurement"":true,""marketing"":false}",custom,GDPR,,DE,BE,,,Mozilla/5.0 (X11; Linux x86_64) Chrome/140.0<CRLF>

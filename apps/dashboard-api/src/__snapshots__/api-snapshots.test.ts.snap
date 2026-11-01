@@ -1,0 +1,319 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`API response snapshots (pglite) > behavior > GET /api/admin/sites and /api/admin/users: one row each 1`] = `
+{
+  "site": {
+    "createdAt": "<timestamp>",
+    "domains": [
+      "<run>-snap.example.test",
+    ],
+    "key": "<run>-snap",
+    "name": "Site <run>-snap",
+    "policyPreset": "eu-opt-in",
+    "status": "active",
+    "updatedAt": "<timestamp>",
+  },
+  "user": {
+    "banExpires": null,
+    "banReason": null,
+    "banned": false,
+    "createdAt": "<timestamp>",
+    "email": "<member-email>",
+    "id": "<member-id>",
+    "mustChangePassword": false,
+    "name": "Test user",
+    "role": "user",
+    "siteKeys": [
+      "<run>-snap",
+    ],
+  },
+}
+`;
+
+exports[`API response snapshots (pglite) > behavior > GET /api/me: the signed-in user, for each role 1`] = `
+{
+  "admin": {
+    "body": {
+      "email": "<admin-email>",
+      "id": "<admin-id>",
+      "mustChangePassword": false,
+      "name": "Test admin",
+      "role": "admin",
+    },
+    "status": 200,
+  },
+  "member": {
+    "body": {
+      "email": "<member-email>",
+      "id": "<member-id>",
+      "mustChangePassword": false,
+      "name": "Test user",
+      "role": "user",
+    },
+    "status": 200,
+  },
+}
+`;
+
+exports[`API response snapshots (pglite) > behavior > GET /api/sites and /api/sites/:siteKey: list item and detail with the setup text 1`] = `
+{
+  "detail": {
+    "body": {
+      "createdAt": "<timestamp>",
+      "domains": [
+        "<run>-snap.example.test",
+      ],
+      "key": "<run>-snap",
+      "name": "Site <run>-snap",
+      "policyPreset": "eu-opt-in",
+      "setup": {
+        "backendUrl": "/api/c15t",
+        "nginx": "set $c15t_site <run>-snap;
+include snippets/c15t.conf;",
+        "scriptTag": "<script src="/api/c15t/c15t.js" data-cfasync="false" data-categories="measurement,marketing"></script>",
+        "serverClient": "import { createC15tClient } from '@c15t/node-sdk';
+
+const c15t = createC15tClient({
+  baseUrl: \`\${process.env.CONSENT_API_URL}/s/<run>-snap\`,
+  apiKey: process.env.C15T_ADMIN_API_KEY,
+});",
+      },
+      "status": "active",
+      "updatedAt": "<timestamp>",
+    },
+    "status": 200,
+  },
+  "list": {
+    "body": {
+      "items": [
+        {
+          "createdAt": "<timestamp>",
+          "domains": [
+            "<run>-snap.example.test",
+          ],
+          "key": "<run>-snap",
+          "name": "Site <run>-snap",
+          "policyPreset": "eu-opt-in",
+          "status": "active",
+          "updatedAt": "<timestamp>",
+        },
+      ],
+    },
+    "status": 200,
+  },
+}
+`;
+
+exports[`API response snapshots (pglite) > behavior > GET /api/sites/:siteKey/consents: a page with the cursor of the next one 1`] = `
+{
+  "first": {
+    "body": {
+      "items": [
+        {
+          "consentAction": "custom",
+          "countryCode": "US",
+          "domain": "shop.example.test",
+          "externalId": "a,b "quoted"",
+          "givenAt": "2026-03-14T23:59:59.000Z",
+          "id": "<run>-c3",
+          "ipAddress": null,
+          "jurisdiction": null,
+          "jurisdictionModel": null,
+          "purposes": {
+            "marketing": false,
+            "measurement": false,
+          },
+          "regionCode": "CA",
+          "subjectId": "<run>-snap-c",
+          "uiSource": null,
+          "userAgent": "=HYPERLINK("https://evil.example","click")
+second line",
+          "validUntil": null,
+        },
+        {
+          "consentAction": "custom",
+          "countryCode": "FR",
+          "domain": "shop.example.test",
+          "externalId": null,
+          "givenAt": "2026-03-12T18:05:00.000Z",
+          "id": "<run>-c2",
+          "ipAddress": null,
+          "jurisdiction": "GDPR",
+          "jurisdictionModel": null,
+          "purposes": {
+            "marketing": true,
+            "measurement": true,
+          },
+          "regionCode": null,
+          "subjectId": "<run>-snap-b",
+          "uiSource": null,
+          "userAgent": "curl/8.9",
+          "validUntil": null,
+        },
+      ],
+      "nextCursor": "<cursor>",
+    },
+    "status": 200,
+  },
+  "second": {
+    "body": {
+      "items": [
+        {
+          "consentAction": "custom",
+          "countryCode": "DE",
+          "domain": "shop.example.test",
+          "externalId": "customer-1",
+          "givenAt": "2026-03-10T09:30:00.000Z",
+          "id": "<run>-c1",
+          "ipAddress": null,
+          "jurisdiction": "GDPR",
+          "jurisdictionModel": null,
+          "purposes": {
+            "marketing": false,
+            "measurement": true,
+          },
+          "regionCode": "BE",
+          "subjectId": "<run>-snap-a",
+          "uiSource": null,
+          "userAgent": "Mozilla/5.0 (X11; Linux x86_64) Chrome/140.0",
+          "validUntil": null,
+        },
+      ],
+      "nextCursor": null,
+    },
+    "status": 200,
+  },
+}
+`;
+
+exports[`API response snapshots (pglite) > behavior > GET /api/sites/:siteKey/stats: totals, volume per day, purposes, jurisdictions 1`] = `
+{
+  "body": {
+    "jurisdictions": [
+      {
+        "consents": 2,
+        "jurisdiction": "GDPR",
+      },
+      {
+        "consents": 1,
+        "jurisdiction": "unknown",
+      },
+    ],
+    "purposes": [
+      {
+        "denied": 2,
+        "granted": 1,
+        "optInRate": 0.3333333333333333,
+        "purpose": "marketing",
+      },
+      {
+        "denied": 1,
+        "granted": 2,
+        "optInRate": 0.6666666666666666,
+        "purpose": "measurement",
+      },
+    ],
+    "range": {
+      "from": "2026-03-09T00:00:00.000Z",
+      "to": "2026-03-16T00:00:00.000Z",
+    },
+    "totals": {
+      "consents": 3,
+      "subjects": 3,
+    },
+    "volume": [
+      {
+        "consents": 0,
+        "date": "2026-03-09",
+      },
+      {
+        "consents": 1,
+        "date": "2026-03-10",
+      },
+      {
+        "consents": 0,
+        "date": "2026-03-11",
+      },
+      {
+        "consents": 1,
+        "date": "2026-03-12",
+      },
+      {
+        "consents": 0,
+        "date": "2026-03-13",
+      },
+      {
+        "consents": 1,
+        "date": "2026-03-14",
+      },
+      {
+        "consents": 0,
+        "date": "2026-03-15",
+      },
+    ],
+  },
+  "status": 200,
+}
+`;
+
+exports[`API response snapshots (pglite) > behavior > the error envelope: unauthenticated, forbidden, unknown site, invalid query 1`] = `
+{
+  "foreignSite": {
+    "body": {
+      "error": {
+        "code": "NOT_FOUND",
+        "message": "Site not found",
+      },
+    },
+    "status": 404,
+  },
+  "invalidLimit": {
+    "body": {
+      "error": {
+        "code": "VALIDATION_ERROR",
+        "issues": [
+          {
+            "message": "Too small: expected number to be >=1",
+            "path": "limit",
+          },
+        ],
+        "message": "The request is invalid",
+      },
+    },
+    "status": 400,
+  },
+  "invalidRange": {
+    "body": {
+      "error": {
+        "code": "VALIDATION_ERROR",
+        "issues": [
+          {
+            "message": "\`from\` must not be after \`to\`",
+            "path": "from",
+          },
+        ],
+        "message": "The request is invalid",
+      },
+    },
+    "status": 400,
+  },
+  "noSession": {
+    "body": {
+      "error": {
+        "code": "UNAUTHORIZED",
+        "message": "Authentication is required",
+      },
+    },
+    "status": 401,
+  },
+  "userOnAdminRoute": {
+    "body": {
+      "error": {
+        "code": "FORBIDDEN",
+        "message": "Administrator access is required",
+      },
+    },
+    "status": 403,
+  },
+}
+`;
