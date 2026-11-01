@@ -102,6 +102,7 @@ yarn c15t:migrate        # same with --apply (review the plan first)
 yarn db:pull-c15t        # drizzle-kit pull, schemaFilter ['c15t'] -> packages/db/src/c15t.generated.ts
 yarn admin:create --email you@example.com   # bootstrap first admin, prints a one-time password
 yarn spdx                # add the SPDX licence header to new source files; yarn spdx:check only verifies
+yarn test:coverage       # vitest with the 100% coverage gate; lefthook (installed by yarn install) runs the whole gate set before a push, docs/quality-gates.md
 yarn semgrep             # scripts/semgrep.sh: registry rule sets, exit 1 on any finding (skips with exit 0 when semgrep is missing and CI is unset)
 yarn trivy               # scripts/trivy.sh: trivy fs vuln,secret,misconfig, HIGH/CRITICAL fail, .trivyignore needs exp: dates (same skip rule); see docs/security-scanning.md
 yarn knip                # unused files, exports, types and dependencies (knip.json lists only entries it cannot infer)

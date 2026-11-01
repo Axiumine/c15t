@@ -38,6 +38,11 @@ corepack enable           # once per machine; Yarn 4 comes from "packageManager"
 yarn install              # the repository's .yarnrc.yml sets nodeLinker: node-modules
 ```
 
+`yarn install` also installs the Git hooks (lefthook: Biome, SPDX and size caps before a commit, the DCO sign-off
+check on the message, the full gate set before a push). They are optional and CI runs the same checks: see
+[`docs/quality-gates.md`](./docs/quality-gates.md) for the order and how to skip one run. fnm and mise read
+`.nvmrc` if you want a Node version manager.
+
 The repository uses Yarn 4 workspaces (`apps/*`, `packages/*`). Do not use npm, pnpm or Bun to install,
 and do not switch to Plug'n'Play: Vite, drizzle-kit and the c15t CLI need `node_modules`.
 
@@ -48,6 +53,7 @@ and do not switch to Plug'n'Play: Vite, drizzle-kit and the c15t CLI need `node_
 | `yarn lint:eslint` | ESLint, the zero-findings gate next to Biome (type-aware, security and complexity rules); run `yarn typecheck` first |
 | `yarn format` | `biome check --write .` fixes what can be fixed automatically |
 | `yarn test` | `vitest run` over every workspace |
+| `yarn test:coverage` | the same with the 100% coverage gate (what CI and the pre-push hook run) |
 | `yarn build` | builds every workspace to `dist/` |
 | `yarn dev` | consent-api, dashboard-api and the Vite dev server |
 | `yarn test:e2e` | Playwright end-to-end tests |
@@ -58,7 +64,7 @@ and do not switch to Plug'n'Play: Vite, drizzle-kit and the c15t CLI need `node_
 | `yarn type-coverage` | `any` and unsafe type assertions, per tsconfig project |
 | `yarn fta` | maintainability score of each source file |
 | `yarn code-caps` | size and shape caps with a ratchet baseline |
-| `yarn test:scripts-coverage` | the test of `scripts/check-code-caps.ts`, with its 100% coverage gate |
+| `yarn test:scripts-coverage` | the `node:test` suites of `scripts/check-code-caps.ts` and `scripts/git-hooks.mjs`, with a 100% coverage gate |
 
 **Run `yarn typecheck && yarn lint && yarn lint:eslint && yarn test` before you open a pull request.** ESLint and the
 four analysers below are part of the same gate: they all pass on the current code, so a failure is yours.

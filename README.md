@@ -394,6 +394,7 @@ Still open:
 - [`docs/database-setup.md`](./docs/database-setup.md): PostgreSQL roles, schemas, grants and the Patroni notes
 - [`docs/architecture.md`](./docs/architecture.md): a map from questions to documents. [`docs/e2e.md`](./docs/e2e.md): the Playwright suite
 - [`docs/security-model.md`](./docs/security-model.md) (threat model, including what is not protected), [`docs/assurance-case.md`](./docs/assurance-case.md) (why the security requirements are met, with the known gaps) and [`docs/cryptography.md`](./docs/cryptography.md) (where each cryptographic algorithm is chosen and who can change it)
+- [`docs/quality-gates.md`](./docs/quality-gates.md): every gate (Biome, tsc, ESLint, knip, type coverage, FTA, code caps, coverage, scans), the Git hooks and the order they run in, and what was left out
 - [`docs/security-scanning.md`](./docs/security-scanning.md) (the Semgrep and Trivy scans: what runs where, how to suppress a finding, how the tools are pinned)
 - [`docs/dependency-policy.md`](./docs/dependency-policy.md) (how dependencies are chosen, updated and patched), [`docs/scorecard.md`](./docs/scorecard.md) and [`docs/openssf-best-practices.md`](./docs/openssf-best-practices.md) (the OpenSSF Scorecard and Best Practices status, with evidence)
 - [`docs/licensing.md`](./docs/licensing.md): what the AGPL means if you self-host, and the third-party licenses

@@ -16,6 +16,15 @@ their own "Security" heading and name the advisory.
 
 ## [Unreleased]
 
+### Added
+
+- Quality gates beyond Biome and `tsc`, all passing with zero findings and documented in `docs/quality-gates.md`: ESLint
+  (typescript-eslint `strictTypeChecked`, sonarjs, security, no-unsanitized, complexity and size rules), knip,
+  type-coverage (100%), FTA, a code-caps ratchet (`scripts/check-code-caps.ts`), Semgrep and Trivy (`docs/security-scanning.md`).
+  CI has a new "Static analysis" job and a "Security scan" workflow.
+- Git hooks with lefthook, installed by `yarn install`: pre-commit (Biome, SPDX, code caps, shellcheck), commit-msg
+  (DCO sign-off), pre-push (typecheck, analysers, tests at 100% coverage, scans).
+
 ## [0.2.0] - 2026-11-01
 
 Adds `deploy.sh install` and `uninstall`, the security and cryptography documentation, a reproducible-build check and
