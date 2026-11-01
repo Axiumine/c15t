@@ -24,6 +24,10 @@ blob-report
 # Qodana results of `yarn qodana` (scripts/qodana.sh): SARIF, an HTML report and logs
 .qodana/
 
+# StrykerJS (`yarn mutation`): the sandbox copy of the tree and the reports (docs/quality-gates.md)
+/.stryker-tmp
+/reports
+
 # Editor and agent tooling, local only
 .idea
 .vscode

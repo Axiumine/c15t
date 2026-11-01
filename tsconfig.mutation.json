@@ -1,0 +1,14 @@
+{
+  "extends": "@consent/config/tsconfig.base.json",
+  "compilerOptions": {
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "sourceMap": false,
+    "noEmit": true,
+    "customConditions": ["source"],
+    "lib": ["ES2024"]
+  },
+  "include": ["packages/*/src", "apps/consent-api/src", "apps/dashboard-api/src"],
+  "exclude": ["**/*.test.ts", "**/dist/**", "**/node_modules/**"]
+}

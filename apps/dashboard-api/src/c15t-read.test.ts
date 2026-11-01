@@ -2,10 +2,11 @@
 // Copyright (C) 2026 Axiumine
 
 import type { Database } from '@consent/db';
-import { consentRecordSchema, statsResponseSchema } from '@consent/shared';
-import { beforeAll, expect, test } from 'vitest';
+import { type ConsentRecord, consentRecordSchema, statsResponseSchema } from '@consent/shared';
+import { beforeAll, describe, expect, test } from 'vitest';
 import { tenantScope } from './authz.js';
 import {
+  CSV_HEADER,
   consentBatches,
   consentCsvRow,
   consentCsvStream,
@@ -289,6 +290,22 @@ describeEnvironments('c15t-read', ({ env }) => {
     expect(text.trim().split('\r\n')).toHaveLength(1);
   });
 
+  test('an export of exactly one full batch ends without an empty trailing batch', async () => {
+    const sizes: number[] = [];
+    for await (const batch of consentBatches(db, tenantScope([tenantA]), {}, 5)) {
+      sizes.push(batch.length);
+    }
+    expect(sizes).toEqual([5]);
+  });
+
+  test('the volume series includes the day of a range that ends one millisecond into it', async () => {
+    const stats = await consentStats(db, tenantScope([tenantA]), {
+      from: new Date('2026-03-01T00:00:00.000Z'),
+      to: new Date('2026-03-01T00:00:00.001Z'),
+    });
+    expect(stats.volume.map((day) => day.date)).toEqual(['2026-03-01']);
+  });
+
   test('csv rows neutralize formulas and serialize purposes as JSON', async () => {
     const page = await listConsents(db, tenantScope([tenantA]), { subject: sub('a1') }, first);
     const row = consentCsvRow(page.items[0] as NonNullable<(typeof page.items)[number]>);
@@ -396,4 +413,85 @@ test('stats of a result set without a totals row are zero, not a crash', async (
   expect(stats.purposes).toEqual([]);
   expect(stats.jurisdictions).toEqual([]);
   expect(statsResponseSchema.parse(stats)).toEqual(stats);
+});
+
+/* consentCsvStream with in-memory batches: header, chunking, failure and cancellation. */
+describe('consentCsvStream', () => {
+  const record = (n: number): ConsentRecord => ({
+    id: `id-${n}`,
+    subjectId: `subject-${n}`,
+    externalId: null,
+    domain: 'shop.example.test',
+    givenAt: '2026-03-01T12:00:00.000Z',
+    validUntil: null,
+    purposes: { measurement: true },
+    consentAction: null,
+    jurisdiction: null,
+    jurisdictionModel: null,
+    countryCode: null,
+    regionCode: null,
+    uiSource: null,
+    ipAddress: null,
+    userAgent: null,
+  });
+
+  async function* batchesOf(
+    ...lists: ConsentRecord[][]
+  ): AsyncGenerator<ConsentRecord[], void, undefined> {
+    for (const list of lists) yield list;
+  }
+
+  async function readChunks(stream: ReadableStream<Uint8Array>): Promise<string[]> {
+    const reader = stream.getReader();
+    const decoder = new TextDecoder();
+    const chunks: string[] = [];
+    for (;;) {
+      const step = await reader.read();
+      if (step.done) return chunks;
+      chunks.push(decoder.decode(step.value));
+    }
+  }
+
+  test('the header comes with the first batch, each later batch is one chunk, and no chunk is empty', async () => {
+    const batches = batchesOf([record(1), record(2)], [record(3)]);
+    const chunks = await readChunks(consentCsvStream(batches, await batches.next()));
+    expect(chunks).toEqual([
+      CSV_HEADER + consentCsvRow(record(1)) + consentCsvRow(record(2)),
+      consentCsvRow(record(3)),
+    ]);
+  });
+
+  test('an empty export is one chunk with only the header', async () => {
+    const batches = batchesOf();
+    const chunks = await readChunks(consentCsvStream(batches, await batches.next()));
+    expect(chunks).toEqual([CSV_HEADER]);
+  });
+
+  test('a failure after the first chunk aborts the stream instead of ending it cleanly', async () => {
+    async function* failing(): AsyncGenerator<ConsentRecord[], void, undefined> {
+      yield [record(1)];
+      throw new Error('database went away');
+    }
+    const batches = failing();
+    const stream = consentCsvStream(batches, await batches.next());
+    await expect(readChunks(stream)).rejects.toThrow('database went away');
+  });
+
+  test('cancelling the download closes the batch generator, so the query stops', async () => {
+    let finished = false;
+    async function* source(): AsyncGenerator<ConsentRecord[], void, undefined> {
+      try {
+        yield [record(1)];
+        yield [record(2)];
+      } finally {
+        finished = true;
+      }
+    }
+    const batches = source();
+    const stream = consentCsvStream(batches, await batches.next());
+    const reader = stream.getReader();
+    await reader.read();
+    await reader.cancel();
+    expect(finished).toBe(true);
+  });
 });

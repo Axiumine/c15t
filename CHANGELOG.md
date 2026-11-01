@@ -18,6 +18,17 @@ their own "Security" heading and name the advisory.
 
 ### Added
 
+- Mutation testing with StrykerJS 10.1.1 (exact pins, Apache-2.0; the vitest runner and the TypeScript checker):
+  `yarn mutation` runs incrementally on the logic files of `packages/shared`, `packages/db`, consent-api and
+  dashboard-api, on PGlite only (`stryker.config.mjs` removes the database variables), and fails below a score of
+  90 (`thresholds.break`). `.github/workflows/mutation.yml` runs it weekly (Mondays) and on demand on the
+  self-hosted runners, with the incremental file in `actions/cache` and the HTML report as an artifact. It is not a
+  pull request check. New tests pin what the surviving mutants had shown to be unpinned: the zod contracts, the
+  environment messages, the request guard, the registry bookkeeping, the failover classification, audit, validation
+  and range handling. Measured scores and what still survives: `docs/quality-gates.md`.
+- Vitest snapshots of the dashboard API's JSON shapes and of the CSV export bytes
+  (`apps/dashboard-api/src/api-snapshots.test.ts`, run on PGlite and on a real database; volatile values are
+  replaced by labels in `src/testing/normalize.ts`). A changed snapshot is a contract change.
 - `docs/local-database.md`: a PostgreSQL for development, the tests and the e2e suite. It lists which suites need a
   real database and what happens when the variables are missing, how to run a throwaway server without root, how to
   create the roles and a separate test database, the connection URLs, every environment variable (dotenv file versus

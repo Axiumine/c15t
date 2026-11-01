@@ -1,0 +1,81 @@
+name: Mutation testing
+
+# Weekly and on demand only. It is deliberately NOT a pull-request check: a run takes tens of minutes
+# and its score moves slowly. The score gate (`thresholds.break` in stryker.config.mjs) fails this
+# workflow when the score drops, which shows up in the Actions tab and in the notification mails.
+# It runs on the self-hosted runners (docs/ci-runners.md). Only `schedule` and `workflow_dispatch`
+# trigger it, never a pull request, so code from a fork can never reach those runners.
+# What it measures and how to read the report: docs/quality-gates.md.
+on:
+  schedule:
+    - cron: "17 3 * * 1" # Mondays, 03:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mutation
+  cancel-in-progress: false
+
+env:
+  # .yarnrc.yml sets the same values; they are repeated here so CI does not depend on that file.
+  YARN_NODE_LINKER: node-modules
+  YARN_ENABLE_TELEMETRY: "0"
+
+jobs:
+  mutation:
+    name: StrykerJS
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 90
+    env:
+      TZ: UTC
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up toolchain
+        uses: ./.github/actions/setup
+
+      # The incremental file holds the result of every mutant. With it, a run only re-tests the
+      # mutants whose code or tests changed since the last run, so the weekly run is much shorter
+      # than the first one. The newest cache wins (restore-keys); a miss only makes the run slower.
+      - name: Restore the incremental file
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: reports/mutation/stryker-incremental.json
+          key: mutation-incremental-${{ github.run_id }}
+          restore-keys: mutation-incremental-
+
+      # No database service: the suites run on PGlite only (stryker.config.mjs removes the database
+      # variables), so nothing here can reach a real database.
+      # Four workers keep the shared host usable for other jobs (8 to 12 CPUs). A cold run took 23.6
+      # minutes on 4 cores; later runs reuse the incremental file and are much shorter.
+      - name: Mutation testing
+        run: yarn mutation --concurrency 4
+
+      # Saved even when the score gate fails, so the next run starts from these results.
+      - name: Save the incremental file
+        if: ${{ !cancelled() }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: reports/mutation/stryker-incremental.json
+          key: mutation-incremental-${{ github.run_id }}
+
+      - name: Upload the HTML report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: mutation-report
+          path: |
+            reports/mutation/mutation.html
+            reports/mutation/mutation.json
+          if-no-files-found: ignore
+          retention-days: 30
+
+      # A killed job can leave the sandbox behind, and the runner is persistent.
+      - name: Remove the Stryker sandbox
+        if: ${{ always() }}
+        run: rm -rf .stryker-tmp

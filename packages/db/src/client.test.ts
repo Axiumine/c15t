@@ -66,6 +66,14 @@ describe('createDatabase pools', () => {
     expect(replica).not.toHaveProperty('max');
   });
 
+  test('the Drizzle handle knows the app schema (relational queries need it)', () => {
+    createPoolMock.mockReturnValueOnce(fakePool().sql);
+    const { primary } = createDatabase({ primaryUrl: url, applicationName: 'dash' });
+    expect(Object.keys(primary.query)).toEqual(
+      expect.arrayContaining(['user', 'session', 'site', 'siteMember', 'adminAudit']),
+    );
+  });
+
   test('replicaMax sizes only the replica pool', () => {
     createPoolMock.mockReturnValue(fakePool().sql);
     createDatabase({ primaryUrl: url, replicaUrl, applicationName: 'dash', replicaMax: 2 });

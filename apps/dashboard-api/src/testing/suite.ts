@@ -4,8 +4,14 @@
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import { createEnvironment, type EnvironmentKind, type TestEnvironment } from './environment.js';
 
-/** The same tests run on PGlite and, with the dev database variables set, on the real database. */
-const ENVIRONMENT_KINDS: readonly EnvironmentKind[] = ['pglite', 'postgres'];
+/**
+ * The same tests run on PGlite and, with the dev database variables set, on the real database.
+ * `C15T_TEST_ENVIRONMENTS=pglite` (set only by the mutation-testing config, `stryker.config.mjs`) drops
+ * the real-database variants, so a mutation run can never reach a shared database. Every other run, CI
+ * included, keeps both.
+ */
+export const ENVIRONMENT_KINDS: readonly EnvironmentKind[] =
+  process.env['C15T_TEST_ENVIRONMENTS'] === 'pglite' ? ['pglite'] : ['pglite', 'postgres'];
 
 export interface SuiteContext {
   readonly kind: EnvironmentKind;

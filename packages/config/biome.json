@@ -13,6 +13,8 @@
       "!**/.yarn",
       "!**/.idea",
       "!**/.qodana",
+      "!**/.stryker-tmp",
+      "!**/reports",
       "!**/.claude",
       "!**/.gitnexus",
       "!**/playwright-report",

@@ -47,10 +47,15 @@ dashboard-api suites run on both PGlite and a real server.
 
 ### How the choice is made
 
-There is no switch. [`suite.ts`](../apps/dashboard-api/src/testing/suite.ts) wraps every shared dashboard-api
-suite in `describe.each(['pglite', 'postgres'])`, so both variants always run. The `postgres` variant
-([`environment.ts`](../apps/dashboard-api/src/testing/environment.ts)) reads `DATABASE_URL_DASHBOARD` and
-`DATABASE_URL_C15T` and connects. `timezone.test.ts` does the same by hand.
+There is no switch for you to set. [`suite.ts`](../apps/dashboard-api/src/testing/suite.ts) wraps every shared
+dashboard-api suite in `describe.each(['pglite', 'postgres'])`, so both variants run in `yarn test`, in CI and in
+every run you start. The `postgres` variant ([`environment.ts`](../apps/dashboard-api/src/testing/environment.ts))
+reads `DATABASE_URL_DASHBOARD` and `DATABASE_URL_C15T` and connects. `timezone.test.ts` does the same by hand.
+
+One internal variable narrows the list: `C15T_TEST_ENVIRONMENTS=pglite` drops the `postgres` variants. Only
+`stryker.config.mjs` sets it, for the mutation run, so that run can never reach a shared database
+([`quality-gates.md`](./quality-gates.md#mutation-testing-strykerjs)). Any other value, or no value, keeps both.
+Do not set it in the dotenv file or the shell: a green run must mean that the database was used.
 
 ### What happens when the variables are unset
 
@@ -433,6 +438,7 @@ delete the line, or give it a value. Rule 2 of section 5.1 makes the empty value
 | `TZ` | Node, tests | Optional. CI sets `UTC`. Every test file also passed here under Europe/Rome (CET); the timezone suite checks six zones itself. |
 | `NODE_EXTRA_CA_CERTS` | Node | Only for TLS to a private CA. Not needed locally. |
 | `E2E_RUN_ID`, `E2E_PORT_*`, `NGINX_TEST_*` | `playwright.config.ts`, `e2e/support` | Set by the runner for one run. Do not set them. |
+| `C15T_TEST_ENVIRONMENTS` | `apps/dashboard-api/src/testing/suite.ts` | Internal. Exactly `pglite` limits the dashboard-api suites to PGlite; anything else keeps PGlite and the real database. `stryker.config.mjs` sets it for the mutation run (section 1). Do not set it. |
 
 ## 6. Run it
 

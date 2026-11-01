@@ -66,6 +66,7 @@ and do not switch to Plug'n'Play: Vite, drizzle-kit and the c15t CLI need `node_
 | `yarn fta` | maintainability score of each source file |
 | `yarn code-caps` | size and shape caps with a ratchet baseline |
 | `yarn test:scripts-coverage` | the `node:test` suites of `scripts/check-code-caps.ts` (with `scripts/code-caps/`) and `scripts/git-hooks.mjs`, with a 100% coverage gate |
+| `yarn mutation` | StrykerJS mutation testing, incremental, no database (PGlite only); weekly in CI on the self-hosted runners, not a pull-request check or a pre-push step (see [`docs/quality-gates.md`](./docs/quality-gates.md#mutation-testing-strykerjs)) |
 
 **Run `yarn typecheck && yarn lint && yarn lint:eslint && yarn test` before you open a pull request.** ESLint and the
 four analysers below are part of the same gate: they all pass on the current code, so a failure is yours.
@@ -198,7 +199,9 @@ one workspace; the consent-api workspace does not list `vitest`, so `yarn worksp
 fails with `command not found: vitest`).
 Tests only touch rows they created, marked with a run prefix, and clean up after themselves. Use a
 disposable database, never a production one. In a git worktree below another checkout, Yarn also injects the outer
-checkout's env file: read rule 5 of section 5.1 in that guide first.
+checkout's env file: read rule 5 of section 5.1 in that guide first. `yarn mutation` is the exception: it removes the
+database variables and the admin key from its own environment and runs the suites on PGlite only
+(`stryker.config.mjs`), so it never touches a database, whatever Yarn injected.
 
 ## Coding standards
 

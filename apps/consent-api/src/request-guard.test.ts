@@ -169,6 +169,20 @@ describe('clientAddress', () => {
 });
 
 describe('paths', () => {
+  test('control characters are unsafe from 0x00 up to 0x1f and at 0x7f, a space is not one', () => {
+    expect(isSafePath('/s/shop/a b')).toBe(true);
+    for (const code of [0x00, 0x09, 0x1f, 0x7f]) {
+      expect(isSafePath(`/s/shop/a${String.fromCharCode(code)}b`), `0x${code.toString(16)}`).toBe(
+        false,
+      );
+    }
+  });
+
+  test('only a leading scheme and authority is removed from an absolute-form target', () => {
+    expect(rawPathname('https://shop.example.com/s/shop/init?x=1')).toBe('/s/shop/init');
+    expect(rawPathname('/s/shop/foo://bar')).toBe('/s/shop/foo://bar');
+  });
+
   test.each([
     '/s/shop/init',
     '/s/shop/init?x=1',

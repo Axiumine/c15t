@@ -24,30 +24,87 @@ describe('errors are JSON', () => {
   });
 
   test.each([
-    [404, 'text/plain', '404 Not Found', 'NOT_FOUND'],
-    [500, 'text/html', '<html><body>oops</body></html>', 'INTERNAL_ERROR'],
-    [502, 'text/html', '<h1>Bad gateway</h1>', 'INTERNAL_ERROR'],
-    [400, 'text/plain', 'bad', 'BAD_REQUEST'],
-    [401, 'text/plain', 'who are you', 'UNAUTHORIZED'],
-    [403, 'text/html', '<h1>Forbidden</h1>', 'FORBIDDEN'],
-    [409, 'text/plain', 'conflict', 'CONFLICT'],
-    [429, 'text/html', '<h1>Slow down</h1>', 'RATE_LIMITED'],
-    [503, 'text/html', '<h1>Unavailable</h1>', 'SERVICE_UNAVAILABLE'],
-  ])('rewrites a %s %s body as JSON', async (status, contentType, text, code) => {
-    const h = harness(siteRecord('shop'));
-    h.respondWith(
-      'shop',
-      () => new Response(text, { status, headers: { 'content-type': contentType, etag: '"x"' } }),
-    );
-    const response = await h.send('/s/shop/x');
-    expect(response.status).toBe(status);
-    expect(response.headers.get('content-type')).toContain('application/json');
-    expect(response.headers.has('etag')).toBe(false);
-    const body = await errorBody(response);
-    expect(body.error.code).toBe(code);
-    expect(JSON.stringify(body)).not.toContain('<');
-    await h.registry.close();
-  });
+    {
+      status: 404,
+      contentType: 'text/plain',
+      text: '404 Not Found',
+      code: 'NOT_FOUND',
+      message: 'Not found.',
+    },
+    {
+      status: 500,
+      contentType: 'text/html',
+      text: '<html><body>oops</body></html>',
+      code: 'INTERNAL_ERROR',
+      message: 'Internal server error.',
+    },
+    {
+      status: 502,
+      contentType: 'text/html',
+      text: '<h1>Bad gateway</h1>',
+      code: 'INTERNAL_ERROR',
+      message: 'Internal server error.',
+    },
+    {
+      status: 400,
+      contentType: 'text/plain',
+      text: 'bad',
+      code: 'BAD_REQUEST',
+      message: 'Bad request.',
+    },
+    {
+      status: 401,
+      contentType: 'text/plain',
+      text: 'who are you',
+      code: 'UNAUTHORIZED',
+      message: 'Unauthorized.',
+    },
+    {
+      status: 403,
+      contentType: 'text/html',
+      text: '<h1>Forbidden</h1>',
+      code: 'FORBIDDEN',
+      message: 'Forbidden.',
+    },
+    {
+      status: 409,
+      contentType: 'text/plain',
+      text: 'conflict',
+      code: 'CONFLICT',
+      message: 'Conflict.',
+    },
+    {
+      status: 429,
+      contentType: 'text/html',
+      text: '<h1>Slow down</h1>',
+      code: 'RATE_LIMITED',
+      message: 'Too many requests.',
+    },
+    {
+      status: 503,
+      contentType: 'text/html',
+      text: '<h1>Unavailable</h1>',
+      code: 'SERVICE_UNAVAILABLE',
+      message: 'Service unavailable.',
+    },
+  ])(
+    'rewrites a $status $contentType body as JSON',
+    async ({ status, contentType, text, code, message }) => {
+      const h = harness(siteRecord('shop'));
+      h.respondWith(
+        'shop',
+        () => new Response(text, { status, headers: { 'content-type': contentType, etag: '"x"' } }),
+      );
+      const response = await h.send('/s/shop/x');
+      expect(response.status).toBe(status);
+      expect(response.headers.get('content-type')).toContain('application/json');
+      expect(response.headers.has('etag')).toBe(false);
+      const body = await errorBody(response);
+      expect(body.error).toEqual({ code, message });
+      expect(JSON.stringify(body)).not.toContain('<');
+      await h.registry.close();
+    },
+  );
 
   test('a 304 and a 204 are left alone', async () => {
     const h = harness(siteRecord('shop'));
