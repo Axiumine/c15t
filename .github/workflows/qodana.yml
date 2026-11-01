@@ -51,7 +51,9 @@ concurrency:
 jobs:
   qodana:
     name: Qodana
-    runs-on: ubuntu-24.04
+    # Self-hosted runners (docs/ci-runners.md). A pull request from a fork, or one whose head repository
+    # cannot be read, runs on a GitHub-hosted VM instead.
+    runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository && 'ubuntu-24.04' || fromJSON('["self-hosted","Linux","X64"]') }}
     # Pulling the 1.2 GB linter image, installing the dependencies and the analysis itself. Nobody has
     # measured a run yet; a scan that takes more than this is stuck.
     timeout-minutes: 45

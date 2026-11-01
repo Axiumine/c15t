@@ -51,8 +51,8 @@ Without Docker, run the other three files: `yarn test:e2e e2e/auth-roles.spec.ts
 - **Run id.** `playwright.config.ts` makes one id, `e2e-<8 hex>`, in the runner process and passes it to
   workers and servers through `E2E_RUN_ID`. Every site key, hostname, email and tenant id a run creates
   starts with `<run id>-` (and then a scenario tag and the worker index, so parallel workers never clash).
-- **Ports.** The runner picks four free ports (consent-api, dashboard-api, `vite preview`, nginx) between
-  20000 and 32000 and proves each free by binding it. They reach the servers as `CONSENT_API_PORT`,
+- **Ports.** The runner picks four free ports (consent-api, dashboard-api, `vite preview`, nginx) at
+  random above 50000 (50001 to 65535) and proves each free by binding it. They reach the servers as `CONSENT_API_PORT`,
   `DASHBOARD_API_PORT`, `DASHBOARD_WEB_DEV_PORT` and `NGINX_TEST_PORT`. Addresses come from the loopback
   interface; no port or address is written in the code. The servers are started with their binaries, not
   through `yarn run`, because Yarn's injected env file would override these values.

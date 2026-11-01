@@ -5,13 +5,14 @@ import { randomInt } from 'node:crypto';
 import { createServer } from 'node:net';
 
 /*
- * Free-port helper. Ports are picked below the Linux ephemeral range (32768+) so they cannot
- * collide with the source port of an outgoing connection, then proven free by binding them on
- * every interface: nginx in the test container listens on the wildcard address.
+ * Free-port helper. Ports are picked at random above 50000 (50001 to 65535) and proven free by
+ * binding them on every interface: nginx in the test container listens on the wildcard address.
+ * Part of that range is also the Linux ephemeral range (up to 60999), so a port can still be taken
+ * by an outgoing connection between the probe and the server start; the bind probe makes that rare.
  */
 
-const LOW = 20_000;
-const HIGH = 32_000;
+const LOW = 50_001;
+const HIGH = 65_536; // exclusive
 
 function canBind(port: number): Promise<boolean> {
   return new Promise((resolve) => {

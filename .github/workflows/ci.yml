@@ -22,7 +22,9 @@ env:
 jobs:
   verify:
     name: Verify (typecheck, lint, build)
-    runs-on: ubuntu-24.04
+    # Self-hosted runners (docs/ci-runners.md). A pull request from a fork, or one whose head repository
+    # cannot be read, runs on a GitHub-hosted VM instead.
+    runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository && 'ubuntu-24.04' || fromJSON('["self-hosted","Linux","X64"]') }}
     timeout-minutes: 15
     steps:
       - name: Check out
@@ -59,7 +61,9 @@ jobs:
   # a failure is a change that made the code worse, not a backlog.
   static-analysis:
     name: Static analysis (ESLint, knip, type coverage, FTA, code caps)
-    runs-on: ubuntu-24.04
+    # Self-hosted runners (docs/ci-runners.md). A pull request from a fork, or one whose head repository
+    # cannot be read, runs on a GitHub-hosted VM instead.
+    runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository && 'ubuntu-24.04' || fromJSON('["self-hosted","Linux","X64"]') }}
     timeout-minutes: 20
     steps:
       - name: Check out
@@ -98,7 +102,9 @@ jobs:
   # commit twice and installs from the lockfile in each clone, so this job needs no install of its own.
   reproducible:
     name: Reproducible build
-    runs-on: ubuntu-24.04
+    # Self-hosted runners (docs/ci-runners.md). A pull request from a fork, or one whose head repository
+    # cannot be read, runs on a GitHub-hosted VM instead.
+    runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository && 'ubuntu-24.04' || fromJSON('["self-hosted","Linux","X64"]') }}
     timeout-minutes: 20
     steps:
       - name: Check out
@@ -119,7 +125,9 @@ jobs:
   # `yarn test`: every test runs here, against a real PostgreSQL server.
   test:
     name: Test (PostgreSQL 17, coverage)
-    runs-on: ubuntu-24.04
+    # Self-hosted runners (docs/ci-runners.md). A pull request from a fork, or one whose head repository
+    # cannot be read, runs on a GitHub-hosted VM instead.
+    runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository && 'ubuntu-24.04' || fromJSON('["self-hosted","Linux","X64"]') }}
     timeout-minutes: 25
     env:
       # Throwaway administrator password of a container that only this job can reach.
@@ -127,21 +135,12 @@ jobs:
       # Several date-range tests assume UTC. GitHub-hosted runners are UTC already; this keeps
       # the result the same when the job is reproduced on a machine with another time zone.
       TZ: UTC
-    services:
-      postgres:
-        # postgres:17 (17.11), the multi-arch image index, pinned by digest. Dependabot does not
-        # update images used in `services:`, so bump the digest by hand: it is the
-        # Docker-Content-Digest header of the registry manifest for the tag.
-        image: postgres:17@sha256:31ba9c94a03ada9988f2bb493a22a75eef3a185884533e5cdbcd498ea835b08f
-        env:
-          POSTGRES_PASSWORD: ${{ env.CI_PG_ADMIN_PASSWORD }}
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 12
+      # postgres:17 (17.11), the multi-arch image index, pinned by digest. Dependabot does not
+      # update an image named in an env value, so bump the digest by hand: it is the
+      # Docker-Content-Digest header of the registry manifest for the tag.
+      PG_IMAGE: postgres:17@sha256:31ba9c94a03ada9988f2bb493a22a75eef3a185884533e5cdbcd498ea835b08f
+      # Unique per run, so jobs that share a runner host never meet, and the last step can remove it.
+      PG_CONTAINER: c15t-ci-pg-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - name: Check out
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -154,10 +153,16 @@ jobs:
       # Creates the roles and schemas (infra/postgres/init.sql), applies the c15t and app
       # migrations and exports DATABASE_URL_C15T, DATABASE_URL_DASHBOARD and C15T_ADMIN_API_KEY
       # with every secret masked. psql comes from the runner image.
+      # A script, not `services:`: the port is random and above 50000, never 5432, so it cannot meet
+      # another job's database or a PostgreSQL that runs on the runner host. The script sets PGPORT.
+      - name: Start PostgreSQL
+        env:
+          POSTGRES_PASSWORD: ${{ env.CI_PG_ADMIN_PASSWORD }}
+        run: bash scripts/ci-start-postgres.sh
+
       - name: Bootstrap the database
         env:
           PGHOST: 127.0.0.1
-          PGPORT: "5432"
           PGUSER: postgres
           PGPASSWORD: ${{ env.CI_PG_ADMIN_PASSWORD }}
         run: bash scripts/ci-bootstrap-db.sh
@@ -183,3 +188,7 @@ jobs:
           path: coverage/
           if-no-files-found: ignore
           retention-days: 14
+
+      - name: Stop PostgreSQL
+        if: ${{ always() }}
+        run: docker rm --force "${PG_CONTAINER}" > /dev/null 2>&1 || true

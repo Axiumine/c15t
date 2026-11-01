@@ -25,6 +25,7 @@ so that you know where to read.
 | Rules the code must follow | [`CLAUDE.md`](../CLAUDE.md) |
 | Database roles, schemas and grants | [`database-setup.md`](./database-setup.md) |
 | A local PostgreSQL, the test database and the variables the tests read | [`local-database.md`](./local-database.md) |
+| Where does CI run, and who may run code on the runners? | [`ci-runners.md`](./ci-runners.md) |
 
 ## Repository layout
 

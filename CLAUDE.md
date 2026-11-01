@@ -125,6 +125,7 @@ Run `yarn typecheck && yarn lint && yarn lint:eslint && yarn test` before you ca
 
 ### Network configuration
 
+- **CI and test ports are random.** The e2e stack, the nginx snippet test and the CI PostgreSQL container pick a free port from 50001 to 65535 (`e2e/support/ports.ts`, `scripts/ci-start-postgres.sh`); never a fixed one, and `scripts/ci-bootstrap-db.sh` has no default `PGPORT`. See `docs/ci-runners.md`.
 - **Never hard-code addresses or ports** (`127.0.0.1`, `4100`, `4200`, `5173`) in code or snippets. Defaults live only in the zod schemas in each app's `src/env.ts`, and in `vite.config.ts` for the dev server. nginx gets addresses only from the rendered `upstreams.conf`.
 - `CONSENT_API_HOST` and `DASHBOARD_API_HOST` must be a loopback address or a private LAN address: RFC 1918, CGNAT `100.64.0.0/10` (WireGuard / Tailscale), or IPv6 ULA `fc00::/7`. Env validation **rejects** `0.0.0.0`, `::` and public IPs. Ports are integers from 1024 to 65535.
 - `CONSENT_API_TRUSTED_PROXIES` is a comma-separated CIDR list, default `127.0.0.1/32,::1/128`. consent-api reads the TCP peer with `getConnInfo(c)` from `@hono/node-server/conninfo`. If the peer is **not** in that list, consent-api deletes the `X-Forwarded-*`, `CF-*` and `Forwarded` headers before it calls the c15t handler. This way the IP and geo data can never be spoofed.
