@@ -15,12 +15,13 @@ seconds instead of after a push. **CI is the authority.** A hook can be skipped 
 | `git commit` → **commit-msg** | on the message | DCO sign-off: a `Signed-off-by: Name <email>` line (`scripts/git-hooks.mjs commit-msg`) | instant |
 | `git push` → **pre-push** (piped: stops at the first failure) | on the whole tree | 1. `typecheck` (`tsc -b`, also writes the declarations the type-aware ESLint rules read) 2. in parallel: `lint` (Biome), `lint:eslint`, `knip`, `type-coverage`, `fta`, `code-caps`, `spdx:check` 3. `test:coverage` (Vitest, 100% statements, branches, functions and lines) 4. `test:scripts-coverage` (the `node:test` suites of `scripts/`, 100%) 5. in parallel: `semgrep`, `trivy` (skipped with a message when the tool is not installed) | 30 s warm, a few minutes cold |
 | `git merge`, `git checkout` → **post-merge**, **post-checkout** | after the fact | a reminder to run `yarn install` when `yarn.lock` changed | instant |
-| **Pull request** (CI) | on the merge result | the same checks as workflow jobs: *Verify* (typecheck, Biome, SPDX, build, infra script tests), *Static analysis* (ESLint, knip, type coverage, FTA, code caps, scripts coverage), *Test* (PostgreSQL 17, 100% coverage), *Reproducible build*, *Security scan* (Semgrep, Trivy), CodeQL, dependency review, DCO | 5 min |
-| **Schedule** (CI) | weekly | *Security scan* again (rules and advisories change without a commit), OpenSSF Scorecard |  |
+| **Pull request** (CI) | on the merge result | the same checks as workflow jobs: *Verify* (typecheck, Biome, SPDX, build, infra script tests), *Static analysis* (ESLint, knip, type coverage, FTA, code caps, scripts coverage), *Test* (PostgreSQL 17, 100% coverage), *Reproducible build*, *Security scan* (Semgrep, Trivy), CodeQL, dependency review, DCO, and *Qodana* when the `QODANA_TOKEN` secret exists (a notice "skipped" otherwise) | 5 min, Qodana longer |
+| **Schedule** (CI) | weekly | *Security scan* again (rules and advisories change without a commit), *Qodana* (Tuesdays, same reason), OpenSSF Scorecard |  |
 
 The required status checks of the `main` ruleset are listed in `docs/scorecard.md`. *Static analysis*,
 *Reproducible build* and *Security scan* run on every pull request but are not required checks until the
-maintainer adds them to the ruleset.
+maintainer adds them to the ruleset. *Qodana* is not one either and should not become one: without the secret it
+is skipped and green, which proves nothing (`docs/security-scanning.md`, "Qodana").
 
 ## The gates
 
@@ -36,6 +37,7 @@ maintainer adds them to the ruleset.
 | Unit and integration tests | Vitest, `@vitest/coverage-v8` | `yarn test`, `yarn test:coverage` | 100% statements, branches, functions and lines of `apps/*/src` and `packages/*/src` |
 | Script tests | `node:test` | `yarn test:scripts-coverage` | 100% of `scripts/check-code-caps.ts` and `scripts/git-hooks.mjs` |
 | End to end | Playwright | `yarn test:e2e` | the dashboard and the consent flow in a real browser (needs the dev database; see `docs/e2e.md`) |
+| Static analysis, JetBrains inspections (advisory) | Qodana (`jetbrains/qodana-js`, profile `qodana.recommended`), needs a license token and Docker | `yarn qodana` | `failureConditions` of `qodana.yaml`: at most 500 problems, a ceiling to be replaced after the first real run; CI job `qodana.yml` runs only with the `QODANA_TOKEN` secret |
 | SAST | Semgrep (`p/typescript`, `p/javascript`, `p/react`, `p/nodejsscan`, `p/secrets`) | `yarn semgrep` | zero findings; CI uses a hash-pinned install |
 | Vulnerabilities, secrets, misconfiguration | Trivy `fs` | `yarn trivy` | no HIGH or CRITICAL finding in `yarn.lock` and the CI tool lockfiles; no committed secret |
 | Reproducible build | `scripts/verify-reproducible-build.sh` | CI job | two clean builds are byte-identical |
@@ -55,6 +57,7 @@ How to fix a failure of each analyser, and the reasons for its settings, are in 
   `LEFTHOOK_EXCLUDE=tests git push`. Run a stage by hand: `yarn lefthook run pre-push --force`.
 - The configuration is `lefthook.yml`. When you add a gate, add its script to `package.json`, to the
   pre-push stage (in dependency order) and to a CI job in the same change, and list it in the table above.
+  The one exception is Qodana, which needs a token and minutes of Docker time (see "Decisions" below).
 - A Node version manager is optional: fnm and mise both read `.nvmrc` (`fnm use`, `mise install`), and
   Corepack provides Yarn 4.
 
@@ -63,7 +66,7 @@ How to fix a failure of each analyser, and the reasons for its settings, are in 
 | Item | Decision |
 |---|---|
 | Node.js 24 | Not used. The runtime is Node 26 LTS, pinned by `.nvmrc`, `engines.node` and `packageManager` (README D8); `scripts/check-code-caps.ts` and the other tools run on it. |
-| Qodana (`jetbrains/qodana-js`) | Not added. The JS/TS linter needs a paid license token, which only the maintainer can create and store as a repository secret; the project has no repository secrets today (releases are keyless). It overlaps CodeQL, Semgrep and ESLint. It can be added when there is a token and a reason. |
+| Qodana (`jetbrains/qodana-js`) | **Added, advisory, never run with a token.** `qodana.yaml`, `.github/workflows/qodana.yml` (push to `main`, pull requests, weekly, manual) and `yarn qodana`. The job needs the `QODANA_TOKEN` repository secret (a Qodana Cloud project token) and is skipped with a notice when it is missing, so it is not a required check. Its first result is unknown until the maintainer runs it with the token; the gate is a placeholder ceiling of 500 problems until then (`docs/security-scanning.md`, "The first run"). It is not in the pre-push hook: a run takes minutes, needs Docker and a 1.2 GB image, and a hook that needs a token would fail for everyone without one. It overlaps CodeQL, Semgrep and ESLint only in part. |
 | FTA `score_cap` | **65**, not 50. When the check was added, 36 hand-written files scored between 50 and 65 (the "could be better" band), so a cap of 50 would have meant splitting all of them in one change. The cap is the worst score the code has today, so no file can get worse than that. Lower it as files are split (CONTRIBUTING.md, "Static analysers"); the goal stays 50. |
 | gitnexus | Stays optional (`.gitnexus/` is not in a clone). The pre-commit hook runs `detect-changes` for the staged change when the index exists and never blocks. |
 | Rules relaxed in ESLint | Listed with their finding counts in `eslint.config.mjs`; none for security rules. Per-line disables carry a reason. |

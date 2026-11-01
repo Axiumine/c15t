@@ -21,6 +21,9 @@ blob-report
 *.log
 .gitnexus
 
+# Qodana results of `yarn qodana` (scripts/qodana.sh): SARIF, an HTML report and logs
+.qodana/
+
 # Editor and agent tooling, local only
 .idea
 .vscode

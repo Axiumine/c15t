@@ -60,6 +60,7 @@ and do not switch to Plug'n'Play: Vite, drizzle-kit and the c15t CLI need `node_
 | `yarn spdx` | adds the SPDX header to new source files (`yarn spdx:check` only verifies) |
 | `yarn semgrep` | Semgrep static analysis with the registry rule sets (needs `semgrep`, see [`docs/security-scanning.md`](./docs/security-scanning.md); skipped with a message when it is not installed) |
 | `yarn trivy` | Trivy scan of the lockfiles, secrets and misconfigurations (needs `trivy`, same document and same skip rule) |
+| `yarn qodana` | JetBrains Qodana (advisory; needs `QODANA_TOKEN`, Docker and the Qodana CLI, otherwise it refuses to run; see the paragraph on `yarn qodana` below) |
 | `yarn knip` | unused files, exports, types and dependencies |
 | `yarn type-coverage` | `any` and unsafe type assertions, per tsconfig project |
 | `yarn fta` | maintainability score of each source file |
@@ -122,6 +123,16 @@ by splitting the function or file. When you reduced a violation, run `node scrip
 and commit the lowered baseline: `--update` writes the baseline only if nothing is new or worse, and refuses
 otherwise. The baseline never needs to go up. Its own test, `yarn test:scripts-coverage`, uses `node:test` and
 must keep the script at 100% lines, branches and functions.
+
+**`yarn qodana`** (`scripts/qodana.sh`, `qodana.yaml`) runs the JetBrains inspections of the `jetbrains/qodana-js` linter
+on a copy of your working tree, with the same configuration as the "Qodana" workflow. It needs a Qodana license token in
+`QODANA_TOKEN` (the dotenv file that Yarn loads; `env.example` has the line), a running Docker and the Qodana CLI
+(`docs/security-scanning.md`, "Qodana"), and it stops with a message when one is missing. The workflow reads the
+repository secret of the same name and is skipped, not failed, without it, so a pull request from a fork is never
+blocked by it. The results are advisory: nobody has run the first scan with a token yet, so its quality gate is a
+placeholder (500 problems) until a maintainer has read the first report and set the real one. Do not fix or
+suppress Qodana findings in an unrelated change. It is not part of the pre-push hook (minutes of Docker time and a
+token). Results go to `.qodana/` (ignored by Git) and to Qodana Cloud.
 
 ### Testing changes to `infra/`
 
