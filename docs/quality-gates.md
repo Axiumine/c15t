@@ -59,7 +59,8 @@ How to fix a failure of each analyser, and the reasons for its settings, are in 
   `LEFTHOOK_EXCLUDE=tests git push`. Run a stage by hand: `yarn lefthook run pre-push --force`.
 - The configuration is `lefthook.yml`. When you add a gate, add its script to `package.json`, to the
   pre-push stage (in dependency order) and to a CI job in the same change, and list it in the table above.
-  The one exception is Qodana, which needs a token and minutes of Docker time (see "Decisions" below).
+  The two exceptions are Qodana, which needs a token and minutes of Docker time, and mutation testing, which takes
+  minutes on many cores and must not block a push or a pull request (see "Decisions" below).
 - A Node version manager is optional: fnm and mise both read `.nvmrc` (`fnm use`, `mise install`), and
   Corepack provides Yarn 4.
 
@@ -69,6 +70,7 @@ How to fix a failure of each analyser, and the reasons for its settings, are in 
 |---|---|
 | Node.js 24 | Not used. The runtime is Node 26 LTS, pinned by `.nvmrc`, `engines.node` and `packageManager` (README D8); `scripts/check-code-caps.ts` and the other tools run on it. |
 | Qodana (`jetbrains/qodana-js`) | **Added, advisory, never run with a token.** `qodana.yaml`, `.github/workflows/qodana.yml` (push to `main`, pull requests, weekly, manual) and `yarn qodana`. The job needs the `QODANA_TOKEN` repository secret (a Qodana Cloud project token) and is skipped with a notice when it is missing, so it is not a required check. Its first result is unknown until the maintainer runs it with the token; the gate is a placeholder ceiling of 500 problems until then (`docs/security-scanning.md`, "The first run"). It is not in the pre-push hook: a run takes minutes, needs Docker and a 1.2 GB image, and a hook that needs a token would fail for everyone without one. It overlaps CodeQL, Semgrep and ESLint only in part. |
+| Mutation testing (`yarn mutation`) | **Weekly and by hand, not in the pre-push hook and not a pull-request check.** `.github/workflows/mutation.yml` runs it on the self-hosted runners ([`ci-runners.md`](./ci-runners.md)) on Mondays and on demand. A cold run took about 8 minutes on 32 cores and takes longer on the 8 to 12 CPU runners, so it must not block a push or a pull request. It is still a gate: the run fails when the score drops below `thresholds.break` ([below](#the-score-gate)). |
 | FTA `score_cap` | **50**, the upper end of the "OK" band. When the check was added the cap was 65 (36 files scored between 50 and 65); those files were split into smaller modules and the cap was lowered to 50 (CONTRIBUTING.md, "Static analysers"). The worst file now scores about 49, so a change that makes a file worse than 50 must split it. |
 | gitnexus | Stays optional (`.gitnexus/` is not in a clone). The pre-commit hook runs `detect-changes` for the staged change when the index exists and never blocks. |
 | Rules relaxed in ESLint | Listed with their finding counts in `eslint.config.mjs`; none for security rules. Per-line disables carry a reason. |
