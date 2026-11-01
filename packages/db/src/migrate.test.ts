@@ -11,7 +11,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
  */
 const mocks = vi.hoisted(() => ({
   createPool: vi.fn(),
-  applyMigrations: vi.fn(),
+  applyMigrations: vi.fn<(executor: unknown, options: { migrationsFolder: string }) => unknown>(),
   postgresExecutor: vi.fn(),
   end: vi.fn(),
 }));

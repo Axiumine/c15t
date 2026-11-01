@@ -5,7 +5,7 @@ import { type ConsentExportQuery, isRepresentableInstant, MAX_RANGE_DAYS } from 
 import { HttpError } from './errors.js';
 
 const DAY_MS = 86_400_000;
-export const DEFAULT_RANGE_DAYS = 30;
+const DEFAULT_RANGE_DAYS = 30;
 
 /** Half-open interval `[from, to)` in UTC. Both bounds are optional for record search. */
 export interface TimeBounds {

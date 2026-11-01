@@ -34,9 +34,13 @@ export function ChartTooltip({ title, rows }: { title: string; rows: readonly To
   );
 }
 
-/** Recharts passes `active` and the hovered payload; nothing renders between marks. */
+/**
+ * Recharts passes `active` and the hovered payload; nothing renders between marks. Recharts types
+ * a mark's `payload` as `any`; it is the data point the chart was given, so the caller names its
+ * type. `Reflect.get` carries the `any` into `T` here, instead of a cast at every use.
+ */
 export function hoveredDatum<T>(props: TooltipContentProps): T | undefined {
   if (props.active !== true) return undefined;
   const first = props.payload?.[0];
-  return first === undefined ? undefined : (first.payload as T);
+  return first === undefined ? undefined : Reflect.get(first, 'payload');
 }

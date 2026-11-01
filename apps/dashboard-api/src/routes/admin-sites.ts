@@ -31,7 +31,7 @@ type Change = { from: unknown; to: unknown };
 const UPDATABLE_FIELDS = ['name', 'domains', 'policyPreset', 'status'] as const;
 
 /** Fields the request would actually change. Equal values are not changes. */
-export function diffSite(current: SiteRow, input: SiteUpdate): Record<string, Change> {
+function diffSite(current: SiteRow, input: SiteUpdate): Record<string, Change> {
   const changes: Record<string, Change> = {};
   for (const field of UPDATABLE_FIELDS) {
     const next = input[field];

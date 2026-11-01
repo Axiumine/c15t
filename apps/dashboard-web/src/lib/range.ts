@@ -28,7 +28,7 @@ export interface DateRange {
 
 const DAY_MS = 86_400_000;
 
-export const toIsoDate = (date: Date): string => date.toISOString().slice(0, 10);
+const toIsoDate = (date: Date): string => date.toISOString().slice(0, 10);
 
 function daysBetween(from: string, to: string): number {
   return Math.round((Date.parse(to) - Date.parse(from)) / DAY_MS) + 1;

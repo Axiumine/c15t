@@ -6,6 +6,8 @@
  * cookies, passwords or query strings (they can carry subject IDs).
  */
 
+import { fieldOf } from '@consent/shared';
+
 export type LogLevel = 'info' | 'warn' | 'error';
 export type LogFields = Readonly<Record<string, unknown>>;
 
@@ -40,10 +42,8 @@ const MAX_ERROR_MESSAGE = 300;
  */
 export function describeError(error: unknown): LogFields {
   if (!(error instanceof Error)) return { errorName: typeof error };
-  const code = (error as { code?: unknown }).code;
-  const cause = (error as { cause?: unknown }).cause;
-  const causeCode =
-    typeof cause === 'object' && cause !== null ? (cause as { code?: unknown }).code : undefined;
+  const code = fieldOf(error, 'code');
+  const causeCode = fieldOf(fieldOf(error, 'cause'), 'code');
   return {
     errorName: error.name,
     errorMessage: error.message.replace(/\n[\s\S]*$/, '').slice(0, MAX_ERROR_MESSAGE),

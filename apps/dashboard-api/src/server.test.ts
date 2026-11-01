@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Axiumine
 
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { fieldOf } from '@consent/shared';
+import { afterEach, beforeEach, describe, expect, type MockInstance, test, vi } from 'vitest';
 
 /*
  * server.ts is the process entry point: it runs on import. Every test gets a fresh module
@@ -9,11 +10,14 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
  * real signal handler or exits the test worker.
  */
 
+type Listening = (info: { address: string; port: number }) => void;
+type Log = (message: string, fields?: Record<string, unknown>) => void;
+
 const mocks = vi.hoisted(() => ({
-  serve: vi.fn(),
+  serve: vi.fn<(options: unknown, onListening?: Listening) => unknown>(),
   compose: vi.fn(),
   loadEnv: vi.fn(),
-  logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+  logger: { info: vi.fn<Log>(), warn: vi.fn<Log>(), error: vi.fn<Log>() },
 }));
 
 vi.mock('@hono/node-server', () => ({ serve: mocks.serve }));
@@ -41,9 +45,9 @@ const dbClose = vi.fn();
 
 let handlers: Map<string, Handler>;
 let registeredWith: Map<string, 'once' | 'on'>;
-let exit: ReturnType<typeof vi.spyOn>;
+let exit: MockInstance<typeof process.exit>;
 let closeCallback: (() => void) | undefined;
-let listening: ((info: { address: string; port: number }) => void) | undefined;
+let listening: Listening | undefined;
 let server: { close: ReturnType<typeof vi.fn>; closeIdleConnections?: ReturnType<typeof vi.fn> };
 
 function trackProcessHooks() {
@@ -133,8 +137,8 @@ describe('startup', () => {
     mocks.loadEnv.mockImplementation(() => {
       throw new EnvError(['BETTER_AUTH_SECRET: Must be at least 32 characters']);
     });
-    exit.mockImplementation((code?: number) => {
-      throw new ExitSignal(code);
+    exit.mockImplementation((code) => {
+      throw new ExitSignal(typeof code === 'number' ? code : undefined);
     });
     await expect(import('./server.js')).rejects.toMatchObject({ code: 1 });
     expect(mocks.logger.error).toHaveBeenCalledExactlyOnceWith('invalid configuration', {
@@ -148,8 +152,8 @@ describe('startup', () => {
     mocks.loadEnv.mockImplementation(() => {
       throw new Error('reading the secret failed: s3cr3t');
     });
-    exit.mockImplementation((code?: number) => {
-      throw new ExitSignal(code);
+    exit.mockImplementation((code) => {
+      throw new ExitSignal(typeof code === 'number' ? code : undefined);
     });
     await expect(start()).rejects.toMatchObject({ code: 1 });
     expect(mocks.logger.error).toHaveBeenCalledExactlyOnceWith('invalid configuration', {
@@ -215,7 +219,7 @@ describe('shutdown', () => {
     const setTimeoutSpy = vi.spyOn(globalThis, 'setTimeout');
     await start();
     signal('SIGTERM');
-    const timer = setTimeoutSpy.mock.results[0]?.value as { hasRef(): boolean };
+    const timer = fieldOf(setTimeoutSpy.mock.results[0], 'value') as { hasRef(): boolean };
     expect(timer.hasRef()).toBe(false);
     await vi.advanceTimersByTimeAsync(9_999);
     expect(exit).not.toHaveBeenCalled();

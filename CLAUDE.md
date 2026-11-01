@@ -81,6 +81,8 @@ infra/
                         update-cloudflare-ips.test.sh (no Docker: the Cloudflare IP updater with stand-ins) and
                         uninstall.test.sh (no Docker, no root: deploy.sh install and uninstall on a temporary tree; run in CI)
 c15t-backend.config.ts  config used by the c15t migration CLI
+knip.json, fta.json      analyser configs (yarn knip, yarn fta); typeCoverage in package.json configures yarn type-coverage
+scripts/check-code-caps.ts + .code-caps-baseline.json   size caps with a ratchet baseline (yarn code-caps)
 .yarnrc.yml             nodeLinker, injectEnvironmentFiles, packageExtensions
 ```
 
@@ -98,6 +100,11 @@ yarn c15t:migrate        # same with --apply (review the plan first)
 yarn db:pull-c15t        # drizzle-kit pull, schemaFilter ['c15t'] -> packages/db/src/c15t.generated.ts
 yarn admin:create --email you@example.com   # bootstrap first admin, prints a one-time password
 yarn spdx                # add the SPDX licence header to new source files; yarn spdx:check only verifies
+yarn knip                # unused files, exports, types and dependencies (knip.json lists only entries it cannot infer)
+yarn type-coverage       # 100% strict type coverage per tsconfig project (scripts/type-coverage.mjs; no any, no casts in src)
+yarn fta                 # FTA maintainability score per file, fails above score_cap in fta.json (lower is better)
+yarn code-caps           # file 500 / function 50 / class 300 lines, 4 params, depth 4; ratchet in .code-caps-baseline.json (--update only lowers it)
+yarn test:scripts-coverage  # node:test for scripts/check-code-caps.ts, gated at 100% (Vitest's scripts project skips that file)
 yarn build && infra/deploy.sh               # yarn workspaces foreach -Apt run build; systemd restart
 scripts/verify-reproducible-build.sh       # two clean builds of HEAD in different dirs/time zones; every dist/ and release file must match (CI job "Reproducible build")
 ```

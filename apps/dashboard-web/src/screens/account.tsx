@@ -24,7 +24,7 @@ import { useSignOut } from '../session';
  * The shared `changePasswordSchema` stays the source of truth (length limit, "differs from the
  * current password"); the form only adds the confirmation field on top of it.
  */
-export const passwordFormSchema = z
+const passwordFormSchema = z
   .object({ currentPassword: z.string(), newPassword: z.string(), confirmPassword: z.string() })
   .superRefine((value, ctx) => {
     const result = changePasswordSchema.safeParse({

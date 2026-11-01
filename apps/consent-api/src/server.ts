@@ -117,7 +117,7 @@ async function main(): Promise<void> {
   };
   for (const signal of ['SIGTERM', 'SIGINT'] as const) process.once(signal, () => stop(signal));
   // Most often EADDRINUSE: release the pools and exit non-zero so systemd retries.
-  server.on('error', (error) => {
+  server.on('error', (error: unknown) => {
     log.error('server error', errorFields(error));
     process.exitCode = 1;
     stop('server error');

@@ -40,10 +40,7 @@ const idParamSchema = z.object({ id: noNul(z.string().min(1).max(128)) });
 type Change = { from: unknown; to: unknown };
 
 /** Fields the request would actually change. Equal values are not changes. */
-export function diffUser(
-  current: typeof user.$inferSelect,
-  input: UserUpdate,
-): Record<string, Change> {
+function diffUser(current: typeof user.$inferSelect, input: UserUpdate): Record<string, Change> {
   const changes: Record<string, Change> = {};
   if (input.name !== undefined && input.name !== current.name) {
     changes['name'] = { from: current.name, to: input.name };

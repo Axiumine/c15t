@@ -13,10 +13,10 @@ import {
   parseIp,
 } from '@consent/shared';
 import { and, desc, eq, lt, or, sql } from 'drizzle-orm';
-import type { Context } from 'hono';
 import { z } from 'zod';
 import type { AuthedEnv } from './authz.js';
 import type { Executor } from './db.js';
+import type { RequestContext } from './errors.js';
 import { decodeCursor, encodeCursor, toPage } from './pagination.js';
 
 export interface AuditActor {
@@ -60,7 +60,7 @@ export function clientIp(headers: Headers): string | null {
 }
 
 /** The signed-in admin behind a request, as recorded in the audit log. */
-export function auditActor(c: Context<AuthedEnv>): AuditActor {
+export function auditActor(c: RequestContext<AuthedEnv>): AuditActor {
   const { id, email } = c.get('user');
   return { id, email, ip: clientIp(c.req.raw.headers) };
 }

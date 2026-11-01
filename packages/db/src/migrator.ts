@@ -73,8 +73,12 @@ export function postgresExecutor(sql: postgres.Sql): SqlExecutor {
       (await runner.unsafe(text, [...params])) as Record<string, unknown>[],
     transaction: async <T>(run: (tx: SqlExecutor) => Promise<T>): Promise<T> => {
       // `begin` exists on the pool only; inside a transaction the same connection is reused.
-      if ('begin' in runner) return (await runner.begin((tx) => run(wrap(tx)))) as T;
-      return run(wrap(runner));
+      if (!('begin' in runner)) return run(wrap(runner));
+      // postgres.js types the result of `begin` as a conditional type that a generic `T` cannot
+      // satisfy, so the value leaves the callback through a promise instead of being cast.
+      const outcome = Promise.withResolvers<T>();
+      await runner.begin(async (tx) => outcome.resolve(await run(wrap(tx))));
+      return outcome.promise;
     },
   });
   return wrap(sql);

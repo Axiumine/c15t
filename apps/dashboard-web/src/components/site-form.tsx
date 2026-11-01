@@ -56,7 +56,7 @@ export const siteFormSchema = z.object({
   policyPreset: policyPresetSchema,
 });
 
-export type SiteFormInput = z.input<typeof siteFormSchema>;
+type SiteFormInput = z.input<typeof siteFormSchema>;
 export type SiteFormValues = z.output<typeof siteFormSchema>;
 
 type FieldName = Path<SiteFormInput>;

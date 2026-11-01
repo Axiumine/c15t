@@ -4,7 +4,7 @@
 import { type SiteRow, site, siteMember } from '@consent/db';
 import { ROLES, type Role, siteKeySchema } from '@consent/shared';
 import { and, asc, eq } from 'drizzle-orm';
-import type { Context, MiddlewareHandler } from 'hono';
+import type { MiddlewareHandler } from 'hono';
 import { createMiddleware } from 'hono/factory';
 import type { Auth } from './auth.js';
 import type { AppDatabase, Executor } from './db.js';
@@ -24,7 +24,7 @@ export interface SessionUser {
   readonly mustChangePassword: boolean;
 }
 
-declare const tenantScopeBrand: unique symbol;
+const tenantScopeBrand: unique symbol = Symbol('tenantScope');
 
 /**
  * The c15t `tenantId` values a request may read. Every query against `c15t.*` takes one, and
@@ -36,7 +36,7 @@ export interface TenantScope {
 }
 
 export function tenantScope(siteKeys: readonly string[]): TenantScope {
-  return { tenantIds: [...siteKeys] } as unknown as TenantScope;
+  return { [tenantScopeBrand]: true, tenantIds: [...siteKeys] };
 }
 
 export type AuthedEnv = { Variables: { user: SessionUser } };
@@ -70,10 +70,17 @@ export interface AuthzDeps {
   readonly now?: () => Date;
 }
 
+/** What the guards need from a request context, so one signature fits every route group's env. */
+interface SessionSlot {
+  get(key: 'user'): SessionUser | undefined;
+  set(key: 'user', value: SessionUser): void;
+  readonly req: { readonly raw: Request };
+}
+
 const isRole = (value: unknown): value is Role => ROLES.some((role) => role === value);
 
 export function createAuthz({ auth, db, now = () => new Date() }: AuthzDeps) {
-  async function loadUser(c: Context, allowPasswordChange: boolean): Promise<SessionUser> {
+  async function loadUser(c: SessionSlot, allowPasswordChange: boolean): Promise<SessionUser> {
     const cached: SessionUser | undefined = c.get('user');
     const user = cached ?? (await readSession(c));
     if (user.mustChangePassword && !allowPasswordChange) {
@@ -86,7 +93,7 @@ export function createAuthz({ auth, db, now = () => new Date() }: AuthzDeps) {
     return user;
   }
 
-  async function readSession(c: Context): Promise<SessionUser> {
+  async function readSession(c: SessionSlot): Promise<SessionUser> {
     const result = await auth.api.getSession({ headers: c.req.raw.headers });
     if (result === null) throw new HttpError('UNAUTHORIZED', 'Authentication is required');
     const { user } = result;

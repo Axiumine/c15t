@@ -183,9 +183,10 @@ export function CreateUserDialog({
               name="siteKeys"
               render={({ field }) => (
                 // `siteKeys` is optional in the schema's input type, but the defaults always set it.
+                // A Set accepts `undefined`, so this needs neither a cast nor a fallback.
                 <SitePicker
                   sites={sites}
-                  value={field.value as string[]}
+                  value={[...new Set(field.value)]}
                   onChange={field.onChange}
                 />
               )}

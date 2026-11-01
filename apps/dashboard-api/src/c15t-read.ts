@@ -6,6 +6,7 @@ import {
   CONSENT_CSV_COLUMNS,
   type ConsentPage,
   type ConsentRecord,
+  fieldOf,
   isRepresentableInstant,
   noNul,
   type StatsResponse,
@@ -38,7 +39,7 @@ export interface ConsentFilters extends TimeBounds {
   readonly subject?: string | undefined;
 }
 
-export const EXPORT_BATCH_SIZE = 500;
+const EXPORT_BATCH_SIZE = 500;
 
 /**
  * `YYYY-MM-DD[ T]HH:MM:SS[.ffffff]` that is a real UTC date: the shape check alone lets month 13,
@@ -158,12 +159,11 @@ function unwrapJson(value: unknown): unknown {
 }
 
 function receiptPurposes(choice: unknown): [string, boolean][] {
-  const categories = (unwrapJson(choice) as { categories?: unknown } | null | undefined)
-    ?.categories;
+  const categories = fieldOf(unwrapJson(choice), 'categories');
   if (typeof categories !== 'object' || categories === null) return [];
   const entries: [string, boolean][] = [];
-  for (const [name, receipt] of Object.entries(categories)) {
-    const granted = (receipt as { value?: unknown } | null)?.value;
+  for (const name of Object.keys(categories)) {
+    const granted = fieldOf(fieldOf(categories, name), 'value');
     if (typeof granted === 'boolean') entries.push([name, granted]);
   }
   return entries;
@@ -172,7 +172,8 @@ function receiptPurposes(choice: unknown): [string, boolean][] {
 function grantedCodes(purposeIds: unknown, codesById: ReadonlyMap<string, string>): string[] {
   const ids = unwrapJson(purposeIds);
   if (!Array.isArray(ids)) return [];
-  return ids.flatMap((id) => {
+  const list: readonly unknown[] = ids;
+  return list.flatMap((id) => {
     const code = typeof id === 'string' ? codesById.get(id) : undefined;
     return code === undefined ? [] : [code];
   });
@@ -242,7 +243,7 @@ export async function* consentBatches(
   scope: TenantScope,
   filters: ConsentFilters,
   batchSize = EXPORT_BATCH_SIZE,
-): AsyncGenerator<ConsentRecord[]> {
+): AsyncGenerator<ConsentRecord[], void, undefined> {
   const codes = await purposeCodes(db, scope);
   let after: ConsentCursor | undefined;
   for (;;) {
@@ -270,11 +271,11 @@ export function consentCsvRow(record: ConsentRecord): string {
  * is sent). An error after that point aborts the stream.
  */
 export function consentCsvStream(
-  batches: AsyncGenerator<ConsentRecord[]>,
-  first: IteratorResult<ConsentRecord[]>,
+  batches: AsyncGenerator<ConsentRecord[], void, undefined>,
+  first: IteratorResult<ConsentRecord[], void>,
 ): ReadableStream<Uint8Array> {
   const encoder = new TextEncoder();
-  let pending: IteratorResult<ConsentRecord[]> | undefined = first;
+  let pending: IteratorResult<ConsentRecord[], void> | undefined = first;
   let headerSent = false;
   return new ReadableStream<Uint8Array>({
     async pull(controller) {

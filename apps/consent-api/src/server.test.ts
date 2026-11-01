@@ -3,6 +3,7 @@
 
 import { EventEmitter } from 'node:events';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import type { AppDeps } from './app.js';
 import type { ListenerOptions } from './listener.js';
 import type { RegistryOptions } from './registry.js';
 import { siteRecord } from './testing/fakes.js';
@@ -64,10 +65,10 @@ const h = vi.hoisted(() => {
     FakeListener,
     createPool: vi.fn(),
     createPgSiteStore: vi.fn(),
-    createApp: vi.fn(),
+    createApp: vi.fn<(deps: AppDeps) => unknown>(),
     createSiteInstance: vi.fn(),
     createDriver: vi.fn(),
-    serve: vi.fn(),
+    serve: vi.fn<(options: Served['options'], onListening: Served['onListening']) => unknown>(),
   };
 });
 
@@ -200,7 +201,7 @@ beforeEach(() => {
   h.createApp.mockReset().mockReturnValue(app);
   h.createSiteInstance.mockReset().mockReturnValue(instance);
   h.createDriver.mockReset().mockReturnValue(driver);
-  h.serve.mockReset().mockImplementation((options: Served['options'], onListening) => {
+  h.serve.mockReset().mockImplementation((options, onListening) => {
     served = { options, onListening };
     return server;
   });
@@ -271,7 +272,7 @@ describe('startup', () => {
 
   test('serves the app on the configured address, with the registry, proxies and probes wired in', async () => {
     await start();
-    const options = h.createApp.mock.calls[0]?.[0];
+    const options = h.createApp.mock.calls[0]?.[0] as AppDeps;
     expect(options.registry).toBe(registry());
     expect(options.trustedProxies).toEqual(['10.0.0.0/8']);
     expect(options.logger).toBe(h.logger);
