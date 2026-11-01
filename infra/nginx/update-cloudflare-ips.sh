@@ -15,7 +15,7 @@
 #   3. ufw commands          /etc/c15t-platform/cloudflare-ufw.sh        (only with --ufw)
 #      A script of `ufw allow ...` lines. It is written, never run: ufw has no atomic replace.
 #
-# Run weekly by cloudflare-ips.timer (README D7). Exit code is non-zero if anything failed (a range
+# Run weekly by cloudflare-ips.timer (docs/decisions.md D7). Exit code is non-zero if anything failed (a range
 # list that is bad or too short, a file that cannot be written, nginx -t or nft rejecting the result),
 # and the files that were already in place stay untouched in that case.
 #

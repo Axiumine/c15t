@@ -11,7 +11,7 @@ export const DEFAULT_POLICY_PRESET: PolicyPreset = 'eu-opt-in';
 /**
  * Names of the `policyRulePresets` factories in @c15t/backend that make up each preset, in
  * match order. consent-api builds `manifest.policyRules` from this list. Starting points only:
- * which laws apply to a website is a legal decision (README open questions).
+ * which laws apply to a website is a legal decision (docs/status.md, "Open questions").
  */
 export const POLICY_PRESET_RULES: Readonly<Record<PolicyPreset, readonly string[]>> = {
   'eu-opt-in': ['europeOptIn', 'worldNone'],

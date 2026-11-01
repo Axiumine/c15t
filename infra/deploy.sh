@@ -20,7 +20,7 @@
 # the previous copy is kept next to it as <unit>.c15t-saved (put your own changes in a drop-in).
 # Then: fill in the env files, prepare the database (docs/database-setup.md), run `infra/deploy.sh`.
 #
-# Steps (README D7, CLAUDE.md "Hosting"):
+# Steps (docs/decisions.md D7, CLAUDE.md "Hosting"):
 #   1. copy the source into releases/<git sha, or a UTC timestamp when the tree is not a git repo>
 #      (a git tree is exported with `git archive`, so only committed files are deployed)
 #   2. yarn install --immutable, yarn build, check that the build outputs exist
@@ -802,7 +802,7 @@ do_install() {
   if ((changed)); then priv "$SYSTEMCTL_BIN" daemon-reload; fi
   priv "$SYSTEMCTL_BIN" enable "${SERVICE_UNITS[@]}"
   priv "$SYSTEMCTL_BIN" enable --now cloudflare-ips.timer
-  log "installed. Next: 1. fill in $ENV_CONSENT and $ENV_DASHBOARD (README Configuration)"
+  log "installed. Next: 1. fill in $ENV_CONSENT and $ENV_DASHBOARD (docs/configuration.md)"
   log "                2. prepare the database (docs/database-setup.md)"
   log "                3. run infra/deploy.sh (the first deploy installs the nginx snippets and starts the services)"
   log "                4. add the dashboard vhost (docs/nginx.md)"

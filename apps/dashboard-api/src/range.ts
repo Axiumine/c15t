@@ -74,7 +74,7 @@ export function statsRange(query: ConsentExportQuery, now: Date): StatsRange {
 /**
  * c15t stores `timestamp without time zone` columns. dashboard-api reads and compares them as
  * UTC with plain string handling, so its result does not depend on its own TZ (timezone.test.ts).
- * The stored values are UTC only because consent-api runs with TZ=UTC (see README, hosting).
+ * The stored values are UTC only because consent-api runs with TZ=UTC (see docs/decisions.md D7, hosting).
  */
 export function toNaiveUtc(date: Date): string {
   const ms = date.getTime();

@@ -24,7 +24,7 @@ const siteParamSchema = z.object({ siteKey: siteKeySchema });
 /**
  * Admin site management. `NOTIFY site_changed` is sent by the trigger on `app.site` (migration
  * 0001), inside the same transaction, so consent-api only hears about committed changes. A site
- * is disabled, never deleted: its consent records are legal proof (README D6).
+ * is disabled, never deleted: its consent records are legal proof (docs/decisions.md D6).
  */
 export function adminSiteRoutes({ db, authz }: AdminSiteRouteDeps) {
   return new Hono<AuthedEnv>()

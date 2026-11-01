@@ -45,7 +45,7 @@ CREATE TRIGGER "admin_audit_no_truncate"
   FOR EACH STATEMENT EXECUTE FUNCTION "app"."reject_admin_audit_change"();
 --> statement-breakpoint
 
--- README D2: c15t_api reads the site registry and nothing else in `app` (the auth tables hold
+-- docs/decisions.md D2: c15t_api reads the site registry and nothing else in `app` (the auth tables hold
 -- password hashes). Guarded so the migration also runs where the role does not exist.
 DO $$
 BEGIN

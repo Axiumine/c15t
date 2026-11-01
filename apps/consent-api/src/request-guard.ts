@@ -11,7 +11,7 @@ import {
 import { COUNTRY_CODE, REGION_CODE, VISITOR_OVERRIDE_HEADERS } from './override-headers.js';
 
 /*
- * Request hardening for the headers c15t trusts (README D1, CLAUDE.md "Network configuration"
+ * Request hardening for the headers c15t trusts (docs/decisions.md D1, CLAUDE.md "Network configuration"
  * and "Multi-tenancy"). nginx sets the tenant, the visitor IP and the Host; Cloudflare sets the
  * country and region. Nothing a browser sends may stand in for any of them. The query parameters
  * are in `override-params.ts`, the path in `request-path.ts` and the Host in `request-host.ts`.

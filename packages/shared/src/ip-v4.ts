@@ -3,7 +3,7 @@
 
 /*
  * Browser-safe IPv4 literal parsing (no `node:net`), because @consent/shared is also bundled by
- * dashboard-web. Part of the bind-address rules in README D1 and CLAUDE.md "Network configuration".
+ * dashboard-web. Part of the bind-address rules in docs/decisions.md D1 and CLAUDE.md "Network configuration".
  */
 
 export const IPV4_BITS = 32;

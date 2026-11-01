@@ -28,7 +28,7 @@ import {
 } from 'drizzle-orm/pg-core';
 
 /*
- * The `app` schema is owned by the `dashboard` role (README D2). Column names are spelled out
+ * The `app` schema is owned by the `dashboard` role (docs/decisions.md D2). Column names are spelled out
  * in snake_case on purpose, so no Drizzle `casing` option has to be set consistently anywhere.
  * The TypeScript keys of the Better Auth tables must stay exactly as Better Auth names its
  * fields, because its Drizzle adapter looks them up by key. `schema.test.ts` guards that.

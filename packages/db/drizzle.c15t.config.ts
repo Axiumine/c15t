@@ -6,7 +6,7 @@ import { z } from 'zod';
 
 // Used only by scripts/pull-c15t.mjs, which runs drizzle-kit from the repository root (paths below
 // are relative to it). Introspection reads the `c15t` schema through the
-// dashboard role, which has SELECT on it (README D2).
+// dashboard role, which has SELECT on it (docs/decisions.md D2).
 const env = z.object({ DATABASE_URL_DASHBOARD: z.string().min(1) }).parse(process.env);
 
 export default defineConfig({
