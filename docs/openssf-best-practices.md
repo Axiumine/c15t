@@ -105,15 +105,15 @@ Status on 2026-10-31: the live form answers every criterion that depends on M0 t
 | Basics: Prerequisites | 1 | 0 | 0 | 1 | 0 |
 | Basics: Project oversight | 2 | 0 | 0 | 2 | 0 |
 | Basics: Other | 2 | 2 | 0 | 0 | 0 |
-| Change Control: Public version-controlled source repository | 4 | 0 | 3 | 1 | 0 |
-| Quality: Coding standards | 2 | 0 | 0 | 2 | 0 |
-| Quality: Working build system | 1 | 0 | 0 | 1 | 0 |
+| Change Control: Public version-controlled source repository | 4 | 1 | 3 | 0 | 0 |
+| Quality: Coding standards | 2 | 1 | 0 | 1 | 0 |
+| Quality: Working build system | 1 | 1 | 0 | 0 | 0 |
 | Quality: Automated test suite | 4 | 2 | 2 | 0 | 0 |
 | Security: Use basic good cryptographic practices | 2 | 1 | 0 | 1 | 0 |
 | Security: Secured delivery against man-in-the-middle (MITM) attacks | 1 | 1 | 0 | 0 | 0 |
 | Security: Other security issues | 2 | 1 | 0 | 1 | 0 |
 | Analysis: Dynamic code analysis | 2 | 0 | 1 | 1 | 0 |
-| **Total Gold** | **23** | **7** | **6** | **10** | **0** |
+| **Total Gold** | **23** | **10** | **6** | **7** | **0** |
 
 Columns: **Met** = Met as soon as the files in the repository exist. **Met after manual action** = Met only once a step from section 1 is done (the step is named in the criterion). Unmet and N/A as in the form.
 
@@ -121,7 +121,7 @@ Where this leaves the badges:
 
 - **Passing**: awarded (the live form shows 100%, badge level `passing`, achieved 2026-10-30). 60 criteria Met (22 of them after manual actions), 6 N/A, 1 Unmet. The one Unmet passing criterion, `dynamic_analysis_enable_assertions`, is SUGGESTED, so it does not block the badge.
 - **Silver**: not awarded yet, 98% on the live form. 44 criteria Met (5 of them after manual actions), 5 N/A, 6 Unmet. The one Unmet MUST criterion is `access_continuity` (one maintainer; it needs a second person) and it blocks the badge. The other five Unmet are SHOULD or SUGGESTED and do not block it: `bus_factor`, `internationalization`, `crypto_algorithm_agility`, `crypto_used_network` and `version_tags_signed`.
-- **Gold**: not attainable for now, 61% on the live form. 13 of 23 criteria are Met (6 of them after manual actions) and 10 are Unmet. Nine of the Unmet are MUST: `achieve_silver` (blocked by silver `access_continuity`), `bus_factor` (needs 2 people), `contributors_unassociated` (needs 2 significant contributors from different organizations), `small_tasks`, `code_review_standards`, `two_person_review` (needs a second reviewer), `build_reproducible`, `crypto_used_network` and `security_review`; the tenth, `dynamic_analysis_enable_assertions`, is SHOULD. `test_statement_coverage90` and `test_branch_coverage80` are Met since CI measures 100%.
+- **Gold**: not attainable for now, 74% on the live form. 16 of 23 criteria are Met (6 of them after manual actions) and 7 are Unmet. Six of the Unmet are MUST: `achieve_silver` (blocked by silver `access_continuity`), `bus_factor` (needs 2 people), `contributors_unassociated` (needs 2 significant contributors from different organizations), `two_person_review` (needs a second reviewer), `crypto_used_network` and `security_review`; the seventh, `dynamic_analysis_enable_assertions`, is SHOULD. `small_tasks`, `code_review_standards` and `build_reproducible` are Met since 2026-11-01. `test_statement_coverage90` and `test_branch_coverage80` are Met since CI measures 100%.
 
 ## 3. Identification (project fields, not criteria)
 
@@ -2042,7 +2042,7 @@ Evidence: [package.json](https://github.com/Axiumine/c15t/blob/main/package.json
 
 ## 6. Gold level
 
-**Gold is not attainable for now, and this document does not pretend otherwise.** The gold level requires, among other things: a silver badge, a bus factor of 2 or more, at least two unassociated significant contributors, review of at least 50% of all changes by a person other than the author, two-factor authentication for every developer, a reproducible build, 90% statement and 80% branch coverage, a security review within the last 5 years, and a dynamic analysis tool applied to every major release. The project has one maintainer; the live form shows gold at 61%, and the two coverage criteria are Met because CI measures 100% of statements and branches. The answers below say what is Met today and what each Unmet criterion would need. Nothing here should be pasted as a request for the gold badge until the Unmet MUST criteria are resolved.
+**Gold is not attainable for now, and this document does not pretend otherwise.** The gold level requires, among other things: a silver badge, a bus factor of 2 or more, at least two unassociated significant contributors, review of at least 50% of all changes by a person other than the author, two-factor authentication for every developer, a reproducible build, 90% statement and 80% branch coverage, a security review within the last 5 years, and a dynamic analysis tool applied to every major release. The project has one maintainer; the live form shows gold at 74%, and the two coverage criteria are Met because CI measures 100% of statements and branches. The answers below say what is Met today and what each Unmet criterion would need. Nothing here should be pasted as a request for the gold badge until the Unmet MUST criteria are resolved.
 
 ### Gold: Basics
 
@@ -2235,7 +2235,7 @@ Select: **Met** | URL required: yes | N/A allowed: yes
 Justification to paste:
 
 ```text
-scripts/verify-reproducible-build.sh clones the commit twice into directories that differ in name and length, runs yarn install --immutable, yarn build and scripts/release-package.sh in each with a different time zone and different file times, and compares the SHA-256 of every dist/ file and every release file (source, consent-api, dashboard-api and dashboard-web tarballs, three SBOMs and SHA256SUMS). They must be identical. The CI job "Reproducible build" runs it on every pull request and push to main; on ubuntu-24.04 it compared 279 files (271 under dist/, 8 release files) and all matched. Tarballs are normalized by scripts/release-package.sh (sorted entries, fixed owner, commit time as modification time, gzip -n). Limit: both builds use the same pinned Node.js 26, Yarn, lockfile and operating system; other Node.js versions or CPU architectures are not covered.
+scripts/verify-reproducible-build.sh clones the commit twice into directories that differ in name and length, runs yarn install --immutable, yarn build and scripts/release-package.sh in each with a different time zone and different file times, and compares the SHA-256 of every dist/ file and every release file (source, consent-api, dashboard-api and dashboard-web tarballs, three SBOMs and SHA256SUMS). They must be identical. The CI job "Reproducible build" runs it on every pull request and push to main; on ubuntu-24.04 it compared 279 files (271 under dist/, 8 release files) and all matched. Tarballs are normalized by scripts/release-package.sh (sorted entries, fixed owner, commit time as modification time, gzip -n). Limit: both builds use the same pinned Node.js 26, Yarn, lockfile and operating system; other Node.js versions or CPU architectures are not covered. Script: https://github.com/Axiumine/c15t/blob/main/scripts/verify-reproducible-build.sh
 ```
 
 Evidence: [scripts/verify-reproducible-build.sh](https://github.com/Axiumine/c15t/blob/main/scripts/verify-reproducible-build.sh), [.github/workflows/ci.yml](https://github.com/Axiumine/c15t/blob/main/.github/workflows/ci.yml), [CONTRIBUTING.md](https://github.com/Axiumine/c15t/blob/main/CONTRIBUTING.md#reproducible-build)
@@ -2504,6 +2504,7 @@ Every file referenced above, with its link. "Present" is checked against the wor
 - `node scripts/add-spdx-headers.mjs --check` reports that every file has an SPDX header or is covered by `REUSE.toml`. The only `.ts`, `.tsx`, `.sh`, `.mjs` and `.sql` files without the copyright line are generated (`routeTree.gen.ts`, `c15t.generated.ts` and the Drizzle migrations), and all of them are listed in `REUSE.toml`; CI runs the same check as `yarn spdx:check`.
 - Checked against the repository on 2026-10-30: the names and triggers of the jobs in `.github/workflows` (the required status checks in M4), the scripts in the root `package.json`, what `.github/dependabot.yml` covers, the root `.gitignore`, the wording of `SECURITY.md`, `SUPPORT.md`, `CONTRIBUTING.md` and `GOVERNANCE.md`, the number of `*.fuzz.test.ts` files (13), and that every file linked in this document exists (section 7).
 - Read from CI after this document was first written: on `main` at commit 5feb34c (run https://github.com/Axiumine/c15t/actions/runs/41186970266) the test suite covers 100% of statements (2553/2553), branches (1475/1475), functions (789/789) and lines (2228/2228). The live answers for `test_most`, `test_statement_coverage80`, `test_statement_coverage90` and `test_branch_coverage80` quote these figures.
+- Read back from https://www.bestpractices.dev/projects/16093.json on 2026-11-01, after the maintainer set gold `build_reproducible`, `code_review_standards` and `small_tasks` to Met and refreshed the silver `build_repeatable` text: passing 100%, silver 98%, gold 74%.
 - Not verified here, and therefore not claimed: the outcome of later workflow runs and the state of GitHub repository settings (M2 to M5 rest on the maintainer's answers in the live form), and whether the git history is free of secrets beyond what the live `no_leaked_credentials` answer reports (a gitleaks scan that found nothing).
 
 ## 9. Keeping this document current
