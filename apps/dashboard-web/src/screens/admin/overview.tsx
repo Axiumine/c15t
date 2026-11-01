@@ -2,7 +2,7 @@
 // Copyright (C) 2026 Axiumine
 
 import type { Site, StatsResponse } from '@consent/shared';
-import { useQueries } from '@tanstack/react-query';
+import { type UseQueryResult, useQueries } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { statsQueryOptions, useAdminSites } from '../../api';
 import { SiteStatusBadge } from '../../components/badges';
@@ -22,7 +22,7 @@ import {
   TableRow,
 } from '../../components/ui/table';
 import { formatInteger, formatPercent } from '../../lib/format';
-import { type RangeSearch, resolveRange } from '../../lib/range';
+import { type DateRange, type RangeSearch, resolveRange } from '../../lib/range';
 
 interface Row {
   readonly site: Site;
@@ -35,7 +35,58 @@ const cell = (row: Row, render: (stats: StatsResponse) => string): string => {
   return row.failed ? 'Unavailable' : '…';
 };
 
-function SitesBreakdown({ rows, busy }: { rows: Row[]; busy: boolean }) {
+function BreakdownRow({ row }: Readonly<{ row: Row }>) {
+  const rate = row.stats === undefined ? null : overallOptInRate(row.stats.purposes);
+  return (
+    <TableRow>
+      <TableCell>
+        <Link
+          to="/sites/$key"
+          params={{ key: row.site.key }}
+          className="font-medium hover:underline"
+        >
+          {row.site.name}
+        </Link>
+      </TableCell>
+      <TableCell>
+        <SiteStatusBadge status={row.site.status} />
+      </TableCell>
+      <TableCell className="text-right tabular-nums">
+        {cell(row, (stats) => formatInteger(stats.totals.consents))}
+      </TableCell>
+      <TableCell className="text-right tabular-nums">
+        {cell(row, (stats) => formatInteger(stats.totals.subjects))}
+      </TableCell>
+      <TableCell className="text-right tabular-nums">
+        {rate === null ? '–' : formatPercent(rate)}
+      </TableCell>
+    </TableRow>
+  );
+}
+
+function BreakdownTable({ rows }: Readonly<{ rows: readonly Row[] }>) {
+  return (
+    <Table>
+      <caption className="sr-only">Statistics per site</caption>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Site</TableHead>
+          <TableHead>Status</TableHead>
+          <TableHead className="text-right">Consents</TableHead>
+          <TableHead className="text-right">Subjects</TableHead>
+          <TableHead className="text-right">Opt-in rate</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {rows.map((row) => (
+          <BreakdownRow key={row.site.key} row={row} />
+        ))}
+      </TableBody>
+    </Table>
+  );
+}
+
+function SitesBreakdown({ rows, busy }: Readonly<{ rows: readonly Row[]; busy: boolean }>) {
   const ranked = rows
     .flatMap((row) => (row.stats === undefined ? [] : [{ site: row.site, stats: row.stats }]))
     .sort((a, b) => b.stats.totals.consents - a.stats.totals.consents);
@@ -57,50 +108,58 @@ function SitesBreakdown({ rows, busy }: { rows: Row[]; busy: boolean }) {
           <RankedBars data={data} valueLabel="consents" />
         )
       }
-      table={
-        <Table>
-          <caption className="sr-only">Statistics per site</caption>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Site</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Consents</TableHead>
-              <TableHead className="text-right">Subjects</TableHead>
-              <TableHead className="text-right">Opt-in rate</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.map((row) => {
-              const rate = row.stats === undefined ? null : overallOptInRate(row.stats.purposes);
-              return (
-                <TableRow key={row.site.key}>
-                  <TableCell>
-                    <Link
-                      to="/sites/$key"
-                      params={{ key: row.site.key }}
-                      className="font-medium hover:underline"
-                    >
-                      {row.site.name}
-                    </Link>
-                  </TableCell>
-                  <TableCell>
-                    <SiteStatusBadge status={row.site.status} />
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {cell(row, (stats) => formatInteger(stats.totals.consents))}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {cell(row, (stats) => formatInteger(stats.totals.subjects))}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {rate === null ? '–' : formatPercent(rate)}
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      }
+      table={<BreakdownTable rows={rows} />}
+    />
+  );
+}
+
+/** One stats query per site; a site whose stats have not arrived yet keeps `stats` undefined. */
+function useSiteRows(list: readonly Site[], range: DateRange) {
+  const results = useQueries({
+    queries: list.map((site) => ({
+      ...statsQueryOptions(site.key, range),
+      placeholderData: (previous: StatsResponse | undefined) => previous,
+    })),
+  });
+  const rows: Row[] = list.map((site, index) => {
+    const result = results.at(index);
+    return { site, stats: result?.data, failed: result?.isError === true };
+  });
+  return { results, rows };
+}
+
+function OverviewTiles({ list, rows }: Readonly<{ list: readonly Site[]; rows: readonly Row[] }>) {
+  const loaded = rows.flatMap((row) => (row.stats === undefined ? [] : [row.stats]));
+  const consents = loaded.reduce((sum, stats) => sum + stats.totals.consents, 0);
+  const subjects = loaded.reduce((sum, stats) => sum + stats.totals.subjects, 0);
+  const rate = overallOptInRate(loaded.flatMap((stats) => stats.purposes));
+  return (
+    <div className="grid gap-4 sm:grid-cols-4">
+      <StatTile
+        label="Sites"
+        value={formatInteger(list.length)}
+        hint={`${formatInteger(list.filter((site) => site.status === 'active').length)} active`}
+      />
+      <StatTile label="Consents" value={formatInteger(consents)} />
+      <StatTile
+        label="Subjects"
+        value={formatInteger(subjects)}
+        hint="Subject IDs are unique across sites"
+      />
+      <StatTile label="Overall opt-in rate" value={rate === null ? '–' : formatPercent(rate)} />
+    </div>
+  );
+}
+
+function StatsFailure({
+  results,
+}: Readonly<{ results: readonly UseQueryResult<StatsResponse>[] }>) {
+  const failed = results.find((result) => result.isError);
+  if (failed === undefined) return null;
+  return (
+    <ErrorState
+      error={failed.error}
+      onRetry={() => void Promise.all(results.map((result) => result.refetch()))}
     />
   );
 }
@@ -108,33 +167,16 @@ function SitesBreakdown({ rows, busy }: { rows: Row[]; busy: boolean }) {
 export function AdminOverviewScreen({
   search,
   onSearchChange,
-}: {
+}: Readonly<{
   search: RangeSearch;
   onSearchChange: (next: RangeSearch) => void;
-}) {
+}>) {
   const sites = useAdminSites();
-  const range = resolveRange(search);
   const list = sites.data?.items ?? [];
-  const results = useQueries({
-    queries: list.map((site) => ({
-      ...statsQueryOptions(site.key, range),
-      placeholderData: (previous: StatsResponse | undefined) => previous,
-    })),
-  });
+  const { results, rows } = useSiteRows(list, resolveRange(search));
 
   if (sites.isPending) return <LoadingBlock label="Loading sites" />;
   if (sites.isError) return <ErrorState error={sites.error} onRetry={() => void sites.refetch()} />;
-
-  const rows: Row[] = list.map((site, index) => ({
-    site,
-    stats: results[index]?.data,
-    failed: results[index]?.isError === true,
-  }));
-  const loaded = rows.flatMap((row) => (row.stats === undefined ? [] : [row.stats]));
-  const consents = loaded.reduce((sum, stats) => sum + stats.totals.consents, 0);
-  const subjects = loaded.reduce((sum, stats) => sum + stats.totals.subjects, 0);
-  const rate = overallOptInRate(loaded.flatMap((stats) => stats.purposes));
-  const busy = results.some((result) => result.isFetching);
 
   return (
     <div className="grid gap-6">
@@ -144,30 +186,9 @@ export function AdminOverviewScreen({
         <EmptyState title="No sites yet" description="Create a site under Manage sites." />
       ) : (
         <>
-          <div className="grid gap-4 sm:grid-cols-4">
-            <StatTile
-              label="Sites"
-              value={formatInteger(list.length)}
-              hint={`${formatInteger(list.filter((site) => site.status === 'active').length)} active`}
-            />
-            <StatTile label="Consents" value={formatInteger(consents)} />
-            <StatTile
-              label="Subjects"
-              value={formatInteger(subjects)}
-              hint="Subject IDs are unique across sites"
-            />
-            <StatTile
-              label="Overall opt-in rate"
-              value={rate === null ? '–' : formatPercent(rate)}
-            />
-          </div>
-          {results.some((result) => result.isError) ? (
-            <ErrorState
-              error={results.find((result) => result.isError)?.error}
-              onRetry={() => void Promise.all(results.map((result) => result.refetch()))}
-            />
-          ) : null}
-          <SitesBreakdown rows={rows} busy={busy} />
+          <OverviewTiles list={list} rows={rows} />
+          <StatsFailure results={results} />
+          <SitesBreakdown rows={rows} busy={results.some((result) => result.isFetching)} />
         </>
       )}
     </div>

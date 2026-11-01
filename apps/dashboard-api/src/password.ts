@@ -10,6 +10,6 @@ export const GENERATED_PASSWORD_LENGTH = 20;
 /** About 114 bits of entropy from the platform CSPRNG. Shown once, never stored or logged. */
 export function generatePassword(length = GENERATED_PASSWORD_LENGTH): string {
   let password = '';
-  for (let i = 0; i < length; i++) password += ALPHABET[randomInt(ALPHABET.length)];
+  for (let i = 0; i < length; i++) password += ALPHABET.charAt(randomInt(ALPHABET.length));
   return password;
 }

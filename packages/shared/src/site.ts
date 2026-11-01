@@ -34,16 +34,16 @@ export const domainSchema = z
 
 export const MAX_DOMAINS_PER_SITE = 50;
 
-/** Non-empty, unique list of domains. An empty list or `*` must never reach c15t. */
+/**
+ * Non-empty, unique list of domains. An empty list or `*` must never reach c15t, so consent-api
+ * validates its `trustedOrigins` (the same values) with this schema too.
+ */
 export const domainsSchema = z
   .array(domainSchema)
   .min(1, 'At least one domain is required')
   .max(MAX_DOMAINS_PER_SITE)
   .refine((list) => new Set(list).size === list.length, 'Domains must be unique');
 export type Domains = z.infer<typeof domainsSchema>;
-
-/** Same values as `domains`, named for the c15t option they feed. */
-export const trustedOriginsSchema = domainsSchema;
 
 export const POLICY_PRESETS = ['eu-opt-in', 'eu-us-opt-out', 'global-preferences'] as const;
 export const policyPresetSchema = z.enum(POLICY_PRESETS);

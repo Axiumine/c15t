@@ -1,0 +1,96 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 Axiumine
+#
+# Git hooks (lefthook). Installed by `yarn install` (root postinstall -> scripts/git-hooks.mjs install);
+# docs/quality-gates.md has the pipeline and the reasons. CI runs the same checks and is the authority:
+# a hook is a fast local warning, never the only gate.
+#
+#   pre-commit   what a staged change can break, in seconds: formatting and Biome rules, SPDX headers, size
+#                caps. Runs in parallel.
+#   commit-msg   the DCO sign-off (CONTRIBUTING.md), before the commit exists.
+#   pre-push     everything CI runs on a pull request, in dependency order: typecheck first (ESLint's
+#                type-aware rules read the declarations that `tsc -b` writes), then the static analysers in
+#                parallel, then the tests with the 100% coverage gate, then the security scans.
+#   post-merge,  a reminder when yarn.lock changed.
+#   post-checkout
+#
+# Skip once: `LEFTHOOK=0 git push`, `LEFTHOOK_EXCLUDE=tests git push` (a job name) or `git push --no-verify`.
+# Skipped hooks do not skip CI.
+min_version: 2.0.0
+
+pre-commit:
+  parallel: true
+  jobs:
+    - name: biome
+      glob: "*.{ts,tsx,js,mjs,cjs,json,jsonc,css}"
+      run: yarn biome check --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
+    - name: spdx
+      run: yarn spdx:check
+    - name: code-caps
+      glob: "*.{ts,tsx}"
+      run: yarn code-caps
+    - name: shellcheck
+      glob: "*.sh"
+      skip:
+        - run: "! command -v shellcheck > /dev/null 2>&1"
+      run: shellcheck {staged_files}
+    # Advisory: what the staged change touches in the code graph (CLAUDE.md). Never blocks a commit, and
+    # only runs where the optional GitNexus index exists.
+    - name: gitnexus
+      skip:
+        - run: "test ! -f .gitnexus/run.cjs"
+      run: node .gitnexus/run.cjs detect-changes --scope staged --repo . || true
+
+commit-msg:
+  jobs:
+    - name: dco-signoff
+      run: node scripts/git-hooks.mjs commit-msg {1}
+
+pre-push:
+  piped: true
+  jobs:
+    - name: typecheck
+      run: yarn typecheck
+    - name: static-analysis
+      group:
+        parallel: true
+        jobs:
+          - name: biome-all
+            run: yarn lint
+          - name: eslint
+            run: yarn lint:eslint
+          - name: knip
+            run: yarn knip
+          - name: type-coverage
+            run: yarn type-coverage
+          - name: fta
+            run: yarn fta
+          - name: code-caps
+            run: yarn code-caps
+          - name: spdx
+            run: yarn spdx:check
+    - name: tests
+      run: yarn test:coverage
+    - name: scripts-tests
+      run: yarn test:scripts-coverage
+    - name: security-scans
+      group:
+        parallel: true
+        jobs:
+          # Both skip with a message when the tool is not installed locally (never in CI).
+          - name: semgrep
+            run: yarn semgrep
+          - name: trivy
+            run: yarn trivy
+
+post-merge:
+  jobs:
+    - name: yarn-install-reminder
+      glob: "yarn.lock"
+      run: echo "yarn.lock changed in this merge - run 'yarn install'"
+
+post-checkout:
+  jobs:
+    - name: yarn-install-reminder
+      glob: "yarn.lock"
+      run: echo "yarn.lock differs on this branch - run 'yarn install'"

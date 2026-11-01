@@ -11,9 +11,9 @@ import { createAuthClient } from 'better-auth/react';
  * methods would call endpoints that do not exist here. Role and mustChangePassword come from
  * GET /api/me.
  */
-export const AUTH_BASE_PATH = '/api/auth';
+const AUTH_BASE_PATH = '/api/auth';
 
-export const authClient = createAuthClient({
+const authClient = createAuthClient({
   baseURL: globalThis.location.origin,
   basePath: AUTH_BASE_PATH,
   fetchOptions: {
@@ -23,7 +23,7 @@ export const authClient = createAuthClient({
   },
 });
 
-export type AuthFailureKind =
+type AuthFailureKind =
   | 'invalid-credentials'
   | 'wrong-password'
   | 'disabled'
@@ -33,7 +33,7 @@ export type AuthFailureKind =
   | 'unavailable'
   | 'unknown';
 
-export interface AuthFailure {
+interface AuthFailure {
   readonly kind: AuthFailureKind;
   readonly message: string;
 }
@@ -69,6 +69,24 @@ function isBannedAccount(error: BetterAuthError): boolean {
   return authErrorCode(error) === 'BANNED_USER';
 }
 
+function signInError(error: BetterAuthError): AuthResult {
+  if (error.status !== 403) return fail('invalid-credentials', 'Incorrect email or password.');
+  return isBannedAccount(error)
+    ? fail('disabled', 'This account is disabled. Contact an administrator.')
+    : fail(
+        'origin-rejected',
+        "Sign-in was rejected: this address is not the dashboard's official address. Open the dashboard at its official URL and try again. If you already did, ask an administrator to check that BETTER_AUTH_URL matches it.",
+      );
+}
+
+function passwordError(error: BetterAuthError): AuthResult {
+  if (error.status === 401) return fail('session-ended', 'Your session has ended. Sign in again.');
+  if (error.code === 'INVALID_PASSWORD') {
+    return fail('wrong-password', 'The current password is not correct.');
+  }
+  return fail('unknown', 'The password could not be changed. Check the values and try again.');
+}
+
 /** Fixed texts: Better Auth's own messages are not shown, and never distinguish "no such user". */
 export function describeAuthError(
   error: BetterAuthError,
@@ -80,22 +98,7 @@ export function describeAuthError(
   if (error.status >= 500 || error.status === 0) {
     return fail('unavailable', 'The service is temporarily unavailable. Try again in a moment.');
   }
-  if (context === 'sign-in') {
-    if (error.status === 403) {
-      return isBannedAccount(error)
-        ? fail('disabled', 'This account is disabled. Contact an administrator.')
-        : fail(
-            'origin-rejected',
-            "Sign-in was rejected: this address is not the dashboard's official address. Open the dashboard at its official URL and try again. If you already did, ask an administrator to check that BETTER_AUTH_URL matches it.",
-          );
-    }
-    return fail('invalid-credentials', 'Incorrect email or password.');
-  }
-  if (error.status === 401) return fail('session-ended', 'Your session has ended. Sign in again.');
-  if (error.code === 'INVALID_PASSWORD') {
-    return fail('wrong-password', 'The current password is not correct.');
-  }
-  return fail('unknown', 'The password could not be changed. Check the values and try again.');
+  return context === 'sign-in' ? signInError(error) : passwordError(error);
 }
 
 const UNREACHABLE: BetterAuthError = { status: 0 };

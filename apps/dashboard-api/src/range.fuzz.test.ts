@@ -99,7 +99,6 @@ test('a query that the shared schema accepts always has a non-empty search windo
           ...(to === undefined ? {} : { to }),
         });
         fc.pre(parsed.success);
-        if (!parsed.success) return;
         const bounds = boundsFromQuery(parsed.data);
         if (bounds.from !== undefined && bounds.to !== undefined) {
           expect(bounds.from.getTime()).toBeLessThan(bounds.to.getTime());

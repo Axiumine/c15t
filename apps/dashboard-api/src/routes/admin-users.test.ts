@@ -10,7 +10,13 @@ import { afterAll, beforeAll, expect, test } from 'vitest';
 import { createApi } from '../app.js';
 import { createErrorHandler } from '../errors.js';
 import { silentLogger } from '../logger.js';
-import { createTestApp, TEST_ORIGIN, type TestApp, type TestUser } from '../testing/harness.js';
+import {
+  closeIfOpen,
+  createTestApp,
+  TEST_ORIGIN,
+  type TestApp,
+  type TestUser,
+} from '../testing/harness.js';
 import { describeEnvironments } from '../testing/suite.js';
 
 /** A database in which every select finds nothing: the rows are gone by the time they are read. */
@@ -47,7 +53,7 @@ describeEnvironments('admin users: partial updates and bans', ({ env }) => {
   }, 120_000);
 
   afterAll(async () => {
-    await t?.close();
+    await closeIfOpen(t);
   });
 
   test('a PATCH with only a name changes the name and leaves the role alone', async () => {

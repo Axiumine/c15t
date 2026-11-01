@@ -98,7 +98,7 @@ export function clientAddress(
     .map((entry) => entry.trim())
     .filter((entry) => entry !== '');
   for (let index = entries.length - 1; index >= 0; index--) {
-    const entry = entries[index];
+    const entry = entries.at(index);
     if (entry === undefined || parseIp(entry) === null) return undefined;
     if (index === 0 || !ipInCidrs(entry, trustedProxies)) return entry;
   }
@@ -114,6 +114,22 @@ export function clientAddress(
  * - From a trusted peer, `X-Forwarded-For` is reduced to the single client address, and
  *   Cloudflare's country and region are kept if they look like codes.
  */
+function dropUnlessMatches(headers: Headers, name: string, pattern: RegExp): void {
+  const value = headers.get(name);
+  if (value !== null && !pattern.test(value)) headers.delete(name);
+}
+
+/** What a trusted peer (nginx) may keep: one client address, and Cloudflare codes that look right. */
+function sanitizeTrustedHeaders(headers: Headers, trustedProxies: readonly string[]): void {
+  const client = clientAddress(headers.get(CLIENT_IP_HEADER), trustedProxies);
+  for (const name of IP_HEADERS) headers.delete(name);
+  headers.delete('forwarded');
+  if (client !== undefined) headers.set(CLIENT_IP_HEADER, client);
+
+  dropUnlessMatches(headers, 'cf-ipcountry', COUNTRY_CODE);
+  dropUnlessMatches(headers, 'cf-region-code', REGION_CODE);
+}
+
 export function sanitizeHeaders(source: Headers, options: SanitizeOptions): SanitizedHeaders {
   const headers = new Headers(source);
   const trusted = options.peer !== undefined && ipInCidrs(options.peer, options.trustedProxies);
@@ -127,16 +143,7 @@ export function sanitizeHeaders(source: Headers, options: SanitizeOptions): Sani
     return { headers, trusted };
   }
 
-  const client = clientAddress(headers.get(CLIENT_IP_HEADER), options.trustedProxies);
-  for (const name of IP_HEADERS) headers.delete(name);
-  headers.delete('forwarded');
-  if (client !== undefined) headers.set(CLIENT_IP_HEADER, client);
-
-  const country = headers.get('cf-ipcountry');
-  if (country !== null && !COUNTRY_CODE.test(country)) headers.delete('cf-ipcountry');
-  const region = headers.get('cf-region-code');
-  if (region !== null && !REGION_CODE.test(region)) headers.delete('cf-region-code');
-
+  sanitizeTrustedHeaders(headers, options.trustedProxies);
   return { headers, trusted };
 }
 
@@ -177,6 +184,7 @@ export function isSafePath(target: string): boolean {
   return path.startsWith('/') && !UNSAFE_PATH.test(path) && !hasControlCharacter(path);
 }
 
+// eslint-disable-next-line security/detect-non-literal-regexp -- built from the SITE_KEY_PATTERN constant, never from input
 const SITE_PATH = new RegExp(`^/s/(${SITE_KEY_PATTERN.source.slice(1, -1)})(?=/|$)`);
 
 /** The `siteKey` of `/s/<siteKey>/...`, read from the raw path so it matches what c15t will see. */

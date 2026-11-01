@@ -3,6 +3,7 @@
 
 import { EventEmitter } from 'node:events';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import type { AppDeps } from './app.js';
 import type { ListenerOptions } from './listener.js';
 import type { RegistryOptions } from './registry.js';
 import { siteRecord } from './testing/fakes.js';
@@ -29,7 +30,7 @@ const h = vi.hoisted(() => {
     };
 
   class FakeRegistry {
-    static last: FakeRegistry | undefined;
+    static readonly created: FakeRegistry[] = [];
     readonly invalidate = vi.fn();
     readonly invalidateAll = vi.fn();
     readonly close = vi.fn(async () => {
@@ -38,12 +39,12 @@ const h = vi.hoisted(() => {
     readonly options: RegistryOptions;
     constructor(options: RegistryOptions) {
       this.options = options;
-      FakeRegistry.last = this;
+      FakeRegistry.created.push(this);
     }
   }
 
   class FakeListener {
-    static last: FakeListener | undefined;
+    static readonly created: FakeListener[] = [];
     state = 'starting';
     readonly start = vi.fn();
     readonly stop = vi.fn(async () => {
@@ -52,7 +53,7 @@ const h = vi.hoisted(() => {
     readonly options: ListenerOptions;
     constructor(options: ListenerOptions) {
       this.options = options;
-      FakeListener.last = this;
+      FakeListener.created.push(this);
     }
   }
 
@@ -64,10 +65,10 @@ const h = vi.hoisted(() => {
     FakeListener,
     createPool: vi.fn(),
     createPgSiteStore: vi.fn(),
-    createApp: vi.fn(),
+    createApp: vi.fn<(deps: AppDeps) => unknown>(),
     createSiteInstance: vi.fn(),
     createDriver: vi.fn(),
-    serve: vi.fn(),
+    serve: vi.fn<(options: Served['options'], onListening: Served['onListening']) => unknown>(),
   };
 });
 
@@ -162,13 +163,15 @@ async function start(): Promise<void> {
 }
 
 function registry(): InstanceType<typeof h.FakeRegistry> {
-  if (h.FakeRegistry.last === undefined) throw new Error('no registry was created');
-  return h.FakeRegistry.last;
+  const last = h.FakeRegistry.created.at(-1);
+  if (last === undefined) throw new Error('no registry was created');
+  return last;
 }
 
 function listener(): InstanceType<typeof h.FakeListener> {
-  if (h.FakeListener.last === undefined) throw new Error('no listener was created');
-  return h.FakeListener.last;
+  const last = h.FakeListener.created.at(-1);
+  if (last === undefined) throw new Error('no listener was created');
+  return last;
 }
 
 function signal(name: string): void {
@@ -185,8 +188,8 @@ beforeEach(() => {
   vi.useFakeTimers();
   h.order.length = 0;
   h.lines.length = 0;
-  h.FakeRegistry.last = undefined;
-  h.FakeListener.last = undefined;
+  h.FakeRegistry.created.length = 0;
+  h.FakeListener.created.length = 0;
   handlers.clear();
   served = undefined;
   server = makeServer('node');
@@ -200,7 +203,7 @@ beforeEach(() => {
   h.createApp.mockReset().mockReturnValue(app);
   h.createSiteInstance.mockReset().mockReturnValue(instance);
   h.createDriver.mockReset().mockReturnValue(driver);
-  h.serve.mockReset().mockImplementation((options: Served['options'], onListening) => {
+  h.serve.mockReset().mockImplementation((options, onListening) => {
     served = { options, onListening };
     return server;
   });
@@ -212,7 +215,7 @@ beforeEach(() => {
     (real: (event: string, listener: (...args: unknown[]) => void) => unknown) =>
     (event: string, handler: (...args: unknown[]) => void) => {
       if (event === 'SIGTERM' || event === 'SIGINT' || event === 'unhandledRejection') {
-        handlers.set(event, handler as () => void);
+        handlers.set(event, handler);
         return process;
       }
       return real(event, handler);
@@ -272,6 +275,7 @@ describe('startup', () => {
   test('serves the app on the configured address, with the registry, proxies and probes wired in', async () => {
     await start();
     const options = h.createApp.mock.calls[0]?.[0];
+    if (options === undefined) throw new Error('createApp was not called');
     expect(options.registry).toBe(registry());
     expect(options.trustedProxies).toEqual(['10.0.0.0/8']);
     expect(options.logger).toBe(h.logger);
@@ -308,7 +312,11 @@ describe('startup', () => {
 
   test('stops on SIGTERM and SIGINT, and survives a rejected promise in a driver', async () => {
     await start();
-    expect([...handlers.keys()].sort()).toEqual(['SIGINT', 'SIGTERM', 'unhandledRejection']);
+    expect([...handlers.keys()].sort((a, b) => a.localeCompare(b))).toEqual([
+      'SIGINT',
+      'SIGTERM',
+      'unhandledRejection',
+    ]);
 
     const reject = handlers.get('unhandledRejection') as unknown as (reason: unknown) => void;
     reject(Object.assign(new Error('driver exploded'), { code: 'XX000' }));

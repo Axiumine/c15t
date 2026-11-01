@@ -12,7 +12,7 @@ export function SiteStatusBadge({ status }: { status: Site['status'] }) {
   );
 }
 
-export function RoleBadge({ role }: { role: Role }) {
+export function RoleBadge({ role }: Readonly<{ role: Role }>) {
   return (
     <Badge variant={role === 'admin' ? 'outline' : 'neutral'}>
       {role === 'admin' ? 'Admin' : 'User'}
@@ -20,7 +20,7 @@ export function RoleBadge({ role }: { role: Role }) {
   );
 }
 
-export function UserStateBadges({ user }: { user: UserSummary }) {
+export function UserStateBadges({ user }: Readonly<{ user: UserSummary }>) {
   return (
     <span className="flex flex-wrap gap-1">
       {user.banned ? (

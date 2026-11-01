@@ -30,7 +30,7 @@ const TRUSTED_PEERS = ['127.0.0.1', '::1', '::ffff:127.0.0.1'];
 
 /** Upper-cases the letters of `text` where the matching bit of `mask` is set. */
 function mixCase(text: string, mask: number): string {
-  return [...text]
+  return Array.from(text)
     .map((char, index) => ((mask >> index) & 1 ? char.toUpperCase() : char.toLowerCase()))
     .join('');
 }
@@ -40,7 +40,7 @@ const mixedCase = (names: readonly string[]) =>
   fc.tuple(fc.constantFrom(...names), mask).map(([name, bits]) => mixCase(name, bits));
 
 const segment = fc.stringMatching(/^[A-Za-z0-9_-]{1,8}$/);
-const label = fc.stringMatching(/^[a-z0-9]([a-z0-9-]{0,8}[a-z0-9])?$/);
+const label = fc.stringMatching(/^(?:[a-z0-9]|[a-z0-9][a-z0-9-]{0,8}[a-z0-9])$/);
 // The last label holds a letter, as a real TLD does: an all-digit last label makes the URL parser
 // read the whole name as an IPv4 address.
 const tld = fc.stringMatching(/^[a-z]{2,6}$/);
@@ -82,7 +82,7 @@ const BENIGN_NAMES = [
   'user-agent',
   'x-request-id',
 ];
-const headerValue = fc.stringMatching(/^[\x21-\x7e]([\x20-\x7e]{0,30}[\x21-\x7e])?$/);
+const headerValue = fc.stringMatching(/^(?:[\x21-\x7e]|[\x21-\x7e][\x20-\x7e]{0,30}[\x21-\x7e])$/);
 
 const forwardingName = fc.oneof(
   mixedCase(FORWARDING_NAMES),
@@ -350,7 +350,7 @@ test('an absolute-form request target gets the same verdict as its path', () => 
       hostname,
       fc.option(fc.integer({ min: 1, max: 65535 }), { nil: undefined }),
       (path, scheme, host, port) => {
-        const target = `${scheme}://${host}${port === undefined ? '' : `:${port}`}${path}`;
+        const target = `${scheme}://${host}`.concat(port === undefined ? '' : `:${port}`, path);
         expect(isSafePath(target)).toBe(isSafePath(path));
       },
     ),
@@ -370,7 +370,7 @@ test('a target that does not start with a slash is rejected', () => {
 });
 
 const hostile = fc.string({
-  unit: fc.constantFrom(...'./%\\2fFcCeE5aAbB0 \t\n?#x'),
+  unit: fc.constantFrom(...Array.from('./%\\2fFcCeE5aAbB0 \t\n?#x')),
   maxLength: 30,
 });
 
@@ -393,8 +393,7 @@ test('an accepted path cannot climb, split or smuggle a control character after 
         expect(decoded).not.toBe('.');
         expect(decoded).not.toBe('..');
         expect(decoded).not.toMatch(/[/\\]/);
-        // biome-ignore lint/suspicious/noControlCharactersInRegex: the point is to find them
-        expect(decoded).not.toMatch(/[\x00-\x1f\x7f]/);
+        expect(Array.from(decoded).some((char) => char < ' ' || char === '\x7f')).toBe(false);
       }
       // The URL parser keeps every segment: it has no dot segment to resolve.
       expect(new URL(`http://localhost${target}`).pathname.split('/')).toHaveLength(
@@ -475,7 +474,7 @@ test('stripping removes every jurisdiction parameter and keeps the rest in order
       ),
       (pairs) => {
         const query = pairs.map(([name, value]) => `${name}=${value}`).join('&');
-        const input = `http://localhost/s/shop/init${query === '' ? '' : `?${query}`}`;
+        const input = 'http://localhost/s/shop/init'.concat(query === '' ? '' : `?${query}`);
         const output = new URL(stripOverrideParams(input));
         for (const name of VISITOR_OVERRIDE_PARAMS)
           expect(output.searchParams.has(name)).toBe(false);
@@ -496,7 +495,7 @@ test('a URL without a jurisdiction parameter comes back unchanged, byte for byte
       fc.array(fc.tuple(otherParam, fc.stringMatching(/^[A-Za-z0-9%]{0,6}$/)), { maxLength: 6 }),
       (pairs) => {
         const query = pairs.map(([name, value]) => `${name}=${value}`).join('&');
-        const input = `http://localhost/s/shop/init${query === '' ? '' : `?${query}`}`;
+        const input = 'http://localhost/s/shop/init'.concat(query === '' ? '' : `?${query}`);
         expect(stripOverrideParams(input)).toBe(input);
       },
     ),
@@ -628,7 +627,8 @@ test('a Host that is an IP address or a localhost name is not tied to the site d
 });
 
 test('the host check never throws, and only a listed or direct host passes', () => {
-  const hostish = fc.string({ unit: fc.constantFrom(...'abcdez019.-:[]@/\\ %*,_'), maxLength: 30 });
+  const chars = 'abcdez019.-:[]@/\\ %*,_'.split('');
+  const hostish = fc.string({ unit: fc.constantFrom(...chars), maxLength: 30 });
   fc.assert(
     fc.property(domainList, fc.oneof(hostish, fc.string()), (domains, host) => {
       let headers: Headers;

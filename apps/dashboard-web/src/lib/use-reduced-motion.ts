@@ -5,8 +5,11 @@ import { useSyncExternalStore } from 'react';
 
 const QUERY = '(prefers-reduced-motion: reduce)';
 
+/** `matchMedia` is missing in some runtimes (server rendering, bare test environments). */
+const env: { readonly matchMedia?: (query: string) => MediaQueryList } = globalThis;
+
 function subscribe(onChange: () => void): () => void {
-  const media = globalThis.matchMedia?.(QUERY);
+  const media = env.matchMedia?.(QUERY);
   media?.addEventListener('change', onChange);
   return () => media?.removeEventListener('change', onChange);
 }
@@ -15,7 +18,7 @@ function subscribe(onChange: () => void): () => void {
 export function useReducedMotion(): boolean {
   return useSyncExternalStore(
     subscribe,
-    () => globalThis.matchMedia?.(QUERY).matches ?? false,
+    () => env.matchMedia?.(QUERY).matches ?? false,
     () => false,
   );
 }

@@ -137,7 +137,7 @@ test('a bogus session cookie is also a 401, on every guarded route', async () =>
 
 test('the only open routes are health and the Better Auth sign-in family', async () => {
   const open = routesOf().filter((route) => ALLOWLIST.some((rule) => rule.test(route.path)));
-  expect(open.map((route) => route.path).sort()).toEqual([
+  expect(open.map((route) => route.path).sort((a, b) => a.localeCompare(b))).toEqual([
     '/api/auth/*',
     '/api/auth/*',
     '/api/health',

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Axiumine
 
-import { afterEach, beforeEach, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, expect, type MockInstance, test, vi } from 'vitest';
 
 /*
  * admin-create.ts is the `yarn admin:create` entry point: it runs on import. Each test imports it
@@ -9,9 +9,24 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest';
  * so no database is opened, no secret is read from the real environment and the worker stays up.
  */
 
+interface AuthOptions {
+  db: unknown;
+  env: unknown;
+  logger: { error(message: string): void };
+}
+
+interface Created {
+  userId: string;
+  email: string;
+  oneTimePassword: string;
+}
+
 const mocks = vi.hoisted(() => ({
-  createAuth: vi.fn(),
-  createAdmin: vi.fn(),
+  createAuth: vi.fn<(options: AuthOptions) => unknown>(),
+  createAdmin:
+    vi.fn<
+      (auth: unknown, input: { email: string; name: string | undefined }) => Promise<Created>
+    >(),
   openDatabase: vi.fn(),
   db: { close: vi.fn() },
   auth: { name: 'auth' },
@@ -28,7 +43,7 @@ class ExitSignal extends Error {
   readonly code: number | undefined;
 
   constructor(code: number | undefined) {
-    super(`process.exit(${code})`);
+    super(`process.exit(${String(code)})`);
     this.code = code;
   }
 }
@@ -40,8 +55,9 @@ const config = {
 };
 
 const originalArgv = process.argv;
-let stdout: ReturnType<typeof vi.spyOn>;
-let stderr: ReturnType<typeof vi.spyOn>;
+const silence = (stream: NodeJS.WriteStream) => vi.spyOn(stream, 'write').mockReturnValue(true);
+let stdout: MockInstance<typeof process.stdout.write>;
+let stderr: MockInstance<typeof process.stderr.write>;
 
 function written(spy: {
   readonly mock: { readonly calls: readonly (readonly unknown[])[] };
@@ -49,8 +65,10 @@ function written(spy: {
   return spy.mock.calls.map(([chunk]) => String(chunk)).join('');
 }
 
-function stubConfig(values: Record<string, string | undefined> = config) {
-  for (const name of Object.keys(config)) vi.stubEnv(name, values[name]);
+function stubConfig(values: Partial<typeof config> = config) {
+  vi.stubEnv('DATABASE_URL_DASHBOARD', values.DATABASE_URL_DASHBOARD);
+  vi.stubEnv('BETTER_AUTH_SECRET', values.BETTER_AUTH_SECRET);
+  vi.stubEnv('BETTER_AUTH_URL', values.BETTER_AUTH_URL);
 }
 
 /** Runs the entry point and reports how it ended: the exit code, or the error it threw. */
@@ -77,8 +95,8 @@ beforeEach(() => {
   mocks.createAuth.mockReturnValue(mocks.auth);
   mocks.db.close.mockResolvedValue(undefined);
   stubConfig();
-  stdout = vi.spyOn(process.stdout, 'write').mockReturnValue(true);
-  stderr = vi.spyOn(process.stderr, 'write').mockReturnValue(true);
+  stdout = silence(process.stdout);
+  stderr = silence(process.stderr);
   vi.spyOn(process, 'exit').mockImplementation(((code?: number) => {
     throw new ExitSignal(code);
   }) as never);
@@ -142,10 +160,11 @@ test('refuses unknown options', async () => {
 });
 
 test('creates the administrator on one short-lived primary connection and prints the password once', async () => {
+  const issued = 'correct-horse-battery';
   mocks.createAdmin.mockResolvedValue({
     userId: 'u1',
     email: 'someone@example.test',
-    oneTimePassword: 'correct-horse-battery',
+    oneTimePassword: issued,
   });
   const result = await run(['--email', 'someone@example.test', '--name', 'Some One']);
   expect(result.code).toBe(0);
@@ -153,7 +172,7 @@ test('creates the administrator on one short-lived primary connection and prints
   expect(result.stdout).toBe(
     [
       'Created administrator someone@example.test',
-      'One-time password (shown once, change it at the first login): correct-horse-battery',
+      `One-time password (shown once, change it at the first login): ${issued}`,
       '',
     ].join('\n'),
   );
@@ -178,16 +197,12 @@ test('Better Auth gets the CLI configuration and a logger that writes nothing', 
     oneTimePassword: 'p',
   });
   await run(['--email', 'a@example.test']);
-  const options = mocks.createAuth.mock.calls[0]?.[0] as {
-    db: unknown;
-    env: unknown;
-    logger: { error(message: string): void };
-  };
-  expect(options.db).toBe(mocks.db);
-  expect(options.env).toEqual(config);
+  const options = mocks.createAuth.mock.calls[0]?.[0];
+  expect(options?.db).toBe(mocks.db);
+  expect(options?.env).toEqual(config);
   stderr.mockClear();
   stdout.mockClear();
-  options.logger.error('anything');
+  options?.logger.error('anything');
   expect(stderr).not.toHaveBeenCalled();
   expect(stdout).not.toHaveBeenCalled();
 });

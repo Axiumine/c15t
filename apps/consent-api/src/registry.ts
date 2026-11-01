@@ -59,7 +59,11 @@ const MAX_MISSING_KEYS = 1_000;
 const MAX_STALE_RELOADS = 2;
 
 function fingerprintOf(site: SiteRecord): string {
-  return JSON.stringify([site.key, site.policyPreset, [...site.domains].sort()]);
+  return JSON.stringify([
+    site.key,
+    site.policyPreset,
+    [...site.domains].sort((a, b) => a.localeCompare(b)),
+  ]);
 }
 
 /**
@@ -173,25 +177,34 @@ export class SiteRegistry {
     if (cached !== undefined && now - cached.loadedAt < this.ttlMs) return cached;
     if (cached === undefined && (this.missing.get(siteKey) ?? 0) > now) return null;
 
+    try {
+      return await this.pendingLoad(siteKey);
+    } catch (error) {
+      return this.keepServing(siteKey, cached, error);
+    }
+  }
+
+  /** One database read per site at a time: concurrent requests share it. */
+  private pendingLoad(siteKey: string): Promise<Entry | null> {
     let pending = this.loading.get(siteKey);
     if (pending === undefined) {
       pending = this.load(siteKey).finally(() => this.loading.delete(siteKey));
       this.loading.set(siteKey, pending);
     }
-    try {
-      return await pending;
-    } catch (error) {
-      // The cached copy is the last known good configuration: keep serving it while the
-      // database is unreachable, rather than turning a failover into a 404 or a 5xx.
-      if (cached !== undefined && !cached.retired) {
-        this.log.warn('site reload failed, serving the cached instance', {
-          siteKey,
-          ...errorFields(error),
-        });
-        return cached;
-      }
-      throw error;
-    }
+    return pending;
+  }
+
+  /**
+   * The cached copy is the last known good configuration: keep serving it while the database is
+   * unreachable, rather than turning a failover into a 404 or a 5xx.
+   */
+  private keepServing(siteKey: string, cached: Entry | undefined, error: unknown): Entry {
+    if (cached === undefined || cached.retired) throw error;
+    this.log.warn('site reload failed, serving the cached instance', {
+      siteKey,
+      ...errorFields(error),
+    });
+    return cached;
   }
 
   private async load(siteKey: string): Promise<Entry | null> {

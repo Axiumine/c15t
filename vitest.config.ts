@@ -41,6 +41,9 @@ export default defineConfig({
           name: 'scripts',
           environment: 'node',
           include: ['scripts/**/*.test.mjs'],
+          // Written with node:test, because Node's coverage report gates it at 100%: run by
+          // `yarn test:scripts-coverage`, not by Vitest.
+          exclude: ['scripts/check-code-caps.test.mjs', 'scripts/git-hooks.test.mjs'],
           testTimeout: 60_000,
         },
       },

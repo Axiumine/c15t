@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Axiumine
 
+import { fieldOf } from '@consent/shared';
 import { afterEach, expect, test, vi } from 'vitest';
 import {
   consoleLogger,
   createLogger,
   describeError,
+  firstLine,
   type LogLevel,
   silentLogger,
 } from './logger.js';
@@ -14,6 +16,9 @@ afterEach(() => {
   vi.restoreAllMocks();
   vi.useRealTimers();
 });
+
+/** The `message` of a JSON log line written to stdout or stderr. */
+const messageOf = (chunk: unknown): unknown => fieldOf(JSON.parse(String(chunk)), 'message');
 
 function capture() {
   const written: { line: string; level: LogLevel }[] = [];
@@ -27,7 +32,7 @@ test('writes one JSON line per call with the time, level, message and fields', (
   logger.warn('careful');
   logger.error('broken', { code: 'X' });
   expect(written.map((entry) => entry.level)).toEqual(['info', 'warn', 'error']);
-  expect(written.map((entry) => JSON.parse(entry.line))).toEqual([
+  expect(written.map((entry) => JSON.parse(entry.line) as unknown)).toEqual([
     { time: '2026-03-01T12:00:00.000Z', level: 'info', message: 'hello', siteKey: 'shop' },
     { time: '2026-03-01T12:00:00.000Z', level: 'warn', message: 'careful' },
     { time: '2026-03-01T12:00:00.000Z', level: 'error', message: 'broken', code: 'X' },
@@ -41,11 +46,8 @@ test('the consoleLogger sends errors to stderr and everything else to stdout', (
   consoleLogger.info('one');
   consoleLogger.warn('two');
   consoleLogger.error('three');
-  expect(out.mock.calls.map(([chunk]) => JSON.parse(String(chunk)).message)).toEqual([
-    'one',
-    'two',
-  ]);
-  expect(err.mock.calls.map(([chunk]) => JSON.parse(String(chunk)).message)).toEqual(['three']);
+  expect(out.mock.calls.map(([chunk]) => messageOf(chunk))).toEqual(['one', 'two']);
+  expect(err.mock.calls.map(([chunk]) => messageOf(chunk))).toEqual(['three']);
   expect(String(out.mock.calls[0]?.[0]).endsWith('\n')).toBe(true);
 });
 
@@ -102,4 +104,12 @@ test('describeError truncates a long message and copes with an empty first line'
   });
   expect(describeError(new Error('\nonly the second line'))).toMatchObject({ errorMessage: '' });
   expect(describeError(new Error(''))).toMatchObject({ errorMessage: '' });
+});
+
+test('firstLine keeps the text before the first line break and leaves single lines alone', () => {
+  expect(firstLine('one\ntwo\nthree')).toBe('one');
+  expect(firstLine('one\r\ntwo')).toBe('one\r');
+  expect(firstLine('\nonly the second line')).toBe('');
+  expect(firstLine('no break')).toBe('no break');
+  expect(firstLine('')).toBe('');
 });

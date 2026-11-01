@@ -31,7 +31,48 @@ import {
 
 type Action = { kind: 'create' } | { kind: 'edit'; site: Site } | { kind: 'status'; site: Site };
 
-function SitesTable({ sites, onAction }: { sites: Site[]; onAction: (action: Action) => void }) {
+function SiteRow({ site, onAction }: Readonly<{ site: Site; onAction: (action: Action) => void }>) {
+  return (
+    <TableRow>
+      <TableCell>
+        <Link to="/sites/$key" params={{ key: site.key }} className="font-medium hover:underline">
+          {site.name}
+        </Link>
+        <span className="block font-mono text-xs text-muted-foreground">{site.key}</span>
+      </TableCell>
+      <TableCell className="max-w-72 break-words">{site.domains.join(', ')}</TableCell>
+      <TableCell>
+        <SiteStatusBadge status={site.status} />
+      </TableCell>
+      <TableCell>
+        <div className="flex justify-end gap-2">
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => onAction({ kind: 'edit', site })}
+          >
+            Edit<span className="sr-only"> {site.name}</span>
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            onClick={() => onAction({ kind: 'status', site })}
+          >
+            {site.status === 'active' ? 'Disable' : 'Enable'}
+            <span className="sr-only"> {site.name}</span>
+          </Button>
+        </div>
+      </TableCell>
+    </TableRow>
+  );
+}
+
+function SitesTable({
+  sites,
+  onAction,
+}: Readonly<{ sites: readonly Site[]; onAction: (action: Action) => void }>) {
   return (
     <Table>
       <caption className="sr-only">All sites</caption>
@@ -47,62 +88,40 @@ function SitesTable({ sites, onAction }: { sites: Site[]; onAction: (action: Act
       </TableHeader>
       <TableBody>
         {sites.map((site) => (
-          <TableRow key={site.key}>
-            <TableCell>
-              <Link
-                to="/sites/$key"
-                params={{ key: site.key }}
-                className="font-medium hover:underline"
-              >
-                {site.name}
-              </Link>
-              <span className="block font-mono text-xs text-muted-foreground">{site.key}</span>
-            </TableCell>
-            <TableCell className="max-w-72 break-words">{site.domains.join(', ')}</TableCell>
-            <TableCell>
-              <SiteStatusBadge status={site.status} />
-            </TableCell>
-            <TableCell>
-              <div className="flex justify-end gap-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => onAction({ kind: 'edit', site })}
-                >
-                  Edit<span className="sr-only"> {site.name}</span>
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => onAction({ kind: 'status', site })}
-                >
-                  {site.status === 'active' ? 'Disable' : 'Enable'}
-                  <span className="sr-only"> {site.name}</span>
-                </Button>
-              </div>
-            </TableCell>
-          </TableRow>
+          <SiteRow key={site.key} site={site} onAction={onAction} />
         ))}
       </TableBody>
     </Table>
   );
 }
 
-function SiteDialog({ action, onClose }: { action: Action | null; onClose: () => void }) {
+const CREATE_COPY = {
+  title: 'New site',
+  description: 'After saving, add the nginx lines shown on the site Setup tab.',
+  submitLabel: 'Create site',
+} as const;
+
+const EDIT_COPY = {
+  title: 'Edit site',
+  description: 'Saved changes reach the consent service within moments.',
+  submitLabel: 'Save changes',
+} as const;
+
+function SiteDialog({ action, onClose }: Readonly<{ action: Action | null; onClose: () => void }>) {
   const create = useCreateSite();
   const update = useUpdateSite();
-  const open = action?.kind === 'create' || action?.kind === 'edit';
+  const editing = action?.kind === 'edit' ? action.site : undefined;
+  const open = action?.kind === 'create' || editing !== undefined;
+  const copy = editing === undefined ? CREATE_COPY : EDIT_COPY;
 
   async function submit(values: SiteFormValues) {
-    if (action?.kind === 'edit') {
+    if (editing === undefined) {
+      await create.mutateAsync(values);
+    } else {
       await update.mutateAsync({
-        siteKey: action.site.key,
+        siteKey: editing.key,
         changes: { name: values.name, domains: values.domains, policyPreset: values.policyPreset },
       });
-    } else {
-      await create.mutateAsync(values);
     }
     onClose();
   }
@@ -112,17 +131,13 @@ function SiteDialog({ action, onClose }: { action: Action | null; onClose: () =>
     <Dialog open={open} onOpenChange={() => onClose()}>
       <DialogContent className="max-w-xl">
         <DialogHeader>
-          <DialogTitle>{action?.kind === 'edit' ? 'Edit site' : 'New site'}</DialogTitle>
-          <DialogDescription>
-            {action?.kind === 'edit'
-              ? 'Saved changes reach the consent service within moments.'
-              : 'After saving, add the nginx lines shown on the site Setup tab.'}
-          </DialogDescription>
+          <DialogTitle>{copy.title}</DialogTitle>
+          <DialogDescription>{copy.description}</DialogDescription>
         </DialogHeader>
         {open ? (
           <SiteForm
-            site={action?.kind === 'edit' ? action.site : undefined}
-            submitLabel={action?.kind === 'edit' ? 'Save changes' : 'Create site'}
+            site={editing}
+            submitLabel={copy.submitLabel}
             onSubmit={submit}
             onCancel={onClose}
           />
@@ -132,9 +147,10 @@ function SiteDialog({ action, onClose }: { action: Action | null; onClose: () =>
   );
 }
 
-function StatusDialog({ site, onClose }: { site: Site | null; onClose: () => void }) {
+function StatusDialog({ site, onClose }: Readonly<{ site: Site | null; onClose: () => void }>) {
   const update = useUpdateSite();
   const disabling = site?.status === 'active';
+  const name = site?.name ?? '';
   const confirm =
     site === null
       ? undefined
@@ -150,7 +166,7 @@ function StatusDialog({ site, onClose }: { site: Site | null; onClose: () => voi
         update.reset();
         onClose();
       }}
-      title={disabling ? `Disable ${site?.name}?` : `Enable ${site?.name}?`}
+      title={disabling ? `Disable ${name}?` : `Enable ${name}?`}
       description={
         disabling
           ? 'The site stops serving its banner and consent requests. Its records are kept. You can enable it again at any time.'

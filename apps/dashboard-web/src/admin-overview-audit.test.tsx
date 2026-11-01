@@ -78,6 +78,23 @@ test('overview: a site whose statistics fail is marked, the others still count, 
   expect(within(table).queryByText('Unavailable')).not.toBeInTheDocument();
 });
 
+test('overview: a site whose statistics are still loading shows an ellipsis in the table', async () => {
+  mockFetch(
+    asAdmin,
+    route('GET /api/admin/sites', json({ items: [shop, blog] })),
+    route('GET /api/sites/shop/stats', json(stats)),
+    route('GET /api/sites/blog/stats', () => new Promise<Response>(() => undefined)),
+  );
+  renderApp('/admin/overview');
+  const user = userEvent.setup();
+  // Only the site that answered is counted so far.
+  expect(await screen.findByText('1,280')).toBeInTheDocument();
+  const table = await openTable(user);
+  const blogRow = within(table).getByRole('link', { name: 'Blog' }).closest('tr') as HTMLElement;
+  expect(within(blogRow).getAllByText('…')).toHaveLength(2);
+  expect(within(table).queryByText('Unavailable')).not.toBeInTheDocument();
+});
+
 test('overview: sites that exist but have no decisions yet show a dash for the opt-in rate', async () => {
   const noDecisions = { ...stats, purposes: [] };
   mockFetch(

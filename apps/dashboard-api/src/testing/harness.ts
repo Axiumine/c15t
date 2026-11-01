@@ -14,6 +14,7 @@ import type { TestEnvironment } from './environment.js';
 
 export const TEST_ORIGIN = 'https://dashboard.example.test';
 // Not a real secret: it only has to be long enough for the env schema.
+// nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- test fixture, not a credential
 const TEST_SECRET = 'test-only-secret-test-only-secret-0123456789';
 
 export interface TestUser {
@@ -23,7 +24,7 @@ export interface TestUser {
   readonly role: Role;
 }
 
-export interface RequestOptions {
+interface RequestOptions {
   readonly cookie?: string;
   readonly json?: unknown;
   readonly ip?: string;
@@ -58,9 +59,27 @@ export interface TestApp {
   close(): Promise<void>;
 }
 
+/**
+ * Closes what `beforeAll` created. `afterAll` also runs when `beforeAll` failed before it assigned
+ * the variable, and then the setup error is the one to report, not a TypeError from the cleanup.
+ */
+export async function closeIfOpen(resource: { close(): Promise<void> } | undefined): Promise<void> {
+  await resource?.close();
+}
+
 export interface TestAppOptions {
   /** Replaces the analytics pool, e.g. with a wrapper that counts or fails queries. */
   readonly analytics?: Database;
+}
+
+/** Cookie, Origin, client IP and, for a JSON body, the content type of a test request. */
+function requestHeaders(init: RequestOptions, ip: string): Headers {
+  const headers = new Headers(init.headers);
+  if (init.cookie !== undefined) headers.set('cookie', init.cookie);
+  if (init.noOrigin !== true) headers.set('origin', TEST_ORIGIN);
+  headers.set('x-forwarded-for', ip);
+  if (init.json !== undefined) headers.set('content-type', 'application/json');
+  return headers;
 }
 
 export function createTestApp(env: TestEnvironment, options: TestAppOptions = {}): TestApp {
@@ -91,17 +110,10 @@ export function createTestApp(env: TestEnvironment, options: TestAppOptions = {}
   const runIp = nextIp();
 
   const request: TestApp['request'] = (method, path, init = {}) => {
-    const headers = new Headers(init.headers);
-    if (init.cookie !== undefined) headers.set('cookie', init.cookie);
-    if (init.noOrigin !== true) headers.set('origin', TEST_ORIGIN);
     const ip = init.ip ?? runIp;
     usedIps.add(ip);
-    headers.set('x-forwarded-for', ip);
-    let body: string | undefined;
-    if (init.json !== undefined) {
-      headers.set('content-type', 'application/json');
-      body = JSON.stringify(init.json);
-    }
+    const headers = requestHeaders(init, ip);
+    const body = init.json === undefined ? undefined : JSON.stringify(init.json);
     return Promise.resolve(
       app.request(`${TEST_ORIGIN}${path}`, {
         method,
@@ -181,8 +193,4 @@ export function cookieHeader(response: Response): string {
     .map((cookie) => cookie.split(';')[0])
     .filter((pair): pair is string => pair !== undefined && !pair.endsWith('='))
     .join('; ');
-}
-
-export async function jsonOf(response: Response): Promise<unknown> {
-  return response.json();
 }

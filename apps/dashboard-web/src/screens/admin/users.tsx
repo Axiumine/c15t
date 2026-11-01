@@ -3,8 +3,7 @@
 
 import type { UserSummary } from '@consent/shared';
 import { MoreHorizontal, UserPlus } from 'lucide-react';
-import type { ReactNode } from 'react';
-import { useState } from 'react';
+import { type ComponentProps, useState } from 'react';
 import {
   useAdminSites,
   useAdminUsers,
@@ -35,7 +34,8 @@ import {
   TableRow,
 } from '../../components/ui/table';
 import { formatDateTime } from '../../lib/format';
-import { BanUserDialog, CreateUserDialog, EditUserDialog, UserSitesDialog } from './user-dialogs';
+import { BanUserDialog } from './ban-user-dialog';
+import { CreateUserDialog, EditUserDialog, UserSitesDialog } from './user-dialogs';
 
 type UserAction = 'edit' | 'sites' | 'ban' | 'unban' | 'reset' | 'revoke';
 interface Pending {
@@ -47,11 +47,11 @@ function RowMenu({
   user,
   isSelf,
   onAction,
-}: {
+}: Readonly<{
   user: UserSummary;
   isSelf: boolean;
   onAction: (action: UserAction) => void;
-}) {
+}>) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -81,15 +81,54 @@ function RowMenu({
   );
 }
 
+/** Who may sign in to what: admins see every site, users only the ones assigned to them. */
+function sitesLabel(user: UserSummary): string {
+  if (user.role === 'admin') return 'All sites';
+  return user.siteKeys.length === 0 ? 'None' : user.siteKeys.join(', ');
+}
+
+function UserRow({
+  user,
+  isSelf,
+  onAction,
+}: Readonly<{
+  user: UserSummary;
+  isSelf: boolean;
+  onAction: (action: UserAction) => void;
+}>) {
+  return (
+    <TableRow>
+      <TableCell className="min-w-52">
+        <span className="block font-medium">{user.name}</span>
+        <span className="block text-xs break-all text-muted-foreground">{user.email}</span>
+      </TableCell>
+      <TableCell>
+        <RoleBadge role={user.role} />
+      </TableCell>
+      <TableCell>
+        <UserStateBadges user={user} />
+        {user.banned && user.banReason !== null ? (
+          <span className="block text-xs text-muted-foreground">{user.banReason}</span>
+        ) : null}
+      </TableCell>
+      <TableCell className="max-w-48 text-xs break-words">{sitesLabel(user)}</TableCell>
+      <TableCell className="whitespace-nowrap text-xs">{formatDateTime(user.createdAt)}</TableCell>
+      <TableCell className="text-right">
+        <RowMenu user={user} isSelf={isSelf} onAction={onAction} />
+      </TableCell>
+    </TableRow>
+  );
+}
+
 function UsersTable({
   users,
   selfId,
   onAction,
-}: {
-  users: UserSummary[];
+}: Readonly<{
+  users: readonly UserSummary[];
   selfId: string | undefined;
   onAction: (pending: Pending) => void;
-}) {
+}>) {
   return (
     <Table>
       <caption className="sr-only">Users</caption>
@@ -107,80 +146,97 @@ function UsersTable({
       </TableHeader>
       <TableBody>
         {users.map((user) => (
-          <TableRow key={user.id}>
-            <TableCell className="min-w-52">
-              <span className="block font-medium">{user.name}</span>
-              <span className="block text-xs break-all text-muted-foreground">{user.email}</span>
-            </TableCell>
-            <TableCell>
-              <RoleBadge role={user.role} />
-            </TableCell>
-            <TableCell>
-              <UserStateBadges user={user} />
-              {user.banned && user.banReason !== null ? (
-                <span className="block text-xs text-muted-foreground">{user.banReason}</span>
-              ) : null}
-            </TableCell>
-            <TableCell className="max-w-48 text-xs break-words">
-              {user.role === 'admin'
-                ? 'All sites'
-                : user.siteKeys.length === 0
-                  ? 'None'
-                  : user.siteKeys.join(', ')}
-            </TableCell>
-            <TableCell className="whitespace-nowrap text-xs">
-              {formatDateTime(user.createdAt)}
-            </TableCell>
-            <TableCell className="text-right">
-              <RowMenu
-                user={user}
-                isSelf={user.id === selfId}
-                onAction={(kind) => onAction({ kind, user })}
-              />
-            </TableCell>
-          </TableRow>
+          <UserRow
+            key={user.id}
+            user={user}
+            isSelf={user.id === selfId}
+            onAction={(kind) => onAction({ kind, user })}
+          />
         ))}
       </TableBody>
     </Table>
   );
 }
 
+type ConfirmMutations = Readonly<{
+  reset: ReturnType<typeof useResetPassword>;
+  unban: ReturnType<typeof useUnbanUser>;
+  revoke: ReturnType<typeof useRevokeSessions>;
+}>;
+
+/** The confirmation behind a menu action, or `undefined` for the actions with their own form. */
+function confirmFor(pending: Pending | null, mutations: ConfirmMutations) {
+  if (pending === null) return undefined;
+  const { kind, user } = pending;
+  switch (kind) {
+    case 'reset':
+      return {
+        mutation: mutations.reset,
+        title: 'Reset password?',
+        description: `A new one-time password is generated for ${user.email}. The old one stops working, all their sessions end, and they must choose a new password at the next sign-in.`,
+        label: 'Reset password',
+        destructive: true,
+        userId: user.id,
+      };
+    case 'unban':
+      return {
+        mutation: mutations.unban,
+        title: 'Unban user?',
+        description: `${user.email} can sign in again.`,
+        label: 'Unban',
+        destructive: false,
+        userId: user.id,
+      };
+    case 'revoke':
+      return {
+        mutation: mutations.revoke,
+        title: 'Revoke all sessions?',
+        description: `${user.email} is signed out on every device. They can sign in again with their password.`,
+        label: 'Revoke sessions',
+        destructive: true,
+        userId: user.id,
+      };
+    default:
+      return undefined;
+  }
+}
+
+/** A closed dialog keeps empty texts, so it can animate out without changing its contents. */
+function confirmDialogProps(
+  active: ReturnType<typeof confirmFor>,
+): Omit<ComponentProps<typeof ConfirmDialog>, 'onOpenChange' | 'onConfirm'> {
+  if (active === undefined) {
+    return {
+      open: false,
+      title: '',
+      description: '',
+      confirmLabel: '',
+      destructive: false,
+      pending: false,
+      error: undefined,
+    };
+  }
+  return {
+    open: true,
+    title: active.title,
+    description: active.description,
+    confirmLabel: active.label,
+    destructive: active.destructive,
+    pending: active.mutation.isPending,
+    error: active.mutation.error,
+  };
+}
+
 /** Reset, unban and revoke are plain confirmations; the others have their own form dialog. */
-function ConfirmActions({ pending, onClose }: { pending: Pending | null; onClose: () => void }) {
+function ConfirmActions({
+  pending,
+  onClose,
+}: Readonly<{ pending: Pending | null; onClose: () => void }>) {
   const { secret, reveal, clear } = useOneTimeSecret();
   const reset = useResetPassword(reveal);
   const unban = useUnbanUser();
   const revoke = useRevokeSessions();
-  const user = pending?.user;
-
-  const config = {
-    reset: {
-      mutation: reset,
-      title: 'Reset password?',
-      description: `A new one-time password is generated for ${user?.email}. The old one stops working, all their sessions end, and they must choose a new password at the next sign-in.`,
-      label: 'Reset password',
-      destructive: true,
-    },
-    unban: {
-      mutation: unban,
-      title: 'Unban user?',
-      description: `${user?.email} can sign in again.`,
-      label: 'Unban',
-      destructive: false,
-    },
-    revoke: {
-      mutation: revoke,
-      title: 'Revoke all sessions?',
-      description: `${user?.email} is signed out on every device. They can sign in again with their password.`,
-      label: 'Revoke sessions',
-      destructive: true,
-    },
-  } as const;
-  const kind = pending?.kind;
-  const active =
-    user !== undefined && (kind === 'reset' || kind === 'unban' || kind === 'revoke')
-      ? { ...config[kind], userId: user.id }
-      : undefined;
+  const active = confirmFor(pending, { reset, unban, revoke });
 
   function close() {
     reset.reset();
@@ -192,20 +248,35 @@ function ConfirmActions({ pending, onClose }: { pending: Pending | null; onClose
   return (
     <>
       <ConfirmDialog
-        open={active !== undefined}
+        {...confirmDialogProps(active)}
         onOpenChange={() => close()}
-        title={active?.title ?? ''}
-        description={active?.description ?? ''}
-        confirmLabel={active?.label ?? ''}
-        destructive={active?.destructive ?? false}
-        pending={active?.mutation.isPending ?? false}
-        error={active?.mutation.error}
         onConfirm={() => active?.mutation.mutate(active.userId, { onSuccess: close })}
       />
       <OneTimePasswordDialog secret={secret} onClose={clear} />
     </>
   );
 }
+
+function UsersBody({
+  users,
+  selfId,
+  onAction,
+}: Readonly<{
+  users: ReturnType<typeof useAdminUsers>;
+  selfId: string | undefined;
+  onAction: (pending: Pending) => void;
+}>) {
+  if (users.isPending) return <LoadingBlock label="Loading users" />;
+  if (users.isError) return <ErrorState error={users.error} onRetry={() => void users.refetch()} />;
+  if (users.data.items.length === 0) {
+    return <EmptyState title="No users yet" description="Create the first user." />;
+  }
+  return <UsersTable users={users.data.items} selfId={selfId} onAction={onAction} />;
+}
+
+/** The user a menu action was chosen for, when it is the given kind of action. */
+const userFor = (pending: Pending | null, kind: UserAction): UserSummary | null =>
+  pending?.kind === kind ? pending.user : null;
 
 export function AdminUsersScreen() {
   const users = useAdminUsers();
@@ -214,17 +285,6 @@ export function AdminUsersScreen() {
   const [creating, setCreating] = useState(false);
   const [pending, setPending] = useState<Pending | null>(null);
   const close = () => setPending(null);
-
-  let body: ReactNode;
-  if (users.isPending) body = <LoadingBlock label="Loading users" />;
-  else if (users.isError)
-    body = <ErrorState error={users.error} onRetry={() => void users.refetch()} />;
-  else if (users.data.items.length === 0) {
-    body = <EmptyState title="No users yet" description="Create the first user." />;
-  } else {
-    body = <UsersTable users={users.data.items} selfId={me.data?.id} onAction={setPending} />;
-  }
-
   const allSites = sites.data?.items ?? [];
   return (
     <div className="grid gap-6">
@@ -238,15 +298,11 @@ export function AdminUsersScreen() {
           </Button>
         }
       />
-      {body}
+      <UsersBody users={users} selfId={me.data?.id} onAction={setPending} />
       <CreateUserDialog open={creating} onClose={() => setCreating(false)} sites={allSites} />
-      <EditUserDialog user={pending?.kind === 'edit' ? pending.user : null} onClose={close} />
-      <UserSitesDialog
-        user={pending?.kind === 'sites' ? pending.user : null}
-        sites={allSites}
-        onClose={close}
-      />
-      <BanUserDialog user={pending?.kind === 'ban' ? pending.user : null} onClose={close} />
+      <EditUserDialog user={userFor(pending, 'edit')} onClose={close} />
+      <UserSitesDialog user={userFor(pending, 'sites')} sites={allSites} onClose={close} />
+      <BanUserDialog user={userFor(pending, 'ban')} onClose={close} />
       <ConfirmActions pending={pending} onClose={close} />
     </div>
   );

@@ -11,11 +11,11 @@ export function SiteOverviewScreen({
   siteKey,
   search,
   onSearchChange,
-}: {
+}: Readonly<{
   siteKey: string;
   search: RangeSearch;
   onSearchChange: (next: RangeSearch) => void;
-}) {
+}>) {
   const range = resolveRange(search);
   const stats = useSiteStats(siteKey, range);
 

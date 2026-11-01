@@ -2,7 +2,6 @@
 // Copyright (C) 2026 Axiumine
 
 import {
-  banUserSchema,
   ROLES,
   type Site,
   type UserSummary,
@@ -11,13 +10,12 @@ import {
 } from '@consent/shared';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
-import { Controller, useForm } from 'react-hook-form';
-import { z } from 'zod';
+import { Controller, type UseFormRegisterReturn, useForm } from 'react-hook-form';
+import type { z } from 'zod';
 import {
   ApiError,
   errorMessage,
   fieldIssues,
-  useBanUser,
   useCreateUser,
   useSetUserSites,
   useUpdateUser,
@@ -33,7 +31,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../../components/ui/dialog';
-import { Checkbox, Input, Select, Textarea } from '../../components/ui/input';
+import { Checkbox, Input, Select } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 
 const ROLE_LABELS = {
@@ -41,15 +39,43 @@ const ROLE_LABELS = {
   user: 'User (assigned sites, read-only)',
 } as const;
 
+const ROLE_OPTIONS = ROLES.map((role) => ({
+  value: role,
+  // eslint-disable-next-line security/detect-object-injection -- `role` is a member of the closed ROLES union
+  label: ROLE_LABELS[role],
+}));
+
+function RoleField({
+  id,
+  error,
+  registration,
+}: Readonly<{
+  id: string;
+  error: string | undefined;
+  registration: UseFormRegisterReturn<'role'>;
+}>) {
+  return (
+    <Field id={id} label="Role" error={error}>
+      <Select {...fieldProps(id, error)} {...registration}>
+        {ROLE_OPTIONS.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </Select>
+    </Field>
+  );
+}
+
 function SitePicker({
   sites,
   value,
   onChange,
-}: {
+}: Readonly<{
   sites: readonly Site[];
   value: readonly string[];
   onChange: (next: string[]) => void;
-}) {
+}>) {
   if (sites.length === 0) {
     return <p className="text-sm text-muted-foreground">No sites exist yet.</p>;
   }
@@ -87,7 +113,7 @@ function SitePicker({
   );
 }
 
-function serverFormError(
+export function serverFormError(
   error: unknown,
   emailField: boolean,
 ): { email?: string; message?: string } {
@@ -99,15 +125,8 @@ function serverFormError(
   return { message: first === undefined ? errorMessage(error) : first.message };
 }
 
-export function CreateUserDialog({
-  open,
-  onClose,
-  sites,
-}: {
-  open: boolean;
-  onClose: () => void;
-  sites: readonly Site[];
-}) {
+/** The form state, and a submit that maps server rejections onto the email field or the form. */
+function useCreateUserForm(onClose: () => void) {
   const { secret, reveal, clear } = useOneTimeSecret();
   const create = useCreateUser(reveal);
   const [formError, setFormError] = useState<string | undefined>(undefined);
@@ -141,9 +160,73 @@ export function CreateUserDialog({
     }
   }
 
+  return {
+    secret,
+    clear,
+    register,
+    control,
+    errors,
+    isSubmitting,
+    formError,
+    finish,
+    submit: handleSubmit(submit),
+  };
+}
+
+type CreateUserForm = ReturnType<typeof useCreateUserForm>;
+
+function CreateUserFields({
+  form,
+  sites,
+}: Readonly<{
+  form: Pick<CreateUserForm, 'register' | 'control' | 'errors'>;
+  sites: readonly Site[];
+}>) {
+  const { register, control, errors } = form;
   return (
     <>
-      <Dialog open={open} onOpenChange={() => finish()}>
+      <Field id="user-name" label="Name" error={errors.name?.message}>
+        <Input
+          {...fieldProps('user-name', errors.name?.message)}
+          {...register('name')}
+          autoComplete="off"
+        />
+      </Field>
+      <Field id="user-email" label="Email" error={errors.email?.message}>
+        <Input
+          {...fieldProps('user-email', errors.email?.message)}
+          {...register('email')}
+          type="email"
+          autoComplete="off"
+        />
+      </Field>
+      <RoleField id="user-role" error={errors.role?.message} registration={register('role')} />
+      <Controller
+        control={control}
+        name="siteKeys"
+        render={({ field }) => (
+          // `siteKeys` is optional in the schema's input type, but the defaults always set it.
+          // A Set accepts `undefined`, so this needs neither a cast nor a fallback.
+          <SitePicker sites={sites} value={[...new Set(field.value)]} onChange={field.onChange} />
+        )}
+      />
+    </>
+  );
+}
+
+export function CreateUserDialog({
+  open,
+  onClose,
+  sites,
+}: Readonly<{
+  open: boolean;
+  onClose: () => void;
+  sites: readonly Site[];
+}>) {
+  const form = useCreateUserForm(onClose);
+  return (
+    <>
+      <Dialog open={open} onOpenChange={() => form.finish()}>
         <DialogContent className="max-w-xl">
           <DialogHeader>
             <DialogTitle>New user</DialogTitle>
@@ -152,61 +235,26 @@ export function CreateUserDialog({
               sign-up.
             </DialogDescription>
           </DialogHeader>
-          <form className="grid gap-4" onSubmit={handleSubmit(submit)} noValidate>
-            <FormError message={formError} />
-            <Field id="user-name" label="Name" error={errors.name?.message}>
-              <Input
-                {...fieldProps('user-name', errors.name?.message)}
-                {...register('name')}
-                autoComplete="off"
-              />
-            </Field>
-            <Field id="user-email" label="Email" error={errors.email?.message}>
-              <Input
-                {...fieldProps('user-email', errors.email?.message)}
-                {...register('email')}
-                type="email"
-                autoComplete="off"
-              />
-            </Field>
-            <Field id="user-role" label="Role" error={errors.role?.message}>
-              <Select {...fieldProps('user-role', errors.role?.message)} {...register('role')}>
-                {ROLES.map((role) => (
-                  <option key={role} value={role}>
-                    {ROLE_LABELS[role]}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-            <Controller
-              control={control}
-              name="siteKeys"
-              render={({ field }) => (
-                // `siteKeys` is optional in the schema's input type, but the defaults always set it.
-                <SitePicker
-                  sites={sites}
-                  value={field.value as string[]}
-                  onChange={field.onChange}
-                />
-              )}
-            />
+          <form className="grid gap-4" onSubmit={form.submit} noValidate>
+            <FormError message={form.formError} />
+            <CreateUserFields form={form} sites={sites} />
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={finish}>
+              <Button type="button" variant="outline" onClick={form.finish}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? 'Creating…' : 'Create user'}
+              <Button type="submit" disabled={form.isSubmitting}>
+                {form.isSubmitting ? 'Creating…' : 'Create user'}
               </Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
-      <OneTimePasswordDialog secret={secret} onClose={clear} />
+      <OneTimePasswordDialog secret={form.secret} onClose={form.clear} />
     </>
   );
 }
 
-function EditUserForm({ user, onClose }: { user: UserSummary; onClose: () => void }) {
+function EditUserForm({ user, onClose }: Readonly<{ user: UserSummary; onClose: () => void }>) {
   const update = useUpdateUser();
   const [formError, setFormError] = useState<string | undefined>(undefined);
   const {
@@ -241,15 +289,7 @@ function EditUserForm({ user, onClose }: { user: UserSummary; onClose: () => voi
       <Field id="edit-name" label="Name" error={errors.name?.message}>
         <Input {...fieldProps('edit-name', errors.name?.message)} {...register('name')} />
       </Field>
-      <Field id="edit-role" label="Role" error={errors.role?.message}>
-        <Select {...fieldProps('edit-role', errors.role?.message)} {...register('role')}>
-          {ROLES.map((role) => (
-            <option key={role} value={role}>
-              {ROLE_LABELS[role]}
-            </option>
-          ))}
-        </Select>
-      </Field>
+      <RoleField id="edit-role" error={errors.role?.message} registration={register('role')} />
       <DialogFooter>
         <Button type="button" variant="outline" onClick={onClose}>
           Cancel
@@ -265,10 +305,10 @@ function EditUserForm({ user, onClose }: { user: UserSummary; onClose: () => voi
 export function EditUserDialog({
   user,
   onClose,
-}: {
+}: Readonly<{
   user: UserSummary | null;
   onClose: () => void;
-}) {
+}>) {
   return (
     <Dialog open={user !== null} onOpenChange={() => onClose()}>
       <DialogContent>
@@ -286,11 +326,11 @@ function SitesForm({
   user,
   sites,
   onClose,
-}: {
+}: Readonly<{
   user: UserSummary;
   sites: readonly Site[];
   onClose: () => void;
-}) {
+}>) {
   const setSites = useSetUserSites();
   const [selected, setSelected] = useState<string[]>(user.siteKeys);
   return (
@@ -319,11 +359,11 @@ export function UserSitesDialog({
   user,
   sites,
   onClose,
-}: {
+}: Readonly<{
   user: UserSummary | null;
   sites: readonly Site[];
   onClose: () => void;
-}) {
+}>) {
   return (
     <Dialog open={user !== null} onOpenChange={() => onClose()}>
       <DialogContent>
@@ -337,97 +377,6 @@ export function UserSitesDialog({
         {user === null ? null : (
           <SitesForm key={user.id} user={user} sites={sites} onClose={onClose} />
         )}
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-const BAN_DURATIONS = [
-  { value: '', label: 'Until an administrator lifts it' },
-  { value: String(24 * 3600), label: '1 day' },
-  { value: String(7 * 24 * 3600), label: '7 days' },
-  { value: String(30 * 24 * 3600), label: '30 days' },
-] as const;
-
-const banFormSchema = z
-  .object({ reason: z.string(), duration: z.string() })
-  .transform(
-    ({ reason, duration }): z.input<typeof banUserSchema> => ({
-      ...(reason.trim() === '' ? {} : { reason: reason.trim() }),
-      ...(duration === '' ? {} : { expiresInSeconds: Number(duration) }),
-    }),
-  )
-  .pipe(banUserSchema);
-
-function BanUserForm({ user, onClose }: { user: UserSummary; onClose: () => void }) {
-  const ban = useBanUser();
-  const [formError, setFormError] = useState<string | undefined>(undefined);
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-  } = useForm({
-    resolver: zodResolver(banFormSchema),
-    defaultValues: { reason: '', duration: '' },
-  });
-
-  async function submit(values: z.output<typeof banFormSchema>) {
-    try {
-      await ban.mutateAsync({ id: user.id, ban: values });
-      onClose();
-    } catch (error) {
-      setFormError(serverFormError(error, false).message);
-    }
-  }
-
-  return (
-    <form className="grid gap-4" onSubmit={handleSubmit(submit)} noValidate>
-      <FormError message={formError} />
-      <Field id="ban-reason" label="Reason (optional)" error={errors.reason?.message}>
-        <Textarea
-          {...fieldProps('ban-reason', errors.reason?.message)}
-          {...register('reason')}
-          rows={3}
-        />
-      </Field>
-      <Field id="ban-duration" label="Duration">
-        <Select {...fieldProps('ban-duration')} {...register('duration')}>
-          {BAN_DURATIONS.map((item) => (
-            <option key={item.value} value={item.value}>
-              {item.label}
-            </option>
-          ))}
-        </Select>
-      </Field>
-      <DialogFooter>
-        <Button type="button" variant="outline" onClick={onClose}>
-          Cancel
-        </Button>
-        <Button type="submit" variant="destructive" disabled={isSubmitting}>
-          Ban user
-        </Button>
-      </DialogFooter>
-    </form>
-  );
-}
-
-export function BanUserDialog({
-  user,
-  onClose,
-}: {
-  user: UserSummary | null;
-  onClose: () => void;
-}) {
-  return (
-    <Dialog open={user !== null} onOpenChange={() => onClose()}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Ban user</DialogTitle>
-          <DialogDescription>
-            {user?.email} is signed out everywhere and cannot sign in while the ban lasts.
-          </DialogDescription>
-        </DialogHeader>
-        {user === null ? null : <BanUserForm key={user.id} user={user} onClose={onClose} />}
       </DialogContent>
     </Dialog>
   );

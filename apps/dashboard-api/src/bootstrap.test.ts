@@ -5,7 +5,7 @@ import { account, adminAudit, user as userTable } from '@consent/db';
 import { eq, inArray } from 'drizzle-orm';
 import { afterAll, afterEach, beforeAll, expect, test } from 'vitest';
 import { AdminExistsError, createAdmin } from './bootstrap.js';
-import { createTestApp, type TestApp } from './testing/harness.js';
+import { closeIfOpen, createTestApp, type TestApp } from './testing/harness.js';
 import { describeEnvironments } from './testing/suite.js';
 
 describeEnvironments('admin:create bootstrap', ({ env }) => {
@@ -31,7 +31,7 @@ describeEnvironments('admin:create bootstrap', ({ env }) => {
     created = [];
   });
   afterAll(async () => {
-    await t?.close();
+    await closeIfOpen(t);
   });
 
   test('creates an administrator with a one-time password that must be changed', async () => {

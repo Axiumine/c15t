@@ -1,0 +1,24 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "workspaces": {
+    ".": {
+      "entry": [
+        "scripts/*.{mjs,ts}",
+        "e2e/**/*.ts",
+        "c15t-backend.config.ts",
+        "playwright.config.ts"
+      ],
+      "project": ["scripts/**/*.{mjs,ts}", "e2e/**/*.ts", "*.ts"],
+      "playwright": false
+    },
+    "apps/dashboard-api": {
+      "entry": ["src/testing/tz-probe.ts"]
+    },
+    "apps/dashboard-web": {
+      "entry": ["src/routes/**/*.tsx"]
+    },
+    "packages/db": {
+      "entry": ["drizzle.c15t.config.ts"]
+    }
+  }
+}

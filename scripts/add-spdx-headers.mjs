@@ -70,7 +70,7 @@ function headerLines(style) {
 function globToRegExp(glob) {
   let out = '';
   for (let i = 0; i < glob.length; i++) {
-    const c = glob[i];
+    const c = glob.charAt(i);
     if (c === '*' && glob[i + 1] === '*') {
       if (glob[i + 2] === '/') {
         out += '(?:.*/)?';
@@ -82,6 +82,7 @@ function globToRegExp(glob) {
     } else if (c === '*') out += '[^/]*';
     else out += c.replace(/[.+^${}()|[\]\\?]/g, '\\$&');
   }
+  // eslint-disable-next-line security/detect-non-literal-regexp -- every character of `out` is escaped or generated above
   return new RegExp(`^${out}$`);
 }
 
@@ -90,7 +91,7 @@ function readReuseGlobs() {
   if (!existsSync(file)) return [];
   const text = readFileSync(file, 'utf8');
   const globs = [];
-  for (const block of text.matchAll(/^\s*path\s*=\s*\[([^\]]*)\]/gm)) {
+  for (const block of text.matchAll(/^[ \t]*path[ \t]*=[ \t]*\[([^\]]*)\]/gm)) {
     for (const quoted of (block[1] ?? '').matchAll(/"([^"]+)"/g)) {
       if (quoted[1]) globs.push(globToRegExp(quoted[1]));
     }
@@ -112,6 +113,7 @@ function readIgnoreRules() {
       p = p.replace(/\/$/, '');
       const anchored = p.includes('/');
       const body = globToRegExp(p.replace(/^\//, '')).source.slice(1, -1);
+      // eslint-disable-next-line security/detect-non-literal-regexp -- `body` is escaped by globToRegExp
       const re = new RegExp(anchored ? `^${body}(?:/.*)?$` : `(?:^|.*/)${body}(?:/.*)?$`);
       return { negate, re };
     });
@@ -119,6 +121,7 @@ function readIgnoreRules() {
 
 function isIgnored(rel, rules) {
   let ignored = false;
+  // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- rule.re comes from globToRegExp over .gitignore, a maintainer-controlled file; rel is a repository path, not request input
   for (const rule of rules) if (rule.re.test(rel)) ignored = !rule.negate;
   return ignored;
 }
@@ -126,10 +129,12 @@ function isIgnored(rel, rules) {
 function listFiles() {
   try {
     const out = execFileSync(
+      // eslint-disable-next-line sonarjs/no-os-command-from-path -- developer and CI tool run on a checkout; without the tool it falls back to a directory walk
       'git',
       ['ls-files', '-z', '--cached', '--others', '--exclude-standard'],
       { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] },
     );
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- `f` is a path listed by git inside ROOT
     const files = out.split('\0').filter((f) => f !== '' && existsSync(join(ROOT, f)));
     if (files.length > 0) return files;
   } catch {
@@ -138,6 +143,7 @@ function listFiles() {
   const rules = readIgnoreRules();
   const found = [];
   const walk = (dir) => {
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- `dir` is ROOT or a directory found by this walk
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
       const abs = join(dir, entry.name);
       const rel = relative(ROOT, abs).split(sep).join('/');
@@ -161,7 +167,10 @@ function existingHeaderLength(lines, style) {
   }
   const comment = style.prefix.trimEnd();
   let n = 0;
-  while (lines[n]?.startsWith(comment) && isHeaderLine(lines[n] ?? '')) n += 1;
+  for (const line of lines) {
+    if (!(line.startsWith(comment) && isHeaderLine(line))) break;
+    n += 1;
+  }
   return n;
 }
 
@@ -173,7 +182,7 @@ function withHeader(text, style) {
   const canonical = headerLines(style);
   const existing = existingHeaderLength(lines, style);
 
-  if (existing === canonical.length && canonical.every((l, i) => lines[i] === l)) return null;
+  if (existing === canonical.length && canonical.every((l, i) => lines.at(i) === l)) return null;
   const rest = lines.slice(existing);
   if (existing === 0 && rest[0] !== '') rest.unshift('');
   return [...shebang, ...canonical, ...rest].join(eol);
@@ -181,15 +190,18 @@ function withHeader(text, style) {
 
 /** Handles one file; returns a problem description, 'written', or null when it is fine. */
 function processFile(rel, style, globs) {
+  // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- g comes from globToRegExp over REUSE.toml, a maintainer-controlled file; rel is a repository path, not request input
   if (globs.some((g) => g.test(rel))) return null;
   if (!style) return 'no comment style known and not listed in REUSE.toml';
   const abs = join(ROOT, rel);
   // One read decides everything: no stat-then-read, so nothing can change between check and use.
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- `abs` is a repository file chosen by listFiles()
   const text = readFileSync(abs, 'utf8');
   if (text === '') return null;
   const next = withHeader(text, style);
   if (next === null) return null;
   if (CHECK) return 'missing or outdated SPDX header';
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- `abs` is the same repository file as above
   writeFileSync(abs, next);
   return 'written';
 }

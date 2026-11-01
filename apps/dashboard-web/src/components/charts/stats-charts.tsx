@@ -4,8 +4,8 @@
 import type { StatsResponse } from '@consent/shared';
 import { formatInteger, formatPercent } from '../../lib/format';
 import { EmptyState } from '../states';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { ChartFrame } from './chart-frame';
+import { ChartTable } from './chart-table';
 import { type BarDatum, RankedBars } from './ranked-bars';
 import { StatTile } from './stat-tile';
 import { VolumeChart } from './volume-chart';
@@ -31,7 +31,10 @@ export function foldJurisdictions(items: readonly Jurisdiction[]): Jurisdiction[
   return [...head, { jurisdiction: 'Other', consents: rest }];
 }
 
-function PurposeChart({ purposes, busy }: { purposes: readonly Purpose[]; busy: boolean }) {
+function PurposeChart({
+  purposes,
+  busy,
+}: Readonly<{ purposes: readonly Purpose[]; busy: boolean }>) {
   const ranked = [...purposes].sort((a, b) => b.optInRate - a.optInRate);
   const data: BarDatum[] = ranked.map((item) => ({
     name: item.purpose,
@@ -55,33 +58,17 @@ function PurposeChart({ purposes, busy }: { purposes: readonly Purpose[]; busy: 
         )
       }
       table={
-        <Table>
-          <caption className="sr-only">Opt-in rate by category</caption>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Category</TableHead>
-              <TableHead className="text-right">Granted</TableHead>
-              <TableHead className="text-right">Denied</TableHead>
-              <TableHead className="text-right">Opt-in rate</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {ranked.map((item) => (
-              <TableRow key={item.purpose}>
-                <TableCell>{item.purpose}</TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {formatInteger(item.granted)}
-                </TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {formatInteger(item.denied)}
-                </TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {formatPercent(item.optInRate)}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <ChartTable
+          caption="Opt-in rate by category"
+          label={{ header: 'Category', cell: (item) => item.purpose }}
+          columns={[
+            { header: 'Granted', cell: (item) => formatInteger(item.granted) },
+            { header: 'Denied', cell: (item) => formatInteger(item.denied) },
+            { header: 'Opt-in rate', cell: (item) => formatPercent(item.optInRate) },
+          ]}
+          rows={ranked}
+          rowKey={(item) => item.purpose}
+        />
       }
     />
   );
@@ -91,11 +78,11 @@ function JurisdictionChart({
   jurisdictions,
   total,
   busy,
-}: {
+}: Readonly<{
   jurisdictions: readonly Jurisdiction[];
   total: number;
   busy: boolean;
-}) {
+}>) {
   const folded = foldJurisdictions(jurisdictions);
   const share = (consents: number) => (total === 0 ? 0 : consents / total);
   const data: BarDatum[] = folded.map((item) => ({
@@ -117,36 +104,23 @@ function JurisdictionChart({
         )
       }
       table={
-        <Table>
-          <caption className="sr-only">Consents by jurisdiction</caption>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Jurisdiction</TableHead>
-              <TableHead className="text-right">Consents</TableHead>
-              <TableHead className="text-right">Share</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {folded.map((item) => (
-              <TableRow key={item.jurisdiction}>
-                <TableCell>{item.jurisdiction}</TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {formatInteger(item.consents)}
-                </TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {formatPercent(share(item.consents))}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <ChartTable
+          caption="Consents by jurisdiction"
+          label={{ header: 'Jurisdiction', cell: (item) => item.jurisdiction }}
+          columns={[
+            { header: 'Consents', cell: (item) => formatInteger(item.consents) },
+            { header: 'Share', cell: (item) => formatPercent(share(item.consents)) },
+          ]}
+          rows={folded}
+          rowKey={(item) => item.jurisdiction}
+        />
       }
     />
   );
 }
 
 /** Everything the stats endpoint returns, as stat tiles and three charts. */
-export function StatsCharts({ stats, busy }: { stats: StatsResponse; busy: boolean }) {
+export function StatsCharts({ stats, busy }: Readonly<{ stats: StatsResponse; busy: boolean }>) {
   const rate = overallOptInRate(stats.purposes);
   return (
     <div className="grid gap-4">

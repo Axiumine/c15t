@@ -58,7 +58,7 @@ describe('createLogger', () => {
     log.error('broken', { code: 'X1' });
 
     expect(lines.map(([stream]) => stream)).toEqual(['out', 'err', 'err']);
-    expect(lines.map(([, line]) => JSON.parse(line))).toEqual([
+    expect(lines.map(([, line]): unknown => JSON.parse(line))).toEqual([
       { time: '2026-05-06T07:08:09.010Z', level: 'info', msg: 'hello', siteKey: 'shop' },
       { time: '2026-05-06T07:08:09.010Z', level: 'warn', msg: 'careful' },
       { time: '2026-05-06T07:08:09.010Z', level: 'error', msg: 'broken', code: 'X1' },

@@ -90,6 +90,7 @@ function build(runId: string, ports: Runtime['ports']): Runtime {
 }
 
 function portFrom(name: string): number {
+  // eslint-disable-next-line security/detect-object-injection -- `name` is a constant chosen by the callers in this file
   const port = Number(process.env[name]);
   if (!Number.isInteger(port) || port < 1024) throw new Error(`${name} is not set`);
   return port;

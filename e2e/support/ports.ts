@@ -24,11 +24,11 @@ function canBind(port: number): Promise<boolean> {
 /** Distinct free ports, in the order requested. */
 export async function freePorts(count: number): Promise<number[]> {
   const picked: number[] = [];
-  for (let attempts = 0; picked.length < count; attempts++) {
-    if (attempts > 500) throw new Error('Could not find free ports for the e2e stack');
+  for (let attempts = 0; attempts <= 500 && picked.length < count; attempts++) {
     const port = randomInt(LOW, HIGH);
     if (picked.includes(port) || !(await canBind(port))) continue;
     picked.push(port);
   }
+  if (picked.length < count) throw new Error('Could not find free ports for the e2e stack');
   return picked;
 }

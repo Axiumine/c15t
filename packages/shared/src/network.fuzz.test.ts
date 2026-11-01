@@ -26,7 +26,7 @@ const RUNS = { numRuns: 300 };
 
 /** Strings built from the characters an address, a CIDR or a bracketed host is made of. */
 const ipish = fc.string({
-  unit: fc.constantFrom(...'0123456789abcdefABCDEFxX:./%[]- +'),
+  unit: fc.constantFrom(...Array.from('0123456789abcdefABCDEFxX:./%[]- +')),
   maxLength: 48,
 });
 const anyText = fc.oneof(ipish, fc.string(), fc.string({ unit: 'binary' }));
@@ -40,6 +40,7 @@ function referenceContains(address: string, base: string, prefix: number): boole
   return Math.floor(ipv4Number(address) / block) === Math.floor(ipv4Number(base) / block);
 }
 
+// eslint-disable-next-line sonarjs/assertions-in-tests -- fc.assert throws when a property fails: it is the assertion
 test('parsing never throws, whatever the input', () => {
   fc.assert(
     fc.property(anyText, (text) => {
@@ -89,6 +90,7 @@ test('IPv4 octets with leading zeros are rejected, because parsers disagree on t
       fc.integer({ min: 0, max: 255 }),
       (position, small, other) => {
         const octets = [other, other, other, other].map(String);
+        // eslint-disable-next-line security/detect-object-injection -- `position` is an integer from 0 to 3
         octets[position] = `0${small}`;
         const text = octets.join('.');
         expect(parseIp(text)).toBeNull();

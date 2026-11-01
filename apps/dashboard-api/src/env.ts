@@ -33,7 +33,7 @@ function emptyIsUnset<S extends z.ZodType>(schema: S) {
 
 const optionalPostgresUrl = emptyIsUnset(postgresUrl);
 
-export const envSchema = z.object({
+const envSchema = z.object({
   DASHBOARD_API_HOST: hostSchema.default('127.0.0.1'),
   DASHBOARD_API_PORT: portSchema.default(4200),
   /** Role `dashboard`, primary by internal DNS name (README D9). */
@@ -53,18 +53,20 @@ export const envSchema = z.object({
 export type Env = z.output<typeof envSchema>;
 
 /** What the admin CLI needs: it never listens on a port or talks to consent-api. */
-export const cliEnvSchema = envSchema.pick({
+const cliEnvSchema = envSchema.pick({
   DATABASE_URL_DASHBOARD: true,
   BETTER_AUTH_SECRET: true,
   BETTER_AUTH_URL: true,
 });
 export type CliEnv = z.output<typeof cliEnvSchema>;
 
+const indentLines = (lines: readonly string[]) => lines.map((line) => `  ${line}`).join('\n');
+
 export class EnvError extends Error {
   readonly problems: readonly string[];
 
   constructor(problems: readonly string[]) {
-    super(`Invalid environment:\n${problems.map((problem) => `  ${problem}`).join('\n')}`);
+    super(`Invalid environment:\n${indentLines(problems)}`);
     this.name = 'EnvError';
     this.problems = problems;
   }

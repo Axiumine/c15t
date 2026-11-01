@@ -80,7 +80,10 @@ infra/
                         nginx-snippet.test.sh (needs Docker: nginx behaviour of the real snippets),
                         update-cloudflare-ips.test.sh (no Docker: the Cloudflare IP updater with stand-ins) and
                         uninstall.test.sh (no Docker, no root: deploy.sh install and uninstall on a temporary tree; run in CI)
+eslint.config.mjs       ESLint flat config (type-aware via each workspace's tsconfig.json + tsconfig.test.json, tsconfig.tools.json for configs and e2e)
 c15t-backend.config.ts  config used by the c15t migration CLI
+knip.json, fta.json      analyser configs (yarn knip, yarn fta); typeCoverage in package.json configures yarn type-coverage
+scripts/check-code-caps.ts + .code-caps-baseline.json   size caps with a ratchet baseline (yarn code-caps)
 .yarnrc.yml             nodeLinker, injectEnvironmentFiles, packageExtensions
 ```
 
@@ -91,6 +94,7 @@ corepack enable          # once per machine; the Yarn version comes from package
 yarn install
 yarn dev                 # yarn workspaces foreach -Api run dev: consent-api, dashboard-api, Vite (proxies /api)
 yarn typecheck && yarn lint && yarn test   # tsc -b, biome check, vitest run
+yarn lint:eslint         # ESLint zero-findings gate (strictTypeChecked, sonarjs, security, no-unsanitized, size caps); needs `yarn typecheck` first
 yarn test:e2e            # Playwright
 yarn db:migrate          # drizzle migrations for `app` schema
 yarn c15t:plan           # @c15t/cli self-host migrate --config ./c15t-backend.config.ts --plan
@@ -98,11 +102,19 @@ yarn c15t:migrate        # same with --apply (review the plan first)
 yarn db:pull-c15t        # drizzle-kit pull, schemaFilter ['c15t'] -> packages/db/src/c15t.generated.ts
 yarn admin:create --email you@example.com   # bootstrap first admin, prints a one-time password
 yarn spdx                # add the SPDX licence header to new source files; yarn spdx:check only verifies
+yarn test:coverage       # vitest with the 100% coverage gate; lefthook (installed by yarn install) runs the whole gate set before a push, docs/quality-gates.md
+yarn semgrep             # scripts/semgrep.sh: registry rule sets, exit 1 on any finding (skips with exit 0 when semgrep is missing and CI is unset)
+yarn trivy               # scripts/trivy.sh: trivy fs vuln,secret,misconfig, HIGH/CRITICAL fail, .trivyignore needs exp: dates (same skip rule); see docs/security-scanning.md
+yarn knip                # unused files, exports, types and dependencies (knip.json lists only entries it cannot infer)
+yarn type-coverage       # 100% strict type coverage per tsconfig project (scripts/type-coverage.mjs; no any, no casts in src)
+yarn fta                 # FTA maintainability score per file, fails above score_cap in fta.json (lower is better)
+yarn code-caps           # file 500 / function 50 / class 300 lines, 4 params, depth 4; ratchet in .code-caps-baseline.json (--update only lowers it)
+yarn test:scripts-coverage  # node:test for scripts/check-code-caps.ts, gated at 100% (Vitest's scripts project skips that file)
 yarn build && infra/deploy.sh               # yarn workspaces foreach -Apt run build; systemd restart
 scripts/verify-reproducible-build.sh       # two clean builds of HEAD in different dirs/time zones; every dist/ and release file must match (CI job "Reproducible build")
 ```
 
-Run `yarn typecheck && yarn lint && yarn test` before you call a task done.
+Run `yarn typecheck && yarn lint && yarn lint:eslint && yarn test` before you call a task done. ESLint (`eslint.config.mjs`) is a zero-findings gate: fix the finding, or silence a proven false positive on that line with `// eslint-disable-next-line <rule> -- <reason>`; never add a file-wide or rule-wide disable. Biome owns the rules both tools have (`no-explicit-any`, non-null assertions, unused variables, the React hooks rules).
 
 ## Architecture rules
 

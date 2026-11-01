@@ -45,11 +45,15 @@ const envSchema = z.object({
 
 export type Env = z.output<typeof envSchema>;
 
+function indentLines(lines: readonly string[]): string {
+  return lines.map((line) => `  ${line}`).join('\n');
+}
+
 export class EnvError extends Error {
   readonly issues: readonly string[];
 
   constructor(issues: readonly string[]) {
-    super(`Invalid environment:\n${issues.map((issue) => `  ${issue}`).join('\n')}`);
+    super(`Invalid environment:\n${indentLines(issues)}`);
     this.name = 'EnvError';
     this.issues = issues;
   }

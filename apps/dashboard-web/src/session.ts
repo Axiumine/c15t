@@ -24,8 +24,8 @@ export async function currentUser(
 ): Promise<Me | null> {
   try {
     return options.fresh === true
-      ? await queryClient.fetchQuery({ ...meQueryOptions(), staleTime: 0 })
-      : await queryClient.ensureQueryData(meQueryOptions());
+      ? await queryClient.query({ ...meQueryOptions(), staleTime: 0 })
+      : await queryClient.query({ ...meQueryOptions(), staleTime: 'static' });
   } catch (error) {
     if (error instanceof ApiError && error.kind === 'unauthorized') return null;
     throw error;

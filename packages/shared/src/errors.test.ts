@@ -27,6 +27,7 @@ describe('error codes', () => {
 
   test('every code has an HTTP status in the 4xx or 5xx range', () => {
     for (const code of ERROR_CODES) {
+      // eslint-disable-next-line security/detect-object-injection -- `code` is the closed ErrorCode union
       expect(ERROR_STATUS[code]).toBeGreaterThanOrEqual(400);
     }
     expect(ERROR_STATUS.PASSWORD_CHANGE_REQUIRED).toBe(403);

@@ -15,7 +15,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Input } from '../components/ui/input';
 import { safeRedirectPath } from '../session';
 
-export function LoginScreen({ redirectTo }: { redirectTo?: string | undefined }) {
+/** The form state, and a submit that signs in, then goes where the user was headed. */
+function useLoginForm(redirectTo: string | undefined) {
   const queryClient = useQueryClient();
   const router = useRouter();
   const [failure, setFailure] = useState<string | undefined>(undefined);
@@ -33,10 +34,16 @@ export function LoginScreen({ redirectTo }: { redirectTo?: string | undefined })
       return;
     }
     queryClient.removeQueries({ queryKey: meQueryOptions().queryKey });
-    const me = await queryClient.fetchQuery(meQueryOptions());
+    const me = await queryClient.query(meQueryOptions());
     const target = me.mustChangePassword ? '/account' : (safeRedirectPath(redirectTo) ?? '/sites');
     router.history.push(target);
   }
+
+  return { register, errors, isSubmitting, failure, submit: handleSubmit(onSubmit) };
+}
+
+export function LoginScreen({ redirectTo }: Readonly<{ redirectTo?: string | undefined }>) {
+  const { register, errors, isSubmitting, failure, submit } = useLoginForm(redirectTo);
 
   return (
     <div className="mx-auto grid min-h-dvh w-full max-w-sm content-center gap-4 px-4 py-10">
@@ -48,7 +55,7 @@ export function LoginScreen({ redirectTo }: { redirectTo?: string | undefined })
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form className="grid gap-4" onSubmit={handleSubmit(onSubmit)} noValidate>
+          <form className="grid gap-4" onSubmit={submit} noValidate>
             <FormError message={failure} />
             <Field id="login-email" label="Email" error={errors.email?.message}>
               <Input

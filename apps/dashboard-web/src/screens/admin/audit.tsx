@@ -18,7 +18,7 @@ import {
 } from '../../components/ui/table';
 import { formatDateTime } from '../../lib/format';
 
-export const ACTION_LABELS: Readonly<Record<AuditAction, string>> = {
+const ACTION_LABELS: Readonly<Record<AuditAction, string>> = {
   'site.create': 'Site created',
   'site.update': 'Site updated',
   'site.disable': 'Site disabled',
@@ -32,7 +32,7 @@ export const ACTION_LABELS: Readonly<Record<AuditAction, string>> = {
   'user.revoke-sessions': 'Sessions revoked',
 };
 
-function Details({ metadata }: { metadata: AuditEntry['metadata'] }) {
+function Details({ metadata }: Readonly<{ metadata: AuditEntry['metadata'] }>) {
   if (Object.keys(metadata).length === 0) return <span className="text-muted-foreground">–</span>;
   return (
     <details>
@@ -44,7 +44,7 @@ function Details({ metadata }: { metadata: AuditEntry['metadata'] }) {
   );
 }
 
-function AuditTable({ entries }: { entries: AuditEntry[] }) {
+function AuditTable({ entries }: Readonly<{ entries: AuditEntry[] }>) {
   return (
     <Table>
       <caption className="sr-only">Administrator actions, newest first</caption>

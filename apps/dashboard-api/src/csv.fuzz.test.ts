@@ -15,7 +15,10 @@ import { parseCsv } from './testing/csv-reader.js';
 const RUNS = { numRuns: 300 };
 
 const FORMULA_CHARS = ['=', '+', '-', '@', '\t', '\r'];
-const nastyText = fc.string({ unit: fc.constantFrom(...'ab ,"\r\n\t=+-@\';|%0'), maxLength: 24 });
+const nastyText = fc.string({
+  unit: fc.constantFrom(...Array.from('ab ,"\r\n\t=+-@\';|%0')),
+  maxLength: 24,
+});
 const text = fc.oneof(nastyText, fc.string(), fc.string({ unit: 'binary' }));
 const cell: fc.Arbitrary<CsvValue> = fc.oneof(
   text,

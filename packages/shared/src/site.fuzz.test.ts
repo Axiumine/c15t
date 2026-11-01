@@ -22,13 +22,13 @@ const RUNS = { numRuns: 300 };
 
 const KEY_CHARS = 'abcdefghijklmnopqrstuvwxyz0123456789-';
 const keyish = fc.string({
-  unit: fc.constantFrom(...`${KEY_CHARS}ABCZ_./\\ \n*%`),
+  unit: fc.constantFrom(...Array.from(`${KEY_CHARS}ABCZ_./\\ \n*%`)),
   maxLength: 48,
 });
 const anyText = fc.oneof(keyish, fc.string(), fc.string({ unit: 'binary' }));
 
 const validKey = fc.stringMatching(/^[a-z0-9-]{3,40}$/);
-const label = fc.stringMatching(/^[a-z0-9]([a-z0-9-]{0,10}[a-z0-9])?$/);
+const label = fc.stringMatching(/^(?:[a-z0-9]|[a-z0-9][a-z0-9-]{0,10}[a-z0-9])$/);
 const validHost = fc.array(label, { minLength: 1, maxLength: 4 }).map((labels) => labels.join('.'));
 const validDomain = fc.oneof(
   validHost,
@@ -39,7 +39,9 @@ test('the site key schema never throws and accepts exactly 3 to 40 of a-z, 0-9 a
   fc.assert(
     fc.property(anyText, (text) => {
       const expected =
-        text.length >= 3 && text.length <= 40 && [...text].every((c) => KEY_CHARS.includes(c));
+        text.length >= 3 &&
+        text.length <= 40 &&
+        Array.from(text).every((c) => KEY_CHARS.includes(c));
       expect(siteKeySchema.safeParse(text).success).toBe(expected);
     }),
     RUNS,
@@ -81,6 +83,7 @@ test('a site key with a trailing line break or any control character is rejected
   );
 });
 
+// eslint-disable-next-line sonarjs/assertions-in-tests -- fc.assert throws when a property fails: it is the assertion
 test('the domain schema never throws', () => {
   fc.assert(
     fc.property(anyText, (text) => {

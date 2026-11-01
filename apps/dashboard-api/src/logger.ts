@@ -6,6 +6,8 @@
  * cookies, passwords or query strings (they can carry subject IDs).
  */
 
+import { fieldOf } from '@consent/shared';
+
 export type LogLevel = 'info' | 'warn' | 'error';
 export type LogFields = Readonly<Record<string, unknown>>;
 
@@ -35,18 +37,25 @@ export const silentLogger: Logger = createLogger(() => undefined);
 const MAX_ERROR_MESSAGE = 300;
 
 /**
+ * The text before the first line break. A stack trace or bound SQL parameters may follow the
+ * first line of an error message, so the log keeps only that line.
+ */
+export function firstLine(text: string): string {
+  const end = text.indexOf('\n');
+  return end === -1 ? text : text.slice(0, end);
+}
+
+/**
  * Safe description of an unexpected error for the log. Drizzle appends the bound parameters on
  * a second line of its message, so only the first line is kept.
  */
 export function describeError(error: unknown): LogFields {
   if (!(error instanceof Error)) return { errorName: typeof error };
-  const code = (error as { code?: unknown }).code;
-  const cause = (error as { cause?: unknown }).cause;
-  const causeCode =
-    typeof cause === 'object' && cause !== null ? (cause as { code?: unknown }).code : undefined;
+  const code = fieldOf(error, 'code');
+  const causeCode = fieldOf(fieldOf(error, 'cause'), 'code');
   return {
     errorName: error.name,
-    errorMessage: error.message.replace(/\n[\s\S]*$/, '').slice(0, MAX_ERROR_MESSAGE),
+    errorMessage: firstLine(error.message).slice(0, MAX_ERROR_MESSAGE),
     ...(typeof code === 'string' ? { errorCode: code } : {}),
     ...(typeof causeCode === 'string' ? { causeCode } : {}),
   };

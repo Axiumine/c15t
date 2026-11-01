@@ -63,11 +63,11 @@ test('validates the two optional variables when they are set', () => {
   const set = parseEnv({
     ...valid,
     C15T_ADMIN_API_KEY: 'a-key',
-    CONSENT_API_URL: 'http://10.0.0.7:4100',
+    CONSENT_API_URL: 'https://10.0.0.7:4100',
   });
   expect(set.C15T_ADMIN_API_KEY).toBe('a-key');
-  expect(set.CONSENT_API_URL).toBe('http://10.0.0.7:4100');
-  for (const url of ['not a url', 'ftp://x.example.com', 'http://10.0.0.7:4100/path']) {
+  expect(set.CONSENT_API_URL).toBe('https://10.0.0.7:4100');
+  for (const url of ['not a url', 'ftp://x.example.com', 'https://10.0.0.7:4100/path']) {
     expect(problems({ ...valid, CONSENT_API_URL: url }).join(), url).toContain('CONSENT_API_URL');
   }
 });
@@ -141,6 +141,7 @@ test('loadEnv and loadCliEnv read the process environment', () => {
       BETTER_AUTH_SECRET: valid.BETTER_AUTH_SECRET,
       BETTER_AUTH_URL: valid.BETTER_AUTH_URL,
     });
+    // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- test input: "short" is the too-short value the schema must reject, not a credential
     vi.stubEnv('BETTER_AUTH_SECRET', 'short');
     expect(() => loadEnv()).toThrow(EnvError);
     expect(() => loadCliEnv()).toThrow(/BETTER_AUTH_SECRET/);

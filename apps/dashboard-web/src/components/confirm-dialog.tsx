@@ -35,7 +35,7 @@ export function ConfirmDialog({
   pending,
   error,
   onConfirm,
-}: ConfirmDialogProps) {
+}: Readonly<ConfirmDialogProps>) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>

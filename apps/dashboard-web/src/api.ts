@@ -27,7 +27,7 @@ import {
 import { hc } from 'hono/client';
 import type { DateRange } from './lib/range';
 
-export const API_BASE = '/api';
+const API_BASE = '/api';
 
 /* ---------------------------------------------------------------------------------------------
  * Errors. dashboard-api answers `{ error: { code, message } }`; nginx and Cloudflare can answer
@@ -56,16 +56,19 @@ export interface ApiErrorInit {
 
 const UNAVAILABLE_STATUSES: ReadonlySet<number> = new Set([502, 503, 504]);
 
+const KIND_BY_STATUS: ReadonlyMap<number, ApiErrorKind> = new Map<number, ApiErrorKind>([
+  [401, 'unauthorized'],
+  [403, 'forbidden'],
+  [404, 'not-found'],
+  [429, 'rate-limited'],
+  [409, 'conflict'],
+  [400, 'validation'],
+]);
+
 function classify(status: number, code: ErrorCode | undefined): ApiErrorKind {
   if (code === 'PASSWORD_CHANGE_REQUIRED') return 'password-change-required';
   if (code === 'SERVICE_UNAVAILABLE' || UNAVAILABLE_STATUSES.has(status)) return 'unavailable';
-  if (status === 401) return 'unauthorized';
-  if (status === 403) return 'forbidden';
-  if (status === 404) return 'not-found';
-  if (status === 429) return 'rate-limited';
-  if (status === 409) return 'conflict';
-  if (status === 400) return 'validation';
-  return 'unknown';
+  return KIND_BY_STATUS.get(status) ?? 'unknown';
 }
 
 export class ApiError extends Error {
@@ -84,7 +87,7 @@ export class ApiError extends Error {
   }
 }
 
-export async function apiErrorFromResponse(response: Response): Promise<ApiError> {
+async function apiErrorFromResponse(response: Response): Promise<ApiError> {
   const body: unknown = await response.json().catch(() => undefined);
   const parsed = apiErrorSchema.safeParse(body);
   if (!parsed.success) return new ApiError({ status: response.status });
@@ -210,7 +213,7 @@ export const sitesQueryOptions = () =>
     queryFn: async () => (await client.sites.$get()).json(),
   });
 
-export const siteQueryOptions = (siteKey: string) =>
+const siteQueryOptions = (siteKey: string) =>
   queryOptions({
     queryKey: queryKeys.site(siteKey),
     queryFn: async () => (await client.sites[':siteKey'].$get({ param: { siteKey } })).json(),
@@ -277,13 +280,13 @@ export function consentsCsvHref(siteKey: string, range: Partial<DateRange>): str
   return `${API_BASE}/sites/${encodeURIComponent(siteKey)}/consents.csv${suffix}`;
 }
 
-export const adminSitesQueryOptions = () =>
+const adminSitesQueryOptions = () =>
   queryOptions({
     queryKey: queryKeys.adminSites,
     queryFn: async () => (await client.admin.sites.$get()).json(),
   });
 
-export const adminUsersQueryOptions = () =>
+const adminUsersQueryOptions = () =>
   queryOptions({
     queryKey: queryKeys.adminUsers,
     queryFn: async () => (await client.admin.users.$get()).json(),

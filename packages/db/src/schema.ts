@@ -133,6 +133,9 @@ export const rateLimit = appSchema.table('rate_limit', {
 
 /* Platform tables. */
 
+/** The site key pattern as a quoted SQL string literal, for the CHECK constraint. */
+const SITE_KEY_SQL_PATTERN = `'${SITE_KEY_PATTERN.source}'`;
+
 export const site = appSchema.table(
   'site',
   {
@@ -148,7 +151,7 @@ export const site = appSchema.table(
   },
   (t) => [
     unique('site_key_unique').on(t.key),
-    check('site_key_format_check', sql`${t.key} ~ ${sql.raw(`'${SITE_KEY_PATTERN.source}'`)}`),
+    check('site_key_format_check', sql`${t.key} ~ ${sql.raw(SITE_KEY_SQL_PATTERN)}`),
     check(
       'site_domains_check',
       sql`cardinality(${t.domains}) >= 1 and position('*' in array_to_string(${t.domains}, ',')) = 0`,

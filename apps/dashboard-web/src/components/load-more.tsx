@@ -13,7 +13,7 @@ export function LoadMore({
   fetching,
   onMore,
   moreLabel = 'Load more',
-}: {
+}: Readonly<{
   loaded: number;
   noun: string;
   endLabel: string;
@@ -21,7 +21,7 @@ export function LoadMore({
   fetching: boolean;
   onMore: () => void;
   moreLabel?: string;
-}) {
+}>) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-2">
       <p className="text-sm text-muted-foreground" aria-live="polite">

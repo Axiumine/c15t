@@ -4,9 +4,8 @@
 import { type ConsentRecord, consentListQuerySchema } from '@consent/shared';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Download, Search } from 'lucide-react';
-import type { ReactNode } from 'react';
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { type FieldErrors, type UseFormRegister, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { consentsCsvHref, useConsents } from '../../api';
 import { Field, fieldProps } from '../../components/form-field';
@@ -51,35 +50,15 @@ export const filterFormSchema = z
 
 type FilterValues = z.input<typeof filterFormSchema>;
 
-function FilterForm({
-  value,
-  onApply,
-}: {
-  value: ConsentSearch;
-  onApply: (next: ConsentSearch) => void;
-}) {
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm({
-    resolver: zodResolver(filterFormSchema),
-    defaultValues: { subject: value.subject ?? '', from: value.from ?? '', to: value.to ?? '' },
-  });
-
-  function apply(values: z.output<typeof filterFormSchema>) {
-    onApply({ subject: values.subject, from: values.from, to: values.to });
-  }
-
-  function clear() {
-    const blank: FilterValues = { subject: '', from: '', to: '' };
-    reset(blank);
-    onApply({});
-  }
-
+function FilterFields({
+  errors,
+  register,
+}: Readonly<{
+  errors: FieldErrors<FilterValues>;
+  register: UseFormRegister<FilterValues>;
+}>) {
   return (
-    <form className="flex flex-wrap items-start gap-3" onSubmit={handleSubmit(apply)} noValidate>
+    <>
       <Field id="filter-subject" label="Subject ID" error={errors.subject?.message}>
         <Input
           {...fieldProps('filter-subject', errors.subject?.message)}
@@ -105,6 +84,40 @@ function FilterForm({
           className="w-40"
         />
       </Field>
+    </>
+  );
+}
+
+function FilterForm({
+  value,
+  onApply,
+}: Readonly<{
+  value: ConsentSearch;
+  onApply: (next: ConsentSearch) => void;
+}>) {
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm({
+    resolver: zodResolver(filterFormSchema),
+    defaultValues: { subject: value.subject ?? '', from: value.from ?? '', to: value.to ?? '' },
+  });
+
+  function apply(values: z.output<typeof filterFormSchema>) {
+    onApply({ subject: values.subject, from: values.from, to: values.to });
+  }
+
+  function clear() {
+    const blank: FilterValues = { subject: '', from: '', to: '' };
+    reset(blank);
+    onApply({});
+  }
+
+  return (
+    <form className="flex flex-wrap items-start gap-3" onSubmit={handleSubmit(apply)} noValidate>
+      <FilterFields errors={errors} register={register} />
       <div className="flex gap-2 pt-[1.625rem]">
         <Button type="submit">
           <Search aria-hidden="true" />
@@ -118,13 +131,46 @@ function FilterForm({
   );
 }
 
+function RecordRow({
+  record,
+  onOpen,
+}: Readonly<{
+  record: ConsentRecord;
+  onOpen: (record: ConsentRecord) => void;
+}>) {
+  return (
+    <TableRow>
+      <TableCell className="whitespace-nowrap">{formatDateTime(record.givenAt)}</TableCell>
+      <TableCell className="max-w-56">
+        <span className="block truncate font-mono text-xs" title={record.subjectId}>
+          {record.subjectId}
+        </span>
+        {record.externalId === null ? null : (
+          <span className="block truncate text-xs text-muted-foreground">{record.externalId}</span>
+        )}
+      </TableCell>
+      <TableCell>
+        <PurposeBadges purposes={record.purposes} />
+      </TableCell>
+      <TableCell>{record.jurisdiction ?? '–'}</TableCell>
+      <TableCell>{record.countryCode ?? '–'}</TableCell>
+      <TableCell className="text-right">
+        <Button type="button" size="sm" variant="ghost" onClick={() => onOpen(record)}>
+          Details
+          <span className="sr-only"> for {record.subjectId}</span>
+        </Button>
+      </TableCell>
+    </TableRow>
+  );
+}
+
 function RecordsTable({
   items,
   onOpen,
-}: {
-  items: ConsentRecord[];
+}: Readonly<{
+  items: readonly ConsentRecord[];
   onOpen: (record: ConsentRecord) => void;
-}) {
+}>) {
   return (
     <Table>
       <caption className="sr-only">Consent records, newest first</caption>
@@ -142,82 +188,72 @@ function RecordsTable({
       </TableHeader>
       <TableBody>
         {items.map((record) => (
-          <TableRow key={record.id}>
-            <TableCell className="whitespace-nowrap">{formatDateTime(record.givenAt)}</TableCell>
-            <TableCell className="max-w-56">
-              <span className="block truncate font-mono text-xs" title={record.subjectId}>
-                {record.subjectId}
-              </span>
-              {record.externalId === null ? null : (
-                <span className="block truncate text-xs text-muted-foreground">
-                  {record.externalId}
-                </span>
-              )}
-            </TableCell>
-            <TableCell>
-              <PurposeBadges purposes={record.purposes} />
-            </TableCell>
-            <TableCell>{record.jurisdiction ?? '–'}</TableCell>
-            <TableCell>{record.countryCode ?? '–'}</TableCell>
-            <TableCell className="text-right">
-              <Button type="button" size="sm" variant="ghost" onClick={() => onOpen(record)}>
-                Details
-                <span className="sr-only"> for {record.subjectId}</span>
-              </Button>
-            </TableCell>
-          </TableRow>
+          <RecordRow key={record.id} record={record} onOpen={onOpen} />
         ))}
       </TableBody>
     </Table>
   );
 }
 
-export function ConsentsScreen({
-  siteKey,
-  search,
-  onSearchChange,
-}: {
-  siteKey: string;
-  search: ConsentSearch;
-  onSearchChange: (next: ConsentSearch) => void;
-}) {
-  const records = useConsents(siteKey, search);
-  const [open, setOpen] = useState<ConsentRecord | null>(null);
-  const items = records.data?.pages.flatMap((page) => page.items) ?? [];
-  const exportRange = {
-    ...(search.from === undefined ? {} : { from: search.from }),
-    ...(search.to === undefined ? {} : { to: search.to }),
-  };
-
-  let body: ReactNode;
-  if (records.isPending) body = <LoadingBlock label="Loading records" />;
-  else if (records.isError && items.length === 0) {
-    body = <ErrorState error={records.error} onRetry={() => void records.refetch()} />;
-  } else if (items.length === 0) {
-    body = (
+function RecordsBody({
+  records,
+  items,
+  onOpen,
+}: Readonly<{
+  records: ReturnType<typeof useConsents>;
+  items: readonly ConsentRecord[];
+  onOpen: (record: ConsentRecord) => void;
+}>) {
+  if (records.isPending) return <LoadingBlock label="Loading records" />;
+  if (records.isError && items.length === 0) {
+    return <ErrorState error={records.error} onRetry={() => void records.refetch()} />;
+  }
+  if (items.length === 0) {
+    return (
       <EmptyState
         title="No records found"
         description="Nothing matches these filters. Widen the date range or clear the subject ID."
       />
     );
-  } else {
-    body = (
-      <div className="grid gap-3">
-        <RecordsTable items={items} onOpen={setOpen} />
-        {records.isError ? (
-          <ErrorState error={records.error} onRetry={() => void records.fetchNextPage()} />
-        ) : null}
-        <LoadMore
-          loaded={items.length}
-          noun="records"
-          endLabel="end of list"
-          hasMore={records.hasNextPage}
-          fetching={records.isFetchingNextPage}
-          onMore={() => void records.fetchNextPage()}
-        />
-      </div>
-    );
   }
+  return (
+    <div className="grid gap-3">
+      <RecordsTable items={items} onOpen={onOpen} />
+      {records.isError ? (
+        <ErrorState error={records.error} onRetry={() => void records.fetchNextPage()} />
+      ) : null}
+      <LoadMore
+        loaded={items.length}
+        noun="records"
+        endLabel="end of list"
+        hasMore={records.hasNextPage}
+        fetching={records.isFetchingNextPage}
+        onMore={() => void records.fetchNextPage()}
+      />
+    </div>
+  );
+}
+
+/** The CSV export covers the selected dates; the subject filter applies to the list only. */
+function exportRangeOf(search: ConsentSearch): { from?: string; to?: string } {
+  return {
+    ...(search.from === undefined ? {} : { from: search.from }),
+    ...(search.to === undefined ? {} : { to: search.to }),
+  };
+}
+
+export function ConsentsScreen({
+  siteKey,
+  search,
+  onSearchChange,
+}: Readonly<{
+  siteKey: string;
+  search: ConsentSearch;
+  onSearchChange: (next: ConsentSearch) => void;
+}>) {
+  const records = useConsents(siteKey, search);
+  const [open, setOpen] = useState<ConsentRecord | null>(null);
+  const items = records.data?.pages.flatMap((page) => page.items) ?? [];
 
   return (
     <div className="grid gap-4">
@@ -225,7 +261,7 @@ export function ConsentsScreen({
         <FilterForm key={JSON.stringify(search)} value={search} onApply={onSearchChange} />
         <div className="grid gap-1 pt-[1.625rem]">
           <Button asChild variant="outline">
-            <a href={consentsCsvHref(siteKey, exportRange)} download>
+            <a href={consentsCsvHref(siteKey, exportRangeOf(search))} download>
               <Download aria-hidden="true" />
               Export CSV
             </a>
@@ -235,7 +271,9 @@ export function ConsentsScreen({
       <p className="text-xs text-muted-foreground">
         The export covers the selected dates. The subject ID filter applies to this list only.
       </p>
-      <div aria-busy={records.isFetching && !records.isPending}>{body}</div>
+      <div aria-busy={records.isFetching && !records.isPending}>
+        <RecordsBody records={records} items={items} onOpen={setOpen} />
+      </div>
       <ConsentDetailDialog record={open} onClose={() => setOpen(null)} />
     </div>
   );

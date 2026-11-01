@@ -3,6 +3,43 @@
 
 import { z } from 'zod';
 
+type Issue = z.core.$ZodRawIssue;
+type IssueOf<Code extends Issue['code']> = Extract<Issue, { code: Code }>;
+
+function tooSmallMessage(issue: IssueOf<'too_small'>): string | undefined {
+  if (issue.origin === 'array') return 'Add at least one item';
+  if (issue.origin !== 'string') return undefined;
+  return issue.minimum === 1 || issue.minimum === 1n
+    ? 'This field is required'
+    : `Must be at least ${issue.minimum} characters`;
+}
+
+function tooBigMessage(issue: IssueOf<'too_big'>): string | undefined {
+  return issue.origin === 'string' ? `Must be at most ${issue.maximum} characters` : undefined;
+}
+
+function formatMessage(issue: IssueOf<'invalid_format'>): string | undefined {
+  if (issue.format === 'email') return 'Enter a valid email address';
+  return issue.format === 'regex' ? 'This value has an invalid format' : undefined;
+}
+
+function readableMessage(issue: Issue): string | undefined {
+  switch (issue.code) {
+    case 'too_small':
+      return tooSmallMessage(issue);
+    case 'too_big':
+      return tooBigMessage(issue);
+    case 'invalid_format':
+      return formatMessage(issue);
+    case 'invalid_value':
+      return 'Choose one of the listed options';
+    case 'invalid_type':
+      return 'This field is required';
+    default:
+      return undefined;
+  }
+}
+
 /*
  * Browser-side zod configuration, loaded once at startup (and by the test setup).
  * - jitless: zod would otherwise probe `new Function`, which the dashboard CSP forbids and
@@ -11,26 +48,5 @@ import { z } from 'zod';
  */
 z.config({
   jitless: true,
-  customError: (issue) => {
-    if (issue.code === 'too_small' && issue.origin === 'string') {
-      return issue.minimum === 1 || issue.minimum === 1n
-        ? 'This field is required'
-        : `Must be at least ${issue.minimum} characters`;
-    }
-    if (issue.code === 'too_big' && issue.origin === 'string') {
-      return `Must be at most ${issue.maximum} characters`;
-    }
-    if (issue.code === 'too_small' && issue.origin === 'array') {
-      return 'Add at least one item';
-    }
-    if (issue.code === 'invalid_format' && issue.format === 'email') {
-      return 'Enter a valid email address';
-    }
-    if (issue.code === 'invalid_format' && issue.format === 'regex') {
-      return 'This value has an invalid format';
-    }
-    if (issue.code === 'invalid_value') return 'Choose one of the listed options';
-    if (issue.code === 'invalid_type') return 'This field is required';
-    return undefined;
-  },
+  customError: readableMessage,
 });

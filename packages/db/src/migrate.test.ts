@@ -11,7 +11,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
  */
 const mocks = vi.hoisted(() => ({
   createPool: vi.fn(),
-  applyMigrations: vi.fn(),
+  applyMigrations: vi.fn<(executor: unknown, options: { migrationsFolder: string }) => unknown>(),
   postgresExecutor: vi.fn(),
   end: vi.fn(),
 }));
@@ -87,6 +87,7 @@ describe('with DATABASE_URL_DASHBOARD', () => {
     expect(passedExecutor).toBe(executor);
     const migrationsFolder = fileURLToPath(new URL('../drizzle', import.meta.url));
     expect(options).toEqual({ migrationsFolder });
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- a path inside this package's own drizzle folder
     expect(existsSync(`${migrationsFolder}/meta/_journal.json`)).toBe(true);
     expect(console.warn).toHaveBeenCalledWith(
       '[db] app schema is up to date (2 migration(s) applied)',

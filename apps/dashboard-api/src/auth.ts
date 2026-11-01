@@ -2,13 +2,14 @@
 // Copyright (C) 2026 Axiumine
 
 import { authSchema } from '@consent/db';
-import { betterAuth } from 'better-auth';
+import { fieldOf } from '@consent/shared';
+import { type BetterAuthOptions, betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { APIError, createAuthMiddleware } from 'better-auth/api';
 import { admin } from 'better-auth/plugins/admin';
 import type { AppDatabase } from './db.js';
 import type { Env } from './env.js';
-import type { Logger } from './logger.js';
+import { firstLine, type Logger } from './logger.js';
 
 export const AUTH_BASE_PATH = '/api/auth';
 
@@ -24,6 +25,62 @@ export interface AuthOptions {
   readonly db: Pick<AppDatabase, 'authDb'>;
   readonly env: Pick<Env, 'BETTER_AUTH_SECRET' | 'BETTER_AUTH_URL'>;
   readonly logger: Logger;
+}
+
+/** No cookie cache: a ban, a revoked session or a role change takes effect on the next request. */
+const SESSION_OPTIONS: NonNullable<BetterAuthOptions['session']> = {
+  expiresIn: SESSION_LIFETIME_SECONDS,
+  updateAge: SESSION_REFRESH_SECONDS,
+  cookieCache: { enabled: false },
+};
+
+const RATE_LIMIT_OPTIONS: NonNullable<BetterAuthOptions['rateLimit']> = {
+  enabled: true,
+  storage: 'database',
+  ...DEFAULT_RATE_LIMIT,
+  customRules: {
+    '/sign-in/email': LOGIN_RATE_LIMIT,
+    '/change-password': PASSWORD_RATE_LIMIT,
+  },
+};
+
+function advancedOptions(secure: boolean): NonNullable<BetterAuthOptions['advanced']> {
+  return {
+    cookiePrefix: 'c15t-dashboard',
+    useSecureCookies: secure,
+    defaultCookieAttributes: { httpOnly: true, sameSite: 'lax', secure },
+    // nginx sets X-Forwarded-For from the real visitor IP (CLAUDE.md "Credentials").
+    ipAddress: { ipAddressHeaders: ['x-forwarded-for'] },
+  };
+}
+
+function authLogger(logger: Logger): NonNullable<BetterAuthOptions['logger']> {
+  return {
+    level: 'warn',
+    log: (level, message) => {
+      // First line only, like `describeError`: a stack or SQL parameters may follow it.
+      const line = firstLine(message).slice(0, 300);
+      if (level === 'error') logger.error('better-auth', { detail: line });
+      else if (level === 'warn') logger.warn('better-auth', { detail: line });
+    },
+  };
+}
+
+function authHooks(): NonNullable<BetterAuthOptions['hooks']> {
+  return {
+    // eslint-disable-next-line @typescript-eslint/require-await -- createAuthMiddleware needs a Promise-returning handler, and `async` turns the APIError thrown by changePasswordBody into a rejection
+    before: createAuthMiddleware(async (ctx) => {
+      if (ctx.path !== '/change-password') return;
+      return changePasswordBody(fieldOf(ctx, 'body'));
+    }),
+    after: createAuthMiddleware(async (ctx) => {
+      if (ctx.path !== '/change-password') return;
+      const returned: unknown = ctx.context.returned;
+      const userId = changedPasswordUserId(returned);
+      if (userId === undefined) return;
+      await ctx.context.internalAdapter.updateUser(userId, { mustChangePassword: false });
+    }),
+  };
 }
 
 /**
@@ -63,51 +120,12 @@ export function createAuth({ db, env, logger }: AuthOptions) {
         },
       },
     },
-    session: {
-      expiresIn: SESSION_LIFETIME_SECONDS,
-      updateAge: SESSION_REFRESH_SECONDS,
-      // No cookie cache: a ban, a revoked session or a role change takes effect on the next request.
-      cookieCache: { enabled: false },
-    },
-    rateLimit: {
-      enabled: true,
-      storage: 'database',
-      ...DEFAULT_RATE_LIMIT,
-      customRules: {
-        '/sign-in/email': LOGIN_RATE_LIMIT,
-        '/change-password': PASSWORD_RATE_LIMIT,
-      },
-    },
-    advanced: {
-      cookiePrefix: 'c15t-dashboard',
-      useSecureCookies: secure,
-      defaultCookieAttributes: { httpOnly: true, sameSite: 'lax', secure },
-      // nginx sets X-Forwarded-For from the real visitor IP (CLAUDE.md "Credentials").
-      ipAddress: { ipAddressHeaders: ['x-forwarded-for'] },
-    },
-    logger: {
-      level: 'warn',
-      log: (level, message) => {
-        // First line only, like `describeError`: a stack or SQL parameters may follow it.
-        const line = message.replace(/\n[\s\S]*$/, '').slice(0, 300);
-        if (level === 'error') logger.error('better-auth', { detail: line });
-        else if (level === 'warn') logger.warn('better-auth', { detail: line });
-      },
-    },
+    session: SESSION_OPTIONS,
+    rateLimit: RATE_LIMIT_OPTIONS,
+    advanced: advancedOptions(secure),
+    logger: authLogger(logger),
     plugins: [admin({ defaultRole: 'user', adminRoles: ['admin'] })],
-    hooks: {
-      before: createAuthMiddleware(async (ctx) => {
-        if (ctx.path !== '/change-password') return;
-        return changePasswordBody(ctx.body);
-      }),
-      after: createAuthMiddleware(async (ctx) => {
-        if (ctx.path !== '/change-password') return;
-        const returned: unknown = ctx.context.returned;
-        const userId = changedPasswordUserId(returned);
-        if (userId === undefined) return;
-        await ctx.context.internalAdapter.updateUser(userId, { mustChangePassword: false });
-      }),
-    },
+    hooks: authHooks(),
   });
 }
 

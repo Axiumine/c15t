@@ -16,7 +16,7 @@ export interface RouterContext {
   readonly queryClient: QueryClient;
 }
 
-function RootError({ error, reset }: ErrorComponentProps) {
+function RootError({ error, reset }: Readonly<ErrorComponentProps>) {
   const router = useRouter();
   return (
     <div className="mx-auto max-w-xl p-6">

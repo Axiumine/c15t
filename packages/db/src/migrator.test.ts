@@ -71,7 +71,7 @@ describe('postgresExecutor.transaction', () => {
 
   test('an error in the callback rejects the transaction', async () => {
     const { sql, begin } = fakeSql();
-    begin.mockImplementation(async (run) => run({ unsafe: vi.fn() } as never));
+    begin.mockImplementation(async (run) => run({ unsafe: vi.fn() }));
     const boom = new Error('boom');
     await expect(
       postgresExecutor(sql).transaction(async () => {

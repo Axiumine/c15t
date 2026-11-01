@@ -20,11 +20,11 @@ function Harness({
   dismissible,
   remove = false,
   children,
-}: {
+}: Readonly<{
   dismissible?: boolean;
   remove?: boolean;
   children?: ReactNode;
-}) {
+}>) {
   const [open, setOpen] = useState(false);
   const [present, setPresent] = useState(true);
   return (
@@ -112,7 +112,9 @@ test('a non-dismissible dialog ignores Escape and outside clicks and has no clos
   await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
 });
 
-function WithHandler({ onEscapeKeyDown }: { onEscapeKeyDown: (event: KeyboardEvent) => void }) {
+function WithHandler({
+  onEscapeKeyDown,
+}: Readonly<{ onEscapeKeyDown: (event: KeyboardEvent) => void }>) {
   return (
     <Dialog open>
       <DialogContent onEscapeKeyDown={onEscapeKeyDown}>

@@ -38,11 +38,12 @@ function dropUnusedImports(source) {
   const lines = source.split('\n');
   const importLine = /^import \{ (.+) \} from (".+")$/;
   const body = lines.filter((line) => !importLine.test(line)).join('\n');
+  const words = new Set(body.match(/\w+/g));
   return lines
     .map((line) => {
       const match = importLine.exec(line);
       if (match === null) return line;
-      const used = match[1].split(', ').filter((name) => new RegExp(`\\b${name}\\b`).test(body));
+      const used = match[1].split(', ').filter((name) => words.has(name));
       return used.length === 0 ? null : `import { ${used.join(', ')} } from ${match[2]}`;
     })
     .filter((line) => line !== null)

@@ -5,7 +5,7 @@ import { type ConsentExportQuery, isRepresentableInstant, MAX_RANGE_DAYS } from 
 import { HttpError } from './errors.js';
 
 const DAY_MS = 86_400_000;
-export const DEFAULT_RANGE_DAYS = 30;
+const DEFAULT_RANGE_DAYS = 30;
 
 /** Half-open interval `[from, to)` in UTC. Both bounds are optional for record search. */
 export interface TimeBounds {
@@ -19,6 +19,8 @@ export interface StatsRange {
 }
 
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
+/** `Z`, `+hh`, `+hh:mm` or `+hhmm` at the end: the text already says which zone it is in. */
+const OFFSET_SUFFIX = /(?:Z|[+-]\d{2}|[+-]\d{2}:?\d{2})$/;
 
 export function startOfUtcDay(date: Date): Date {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
@@ -87,7 +89,5 @@ export function toNaiveUtc(date: Date): string {
 export function fromNaiveUtc(value: string | Date): string {
   if (value instanceof Date) return value.toISOString();
   const normalized = value.includes('T') ? value : value.replace(' ', 'T');
-  return new Date(
-    /(?:Z|[+-]\d{2}(?::?\d{2})?)$/.test(normalized) ? normalized : `${normalized}Z`,
-  ).toISOString();
+  return new Date(OFFSET_SUFFIX.test(normalized) ? normalized : `${normalized}Z`).toISOString();
 }

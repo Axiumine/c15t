@@ -14,6 +14,7 @@ import type { Runtime } from './runtime.js';
  */
 
 function requiredUrl(name: 'DATABASE_URL_DASHBOARD' | 'DATABASE_URL_C15T'): string {
+  // eslint-disable-next-line security/detect-object-injection -- `name` is one of two literal variable names
   const value = process.env[name];
   if (value === undefined || value === '') {
     throw new Error(`${name} is not set: run the suite with \`yarn test:e2e\` (see docs/e2e.md)`);
@@ -26,6 +27,7 @@ export function assertDatabaseEnv(): void {
   requiredUrl('DATABASE_URL_DASHBOARD');
   requiredUrl('DATABASE_URL_C15T');
   for (const name of ['BETTER_AUTH_SECRET', 'C15T_ADMIN_API_KEY']) {
+    // eslint-disable-next-line security/detect-object-injection -- `name` comes from the literal list above
     if ((process.env[name] ?? '') === '') throw new Error(`${name} is not set`);
   }
 }
@@ -39,14 +41,17 @@ function open(url: string) {
 const clientIpFile = (rt: Runtime) => resolve(rt.runDir, 'client-ips.txt');
 
 export function recordClientIp(rt: Runtime, ip: string): void {
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- a file inside the run's own scratch directory
   appendFileSync(clientIpFile(rt), `${ip}\n`);
 }
 
 function recordedClientIps(rt: Runtime): string[] {
   const file = clientIpFile(rt);
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- a file inside the run's own scratch directory
   if (!existsSync(file)) return [];
   return [
     ...new Set(
+      // eslint-disable-next-line security/detect-non-literal-fs-filename -- a file inside the run's own scratch directory
       readFileSync(file, 'utf8')
         .split('\n')
         .filter((line) => line !== ''),

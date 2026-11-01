@@ -92,7 +92,7 @@ function assertClean(hygiene: Hygiene): void {
  */
 export const test = base.extend<TestFixtures, WorkerFixtures>({
   // biome-ignore lint/correctness/noEmptyPattern: Playwright reads a fixture's dependencies from this pattern
-  rt: [async ({}, use) => use(runtime()), { scope: 'worker' }],
+  rt: [async ({}, use) => use(runtime()), { scope: 'worker' }], // eslint-disable-line no-empty-pattern -- Playwright reads a fixture's dependencies from this pattern
 
   scope: [
     async ({ rt }, use, workerInfo) => {

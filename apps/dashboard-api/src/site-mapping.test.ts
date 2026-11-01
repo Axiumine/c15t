@@ -33,7 +33,7 @@ test('the server snippet names environment variables: no key, no address', () =>
   const { serverClient } = siteSetup('shop');
   expect(serverClient).toContain('process.env.CONSENT_API_URL}/s/shop');
   expect(serverClient).toContain('process.env.C15T_ADMIN_API_KEY');
-  expect(serverClient).not.toMatch(/\d+\.\d+\.\d+\.\d+|localhost|:\d{4}/);
+  expect(serverClient).not.toMatch(/\d\.\d+\.\d+\.\d|localhost|:\d{4}/);
 });
 
 test('a site row becomes a valid detail', () => {

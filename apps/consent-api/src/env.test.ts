@@ -73,7 +73,7 @@ describe('parseEnv', () => {
     'rejects the trusted proxy list "%s"',
     (value) => {
       expect(issuesFor({ ...required, CONSENT_API_TRUSTED_PROXIES: value })[0]).toMatch(
-        /^CONSENT_API_TRUSTED_PROXIES(\.\d+)?:/,
+        /^CONSENT_API_TRUSTED_PROXIES(?:\.\d+|):/,
       );
     },
   );
@@ -85,6 +85,7 @@ describe('parseEnv', () => {
   });
 
   test('rejects a database URL that is not postgres, and never echoes it', () => {
+    // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- test input: a made-up URL whose password the test proves is never echoed
     const secret = 'mysql://user:hunter2@db.internal/app';
     const issues = issuesFor({ ...required, DATABASE_URL_C15T: secret });
     expect(issues[0]).toMatch(/^DATABASE_URL_C15T:/);
@@ -153,6 +154,7 @@ describe('loadEnv', () => {
 
   test('throws an EnvError for an invalid process.env', () => {
     vi.stubEnv('DATABASE_URL_C15T', required.DATABASE_URL_C15T);
+    // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- test input: "short" is the too-short value the schema must reject, not a credential
     vi.stubEnv('C15T_ADMIN_API_KEY', 'short');
     expect(() => loadEnv()).toThrow(EnvError);
   });

@@ -38,6 +38,11 @@ corepack enable           # once per machine; Yarn 4 comes from "packageManager"
 yarn install              # the repository's .yarnrc.yml sets nodeLinker: node-modules
 ```
 
+`yarn install` also installs the Git hooks (lefthook: Biome, SPDX and size caps before a commit, the DCO sign-off
+check on the message, the full gate set before a push). They are optional and CI runs the same checks: see
+[`docs/quality-gates.md`](./docs/quality-gates.md) for the order and how to skip one run. fnm and mise read
+`.nvmrc` if you want a Node version manager.
+
 The repository uses Yarn 4 workspaces (`apps/*`, `packages/*`). Do not use npm, pnpm or Bun to install,
 and do not switch to Plug'n'Play: Vite, drizzle-kit and the c15t CLI need `node_modules`.
 
@@ -45,14 +50,78 @@ and do not switch to Plug'n'Play: Vite, drizzle-kit and the c15t CLI need `node_
 |---|---|
 | `yarn typecheck` | `tsc -b` over every project reference (sources and tests) |
 | `yarn lint` | `biome check .` (formatting, lint rules and import order) |
+| `yarn lint:eslint` | ESLint, the zero-findings gate next to Biome (type-aware, security and complexity rules); run `yarn typecheck` first |
 | `yarn format` | `biome check --write .` fixes what can be fixed automatically |
 | `yarn test` | `vitest run` over every workspace |
+| `yarn test:coverage` | the same with the 100% coverage gate (what CI and the pre-push hook run) |
 | `yarn build` | builds every workspace to `dist/` |
 | `yarn dev` | consent-api, dashboard-api and the Vite dev server |
 | `yarn test:e2e` | Playwright end-to-end tests |
 | `yarn spdx` | adds the SPDX header to new source files (`yarn spdx:check` only verifies) |
+| `yarn semgrep` | Semgrep static analysis with the registry rule sets (needs `semgrep`, see [`docs/security-scanning.md`](./docs/security-scanning.md); skipped with a message when it is not installed) |
+| `yarn trivy` | Trivy scan of the lockfiles, secrets and misconfigurations (needs `trivy`, same document and same skip rule) |
+| `yarn knip` | unused files, exports, types and dependencies |
+| `yarn type-coverage` | `any` and unsafe type assertions, per tsconfig project |
+| `yarn fta` | maintainability score of each source file |
+| `yarn code-caps` | size and shape caps with a ratchet baseline |
+| `yarn test:scripts-coverage` | the `node:test` suites of `scripts/check-code-caps.ts` and `scripts/git-hooks.mjs`, with a 100% coverage gate |
 
-**Run `yarn typecheck && yarn lint && yarn test` before you open a pull request.**
+**Run `yarn typecheck && yarn lint && yarn lint:eslint && yarn test` before you open a pull request.** ESLint and the
+four analysers below are part of the same gate: they all pass on the current code, so a failure is yours.
+CI also runs the "Security scan" workflow (Semgrep and Trivy, `yarn semgrep` and `yarn trivy` locally); a finding needs a fix
+or a documented suppression, see [`docs/security-scanning.md`](./docs/security-scanning.md).
+
+### ESLint
+
+Biome formats the code and runs the fast lint rules; ESLint (`eslint.config.mjs`) adds what Biome cannot do:
+typescript-eslint `strictTypeChecked` (it uses the type information of each workspace, tests included),
+`eslint-plugin-sonarjs`, `eslint-plugin-security` and `eslint-plugin-no-unsanitized`, plus size caps
+(cyclomatic complexity 10, 50 lines per function, 500 lines per file, 4 parameters, depth 4). The React hooks
+rules are not duplicated: Biome already checks them. `yarn lint:eslint` runs with `--max-warnings 0` and keeps its
+cache in `node_modules/.cache/eslint/`; it needs the declaration files of the other workspaces, so run
+`yarn typecheck` (or `yarn build`) first in a fresh checkout. Every rule is an error, so a finding is either
+fixed or, only when the rule is a proven false positive, silenced on that line with
+`// eslint-disable-next-line <rule> -- <reason>`. There are no file-wide or rule-wide disables, and the
+security rules stay on in tests. Test files may exceed the length caps and use async mocks without `await`
+(see the test override in `eslint.config.mjs`).
+
+### Static analysers
+
+**`yarn knip`** ([knip](https://knip.dev/), `knip.json`) fails for a file, export, exported type or
+dependency that nothing uses. It finds the entry points itself (`package.json` scripts, `exports`, the Vite,
+Vitest, Playwright and drizzle configs, test files, the TanStack route files); `knip.json` lists only the
+few it cannot see (files started by path from a script or a test). Fix a failure by deleting the dead code or
+dependency, or by dropping the `export` when the symbol is only used in its own file. Do not export a symbol
+just for a test, and do not add an ignore: if knip is wrong, add the entry file to `knip.json`.
+
+**`yarn type-coverage`** ([type-coverage](https://github.com/plantain-00/type-coverage), threshold and ignored
+generated files in the `typeCoverage` field of `package.json`, run by `scripts/type-coverage.mjs`) needs 100%
+of the expressions in every tsconfig project to have a type that is not `any`, in strict mode (also `any` in
+type arguments, `Object`, `{}`, and `as` / `!` assertions). Fix a failure with a real type, a type guard or
+`fieldOf` from `@consent/shared`, not with a cast. If a library types something as `any`, wrap it once in a
+small typed function. There are two documented relaxations, both in `scripts/type-coverage.mjs`: test and
+tooling projects may use assertions to build test doubles, and dashboard-web and the Playwright specs ignore
+`any` in type arguments (TanStack Router and `APIResponse` default some to `any`).
+
+**`yarn fta`** ([FTA](https://ftaproject.dev/), `fta.json`) scores every source file; a higher score is worse
+(50 and below is "OK", 50 to 60 "Could be better", above 60 "Needs improvement"). It exits non-zero and names
+the first file above `score_cap`. The cap is 65, the worst score the code had when the check was added: it
+stops any file from getting worse than today's worst, but it is not the 50 we want, because 36 files are
+between 50 and 65. Tests, generated files and build output are excluded. The score falls with fewer lines and
+less Halstead volume, so the fix is to split a file into smaller modules, not to compress it. Run
+`yarn fta --score-cap 1000` to see the whole table. When you split files so that the worst score drops, lower
+`score_cap` to the new worst (rounded up) in the same pull request.
+
+**`yarn code-caps`** (`scripts/check-code-caps.ts`) caps a file at 500 lines, a function at 50, a class at 300,
+a function at 4 parameters and control-flow nesting at depth 4, for the TypeScript under `apps/*/src`,
+`packages/*/src` and `scripts/`. Test files (and `src/test`, `src/testing`) only count towards the file cap,
+because their bodies are nested `describe`/`test` callbacks. The code that is over a cap today is recorded in
+`.code-caps-baseline.json` as `{ path, kind, name, value }`. The check fails for a violation that is not in
+the baseline and for one whose value grew, and only reports a violation that shrank or is gone. Fix a failure
+by splitting the function or file. When you reduced a violation, run `node scripts/check-code-caps.ts --update`
+and commit the lowered baseline: `--update` writes the baseline only if nothing is new or worse, and refuses
+otherwise. The baseline never needs to go up. Its own test, `yarn test:scripts-coverage`, uses `node:test` and
+must keep the script at 100% lines, branches and functions.
 
 ### Testing changes to `infra/`
 
@@ -285,7 +354,9 @@ A new GitHub Action is pinned by its full commit SHA, with a `# vX.Y.Z` comment.
 SLSA generator in `release.yml`, which its authors require to be referenced by tag. For that reason the
 repository setting "Require actions to be pinned to a full-length commit SHA" must stay off. Dependabot
 updates the actions, but not the digest of the PostgreSQL image in `ci.yml`: that is bumped by hand (see
-[`docs/dependency-policy.md`](./docs/dependency-policy.md)).
+[`docs/dependency-policy.md`](./docs/dependency-policy.md)). The same goes for the Trivy release and the
+Semgrep lockfile used by the "Security scan" workflow ([`docs/security-scanning.md`](./docs/security-scanning.md)
+explains why Trivy is never installed through its action).
 
 ## Releases
 

@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Axiumine
 
+import { buffer } from 'node:stream/consumers';
 import { type Browser, type BrowserContext, request as playwrightRequest } from '@playwright/test';
-import { DashboardClient, type SiteSummary } from './support/api.js';
+import { DashboardClient } from './support/api.js';
 import { bootstrapAdmin } from './support/bootstrap.js';
 import { closeVisitor, expect, openVisitorContext, test } from './support/fixtures.js';
 import { startNginx, stopNginx, writeSiteFile } from './support/nginx.js';
@@ -57,11 +58,8 @@ test.describe
       siteB = { key: b.key, host: b.host, origin: origin(b.host) };
 
       admin = await DashboardClient.firstLogin(rt, await bootstrapAdmin(rt, emails.admin));
-      const created: SiteSummary[] = [];
       for (const site of [a, b]) {
-        created.push(
-          await admin.createSite({ key: site.key, name: site.name, domains: [site.host] }),
-        );
+        await admin.createSite({ key: site.key, name: site.name, domains: [site.host] });
       }
       const readers: DashboardClient[] = [];
       for (const [email, site] of [
@@ -89,6 +87,7 @@ test.describe
     });
 
     test.afterAll(async () => {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- the clients are unset when beforeAll failed before creating them
       await Promise.allSettled([admin?.dispose(), readerA?.dispose(), readerB?.dispose()]);
       await stopNginx(rt);
     });
@@ -265,7 +264,7 @@ test.describe
 
         const { page } = reader;
         await page.goto(`/sites/${siteA.key}/consents`);
-        const row = page.getByRole('row', { name: new RegExp(consents.a) });
+        const row = page.getByRole('row', { name: consents.a });
         await expect(row).toBeVisible();
         await expect(row).toContainText('DE');
         await row.getByRole('button', { name: 'Details' }).click();
@@ -279,9 +278,7 @@ test.describe
           `consents-${siteA.key}-${new Date().toISOString().slice(0, 10)}.csv`,
         );
         const stream = await file.createReadStream();
-        const chunks: Buffer[] = [];
-        for await (const chunk of stream) chunks.push(Buffer.from(chunk as Uint8Array));
-        const csv = Buffer.concat(chunks).toString('utf8');
+        const csv = (await buffer(stream)).toString('utf8');
         expect(csv).toContain(consents.a);
         expect(csv).not.toContain(consents.b);
       } finally {
