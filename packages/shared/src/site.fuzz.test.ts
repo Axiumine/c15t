@@ -3,15 +3,8 @@
 
 import * as fc from 'fast-check';
 import { expect, test } from 'vitest';
-import {
-  domainSchema,
-  domainsSchema,
-  MAX_DOMAINS_PER_SITE,
-  SITE_KEY_PATTERN,
-  siteCreateSchema,
-  siteKeySchema,
-  siteUpdateSchema,
-} from './site.js';
+import { domainSchema, domainsSchema, MAX_DOMAINS_PER_SITE } from './domain.js';
+import { SITE_KEY_PATTERN, siteCreateSchema, siteKeySchema, siteUpdateSchema } from './site.js';
 
 /*
  * Property-based tests for the values that reach nginx, the Host allowlist and c15t's

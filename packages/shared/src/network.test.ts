@@ -2,17 +2,11 @@
 // Copyright (C) 2026 Axiumine
 
 import { describe, expect, test } from 'vitest';
-import {
-  cidrListSchema,
-  cidrSchema,
-  classifyHost,
-  hostSchema,
-  ipInCidrs,
-  originSchema,
-  parseCidr,
-  parseIp,
-  portSchema,
-} from './network.js';
+import { ipInCidrs } from './cidr.js';
+import { classifyHost, hostSchema } from './host.js';
+import { parseCidr, parseIp } from './ip.js';
+import { cidrListSchema, cidrSchema, portSchema } from './network.js';
+import { originSchema } from './origin.js';
 
 describe('hostSchema', () => {
   test.each([
