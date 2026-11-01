@@ -7,7 +7,6 @@ import { createElement, type ReactNode } from 'react';
 import { expect, test } from 'vitest';
 import {
   ApiError,
-  client,
   consentsCsvHref,
   createQueryClient,
   errorMessage,
@@ -15,9 +14,10 @@ import {
   isUnavailable,
   meQueryOptions,
   queryKeys,
-  shouldRetry,
-  useRevokeSessions,
 } from './api';
+import { client } from './api/client';
+import { shouldRetry } from './api/query-client';
+import { useRevokeSessions } from './api/user-writes';
 import { apiError, json, mockFetch, route } from './test/harness';
 
 async function failureOf(call: () => Promise<unknown>): Promise<ApiError> {
