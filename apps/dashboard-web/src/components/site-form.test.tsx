@@ -6,7 +6,8 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, test, vi } from 'vitest';
 import { ApiError } from '../api';
 import { shop } from '../test/fixtures';
-import { parseDomainList, SiteForm, type SiteFormValues, siteFormSchema } from './site-form';
+import { SiteForm } from './site-form';
+import { parseDomainList, type SiteFormValues, siteFormSchema } from './site-form-schema';
 
 describe('parseDomainList', () => {
   test('splits on new lines, commas and spaces, and drops empties', () => {
