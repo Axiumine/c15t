@@ -1,0 +1,212 @@
+[
+  {
+    "path": "apps/consent-api/src/app.test.ts",
+    "kind": "file-lines",
+    "name": "(file)",
+    "value": 747
+  },
+  {
+    "path": "apps/consent-api/src/app.ts",
+    "kind": "function-lines",
+    "name": "createApp",
+    "value": 127
+  },
+  {
+    "path": "apps/consent-api/src/listener.ts",
+    "kind": "function-lines",
+    "name": "createPostgresListenerDriver",
+    "value": 51
+  },
+  {
+    "path": "apps/consent-api/src/request-guard.fuzz.test.ts",
+    "kind": "file-lines",
+    "name": "(file)",
+    "value": 655
+  },
+  {
+    "path": "apps/consent-api/src/server.ts",
+    "kind": "function-lines",
+    "name": "main",
+    "value": 97
+  },
+  {
+    "path": "apps/dashboard-api/src/admin.test.ts",
+    "kind": "file-lines",
+    "name": "(file)",
+    "value": 592
+  },
+  {
+    "path": "apps/dashboard-api/src/auth.ts",
+    "kind": "function-lines",
+    "name": "createAuth",
+    "value": 75
+  },
+  {
+    "path": "apps/dashboard-api/src/authz.test.ts",
+    "kind": "file-lines",
+    "name": "(file)",
+    "value": 578
+  },
+  {
+    "path": "apps/dashboard-api/src/authz.ts",
+    "kind": "function-lines",
+    "name": "createAuthz",
+    "value": 82
+  },
+  {
+    "path": "apps/dashboard-api/src/c15t-read.ts",
+    "kind": "function-lines",
+    "name": "consentStats",
+    "value": 54
+  },
+  {
+    "path": "apps/dashboard-api/src/c15t-read.ts",
+    "kind": "params",
+    "name": "fetchRows",
+    "value": 5
+  },
+  {
+    "path": "apps/dashboard-api/src/routes/admin-sites.ts",
+    "kind": "function-lines",
+    "name": "adminSiteRoutes",
+    "value": 89
+  },
+  {
+    "path": "apps/dashboard-api/src/routes/admin-sites.ts",
+    "kind": "params",
+    "name": "adminSiteRoutes.recordUpdate",
+    "value": 5
+  },
+  {
+    "path": "apps/dashboard-api/src/routes/admin-users.ts",
+    "kind": "function-lines",
+    "name": "adminUserRoutes",
+    "value": 240
+  },
+  {
+    "path": "apps/dashboard-web/src/components/charts/chart-frame.tsx",
+    "kind": "function-lines",
+    "name": "ChartFrame",
+    "value": 52
+  },
+  {
+    "path": "apps/dashboard-web/src/components/charts/ranked-bars.tsx",
+    "kind": "function-lines",
+    "name": "RankedBars",
+    "value": 65
+  },
+  {
+    "path": "apps/dashboard-web/src/components/charts/stats-charts.tsx",
+    "kind": "function-lines",
+    "name": "JurisdictionChart",
+    "value": 57
+  },
+  {
+    "path": "apps/dashboard-web/src/components/charts/stats-charts.tsx",
+    "kind": "function-lines",
+    "name": "PurposeChart",
+    "value": 55
+  },
+  {
+    "path": "apps/dashboard-web/src/components/charts/volume-chart.tsx",
+    "kind": "function-lines",
+    "name": "VolumeChart",
+    "value": 94
+  },
+  {
+    "path": "apps/dashboard-web/src/components/range-filter.tsx",
+    "kind": "function-lines",
+    "name": "RangeFilter",
+    "value": 79
+  },
+  {
+    "path": "apps/dashboard-web/src/components/site-form.tsx",
+    "kind": "function-lines",
+    "name": "SiteForm",
+    "value": 104
+  },
+  {
+    "path": "apps/dashboard-web/src/screens/account.tsx",
+    "kind": "function-lines",
+    "name": "PasswordCard",
+    "value": 92
+  },
+  {
+    "path": "apps/dashboard-web/src/screens/admin/overview.tsx",
+    "kind": "function-lines",
+    "name": "AdminOverviewScreen",
+    "value": 68
+  },
+  {
+    "path": "apps/dashboard-web/src/screens/admin/overview.tsx",
+    "kind": "function-lines",
+    "name": "SitesBreakdown",
+    "value": 69
+  },
+  {
+    "path": "apps/dashboard-web/src/screens/admin/sites.tsx",
+    "kind": "function-lines",
+    "name": "SitesTable",
+    "value": 58
+  },
+  {
+    "path": "apps/dashboard-web/src/screens/admin/user-dialogs.tsx",
+    "kind": "function-lines",
+    "name": "BanUserForm",
+    "value": 51
+  },
+  {
+    "path": "apps/dashboard-web/src/screens/admin/user-dialogs.tsx",
+    "kind": "function-lines",
+    "name": "CreateUserDialog",
+    "value": 107
+  },
+  {
+    "path": "apps/dashboard-web/src/screens/admin/user-dialogs.tsx",
+    "kind": "function-lines",
+    "name": "EditUserForm",
+    "value": 55
+  },
+  {
+    "path": "apps/dashboard-web/src/screens/admin/users.tsx",
+    "kind": "function-lines",
+    "name": "ConfirmActions",
+    "value": 60
+  },
+  {
+    "path": "apps/dashboard-web/src/screens/admin/users.tsx",
+    "kind": "function-lines",
+    "name": "UsersTable",
+    "value": 63
+  },
+  {
+    "path": "apps/dashboard-web/src/screens/login.tsx",
+    "kind": "function-lines",
+    "name": "LoginScreen",
+    "value": 61
+  },
+  {
+    "path": "apps/dashboard-web/src/screens/site/consents.tsx",
+    "kind": "function-lines",
+    "name": "ConsentsScreen",
+    "value": 68
+  },
+  {
+    "path": "apps/dashboard-web/src/screens/site/consents.tsx",
+    "kind": "function-lines",
+    "name": "FilterForm",
+    "value": 66
+  },
+  {
+    "path": "apps/dashboard-web/src/screens/site/consents.tsx",
+    "kind": "function-lines",
+    "name": "RecordsTable",
+    "value": 53
+  },
+  {
+    "path": "apps/dashboard-web/src/screens/site/site-layout.tsx",
+    "kind": "function-lines",
+    "name": "SiteLayoutScreen",
+    "value": 62
+  }
+]

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Axiumine
 
+import { fieldOf } from '@consent/shared';
 import type { HttpBindings } from '@hono/node-server';
 import type { Hono } from 'hono';
 import { describe, expect, test } from 'vitest';
@@ -739,7 +740,7 @@ describe('health and status', () => {
     const response = await h.send('/status');
     expect(response.status).toBe(503);
     const text = await response.text();
-    expect(JSON.parse(text).error.code).toBe('SERVICE_UNAVAILABLE');
+    expect(fieldOf(fieldOf(JSON.parse(text), 'error'), 'code')).toBe('SERVICE_UNAVAILABLE');
     expect(text).not.toContain('10.0.0.9');
     await h.registry.close();
   });

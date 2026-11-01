@@ -11,9 +11,9 @@ import { createAuthClient } from 'better-auth/react';
  * methods would call endpoints that do not exist here. Role and mustChangePassword come from
  * GET /api/me.
  */
-export const AUTH_BASE_PATH = '/api/auth';
+const AUTH_BASE_PATH = '/api/auth';
 
-export const authClient = createAuthClient({
+const authClient = createAuthClient({
   baseURL: globalThis.location.origin,
   basePath: AUTH_BASE_PATH,
   fetchOptions: {
@@ -23,7 +23,7 @@ export const authClient = createAuthClient({
   },
 });
 
-export type AuthFailureKind =
+type AuthFailureKind =
   | 'invalid-credentials'
   | 'wrong-password'
   | 'disabled'
@@ -33,7 +33,7 @@ export type AuthFailureKind =
   | 'unavailable'
   | 'unknown';
 
-export interface AuthFailure {
+interface AuthFailure {
   readonly kind: AuthFailureKind;
   readonly message: string;
 }

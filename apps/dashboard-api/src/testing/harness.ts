@@ -24,7 +24,7 @@ export interface TestUser {
   readonly role: Role;
 }
 
-export interface RequestOptions {
+interface RequestOptions {
   readonly cookie?: string;
   readonly json?: unknown;
   readonly ip?: string;
@@ -182,8 +182,4 @@ export function cookieHeader(response: Response): string {
     .map((cookie) => cookie.split(';')[0])
     .filter((pair): pair is string => pair !== undefined && !pair.endsWith('='))
     .join('; ');
-}
-
-export async function jsonOf(response: Response): Promise<unknown> {
-  return response.json();
 }

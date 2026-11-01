@@ -8,7 +8,7 @@ import {
   c15tInstance,
   policyRulePresets,
 } from '@c15t/backend';
-import { POLICY_PRESET_RULES, trustedOriginsSchema } from '@consent/shared';
+import { domainsSchema, POLICY_PRESET_RULES } from '@consent/shared';
 import { PgClient } from '@effect/sql-pg';
 import { Duration, Redacted } from 'effect';
 import { SiteConfigError } from './errors.js';
@@ -91,7 +91,7 @@ export function assertTrustedOrigins(siteKey: string, origins: readonly string[]
   if (origins.some((origin) => origin.includes('*'))) {
     throw new SiteConfigError(siteKey, 'trustedOrigins must not contain wildcards');
   }
-  const parsed = trustedOriginsSchema.safeParse([...origins]);
+  const parsed = domainsSchema.safeParse([...origins]);
   if (!parsed.success) {
     throw new SiteConfigError(siteKey, 'trustedOrigins contains an invalid host name');
   }
@@ -99,12 +99,9 @@ export function assertTrustedOrigins(siteKey: string, origins: readonly string[]
 }
 
 export function policyRulesFor(site: SiteRecord): PolicyRules {
-  const presets = policyRulePresets as unknown as Record<
-    string,
-    (() => PolicyRules[number]) | undefined
-  >;
+  const presets = new Map<string, () => PolicyRules[number]>(Object.entries(policyRulePresets));
   return POLICY_PRESET_RULES[site.policyPreset].map((name) => {
-    const rule = Object.hasOwn(presets, name) ? presets[name] : undefined;
+    const rule = presets.get(name);
     if (rule === undefined) {
       throw new SiteConfigError(site.key, `Unknown policy rule preset "${name}"`);
     }

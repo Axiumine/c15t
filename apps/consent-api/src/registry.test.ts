@@ -4,6 +4,7 @@
 import { describe, expect, test, vi } from 'vitest';
 import { SiteConfigError } from './errors.js';
 import { type InstanceFactory, SiteRegistry } from './registry.js';
+import type { SiteRecord } from './site-store.js';
 import {
   capturingLogger,
   deferred,
@@ -16,7 +17,7 @@ import {
 function setup(...records: ReturnType<typeof siteRecord>[]) {
   const store = new MemoryStore(...records);
   const built: FakeInstance[] = [];
-  const factory: InstanceFactory = vi.fn((site) => {
+  const factory: InstanceFactory = vi.fn((site: SiteRecord) => {
     const instance = fakeInstance(() => Response.json({ site: site.key }));
     built.push(instance);
     return instance;

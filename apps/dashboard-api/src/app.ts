@@ -8,7 +8,13 @@ import { AUTH_BASE_PATH, type Auth } from './auth.js';
 import { createAuthz } from './authz.js';
 import type { AppDatabase } from './db.js';
 import type { Env } from './env.js';
-import { createErrorHandler, errorResponse, HttpError, notFoundHandler } from './errors.js';
+import {
+  createErrorHandler,
+  errorResponse,
+  HttpError,
+  notFoundHandler,
+  type RequestContext,
+} from './errors.js';
 import type { Logger } from './logger.js';
 import { adminAuditRoutes } from './routes/admin-audit.js';
 import { adminSiteRoutes } from './routes/admin-sites.js';
@@ -79,7 +85,7 @@ export function createApp(deps: AppDeps) {
 
   app.use(
     '*',
-    createMiddleware(async (c, next) => {
+    createMiddleware(async (c: RequestContext, next) => {
       await next();
       // On every response, errors and 404s included (README D10).
       c.header('X-Robots-Tag', 'noindex, nofollow');
@@ -92,7 +98,7 @@ export function createApp(deps: AppDeps) {
   // always sends Origin (or Referer) on a same-origin write.
   app.use(
     '/api/*',
-    createMiddleware(async (c, next) => {
+    createMiddleware(async (c: RequestContext, next) => {
       if (UNSAFE_METHODS.has(c.req.method)) {
         const origin = c.req.header('origin') ?? originOf(c.req.header('referer'));
         if (origin !== trustedOrigin) {
@@ -106,11 +112,11 @@ export function createApp(deps: AppDeps) {
     '/api/*',
     bodyLimit({
       maxSize: MAX_BODY_BYTES,
-      onError: (c) => errorResponse(c, 'BAD_REQUEST', 'Request body too large'),
+      onError: (c: RequestContext) => errorResponse(c, 'BAD_REQUEST', 'Request body too large'),
     }),
   );
 
-  app.on(['GET', 'POST'], `${AUTH_BASE_PATH}/*`, (c) => {
+  app.on(['GET', 'POST'], `${AUTH_BASE_PATH}/*`, (c: RequestContext) => {
     const endpoint = c.req.path.slice(AUTH_BASE_PATH.length);
     if (!AUTH_ENDPOINTS.has(`${c.req.method} ${endpoint}`)) return errorResponse(c, 'NOT_FOUND');
     return deps.auth.handler(c.req.raw);

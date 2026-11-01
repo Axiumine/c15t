@@ -98,7 +98,8 @@ export function createAuth({ db, env, logger }: AuthOptions) {
     hooks: {
       before: createAuthMiddleware(async (ctx) => {
         if (ctx.path !== '/change-password') return;
-        return changePasswordBody(ctx.body);
+        const { body }: { body: unknown } = ctx;
+        return changePasswordBody(body);
       }),
       after: createAuthMiddleware(async (ctx) => {
         if (ctx.path !== '/change-password') return;

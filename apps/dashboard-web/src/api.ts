@@ -27,7 +27,7 @@ import {
 import { hc } from 'hono/client';
 import type { DateRange } from './lib/range';
 
-export const API_BASE = '/api';
+const API_BASE = '/api';
 
 /* ---------------------------------------------------------------------------------------------
  * Errors. dashboard-api answers `{ error: { code, message } }`; nginx and Cloudflare can answer
@@ -84,7 +84,7 @@ export class ApiError extends Error {
   }
 }
 
-export async function apiErrorFromResponse(response: Response): Promise<ApiError> {
+async function apiErrorFromResponse(response: Response): Promise<ApiError> {
   const body: unknown = await response.json().catch(() => undefined);
   const parsed = apiErrorSchema.safeParse(body);
   if (!parsed.success) return new ApiError({ status: response.status });
@@ -210,7 +210,7 @@ export const sitesQueryOptions = () =>
     queryFn: async () => (await client.sites.$get()).json(),
   });
 
-export const siteQueryOptions = (siteKey: string) =>
+const siteQueryOptions = (siteKey: string) =>
   queryOptions({
     queryKey: queryKeys.site(siteKey),
     queryFn: async () => (await client.sites[':siteKey'].$get({ param: { siteKey } })).json(),
@@ -277,13 +277,13 @@ export function consentsCsvHref(siteKey: string, range: Partial<DateRange>): str
   return `${API_BASE}/sites/${encodeURIComponent(siteKey)}/consents.csv${suffix}`;
 }
 
-export const adminSitesQueryOptions = () =>
+const adminSitesQueryOptions = () =>
   queryOptions({
     queryKey: queryKeys.adminSites,
     queryFn: async () => (await client.admin.sites.$get()).json(),
   });
 
-export const adminUsersQueryOptions = () =>
+const adminUsersQueryOptions = () =>
   queryOptions({
     queryKey: queryKeys.adminUsers,
     queryFn: async () => (await client.admin.users.$get()).json(),

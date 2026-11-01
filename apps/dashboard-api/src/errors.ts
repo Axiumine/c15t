@@ -11,8 +11,9 @@ import {
   type Issue,
 } from '@consent/shared';
 import { isAPIError } from 'better-auth/api';
-import type { Context, ErrorHandler, NotFoundHandler } from 'hono';
+import type { Context, Env } from 'hono';
 import { HTTPException } from 'hono/http-exception';
+import type { Input } from 'hono/types';
 import { describeError, type Logger } from './logger.js';
 
 /** Thrown by routes and guards. The error handler turns it into `{ error: { code, message } }`. */
@@ -60,12 +61,15 @@ const SAFE_MESSAGES: Readonly<Record<ErrorCode, string>> = {
   INTERNAL_ERROR: 'Internal server error',
 };
 
-export function errorBody(code: ErrorCode, message?: string, issues?: readonly Issue[]): ApiError {
+function errorBody(code: ErrorCode, message?: string, issues?: readonly Issue[]): ApiError {
   return apiError(code, message ?? SAFE_MESSAGES[code], issues);
 }
 
+/** Hono's bare `Context` leaves its env, route path and input as `any`: handlers use this instead. */
+export type RequestContext<E extends Env = Env> = Context<E, string, Input>;
+
 export function errorResponse(
-  c: Context,
+  c: RequestContext,
   code: ErrorCode,
   message?: string,
   issues?: readonly Issue[],
@@ -100,8 +104,8 @@ function classify(error: unknown): {
   return { code: 'INTERNAL_ERROR' };
 }
 
-export function createErrorHandler(logger: Logger): ErrorHandler {
-  return (error, c) => {
+export function createErrorHandler(logger: Logger) {
+  return (error: Error, c: RequestContext): Response => {
     const { code, message, issues } = classify(error);
     if (code === 'INTERNAL_ERROR') {
       logger.error('unhandled error', {
@@ -119,4 +123,4 @@ export function createErrorHandler(logger: Logger): ErrorHandler {
   };
 }
 
-export const notFoundHandler: NotFoundHandler = (c) => errorResponse(c, 'NOT_FOUND');
+export const notFoundHandler = (c: RequestContext): Response => errorResponse(c, 'NOT_FOUND');

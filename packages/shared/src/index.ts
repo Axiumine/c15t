@@ -4,6 +4,7 @@
 export * from './audit.js';
 export * from './consents.js';
 export * from './errors.js';
+export * from './field.js';
 export * from './network.js';
 export * from './pagination.js';
 export * from './site.js';

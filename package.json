@@ -29,7 +29,12 @@
     "db:pull-c15t": "yarn workspace @consent/db run pull-c15t",
     "c15t:plan": "c15t self-host migrate --config ./c15t-backend.config.ts --plan --no-telemetry",
     "c15t:migrate": "c15t self-host migrate --config ./c15t-backend.config.ts --apply --no-telemetry",
-    "admin:create": "yarn workspace @consent/dashboard-api run admin:create"
+    "admin:create": "yarn workspace @consent/dashboard-api run admin:create",
+    "knip": "knip",
+    "type-coverage": "node scripts/type-coverage.mjs",
+    "fta": "fta .",
+    "code-caps": "node scripts/check-code-caps.ts",
+    "test:scripts-coverage": "node --test --experimental-test-coverage --test-coverage-include=scripts/check-code-caps.ts --test-coverage-lines=100 --test-coverage-branches=100 --test-coverage-functions=100 scripts/check-code-caps.test.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.14.0",
@@ -41,11 +46,23 @@
     "@types/node": "26.6.6",
     "@vitest/coverage-v8": "5.0.5",
     "effect": "4.0.0",
+    "fta-cli": "3.1.0",
+    "knip": "6.44.0",
     "playwright-core": "1.64.1",
     "postgres": "3.4.9",
+    "type-coverage": "2.31.0",
     "typescript": "6.0.3",
     "vite": "8.3.5",
     "vitest": "5.0.5"
+  },
+  "typeCoverage": {
+    "atLeast": 100,
+    "strict": true,
+    "ignoreFiles": [
+      "**/dist/**",
+      "**/*.generated.ts",
+      "**/*.gen.ts"
+    ]
   },
   "resolutions": {
     "@c15t/cli/postcss": "8.5.32",

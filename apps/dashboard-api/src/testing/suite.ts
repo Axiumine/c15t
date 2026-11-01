@@ -5,7 +5,7 @@ import { afterAll, beforeAll, describe, test } from 'vitest';
 import { createEnvironment, type EnvironmentKind, type TestEnvironment } from './environment.js';
 
 /** The same tests run on PGlite and, with the dev database variables set, on the real database. */
-export const ENVIRONMENT_KINDS: readonly EnvironmentKind[] = ['pglite', 'postgres'];
+const ENVIRONMENT_KINDS: readonly EnvironmentKind[] = ['pglite', 'postgres'];
 
 export interface SuiteContext {
   readonly kind: EnvironmentKind;
