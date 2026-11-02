@@ -18,7 +18,7 @@ function originOf(url: string | undefined): string | undefined {
   }
 }
 
-/** Headers on every response, errors and 404s included (README D10). */
+/** Headers on every response, errors and 404s included (docs/decisions.md D10). */
 export const responseHeaders = createMiddleware(async (c: RequestContext, next) => {
   await next();
   c.header('X-Robots-Tag', 'noindex, nofollow');

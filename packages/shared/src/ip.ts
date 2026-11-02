@@ -6,7 +6,7 @@ import { IPV6_BITS, parseIpv6Value } from './ip-v6.js';
 
 /*
  * Browser-safe IP helpers (no `node:net`), because @consent/shared is also bundled by
- * dashboard-web. They back the bind-address rules in README D1 and CLAUDE.md "Network
+ * dashboard-web. They back the bind-address rules in docs/decisions.md D1 and CLAUDE.md "Network
  * configuration": loopback or private LAN only, never a wildcard or a public address.
  */
 

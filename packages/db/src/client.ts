@@ -34,7 +34,7 @@ export function drizzleOver(sql: postgres.Sql): Database {
   return drizzle(sql, { schema });
 }
 
-/** Builds the two pools of README D9. Pick the pool explicitly on every query. */
+/** Builds the two pools of docs/decisions.md D9. Pick the pool explicitly on every query. */
 export function createDatabase(options: CreateDatabaseOptions): DatabaseHandle {
   const primarySql = createPool({
     url: options.primaryUrl,

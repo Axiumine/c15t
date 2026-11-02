@@ -4,7 +4,7 @@
 
 # Checks the real nginx snippets (infra/nginx/c15t.conf and dashboard-*.conf) against a throwaway
 # nginx container (infra/test/compose.yaml, host networking) with an echo stub as the upstream.
-# TEST ONLY: production has no Docker (README D7).
+# TEST ONLY: production has no Docker (docs/decisions.md D7).
 #
 #   infra/test/nginx-snippet.test.sh
 #

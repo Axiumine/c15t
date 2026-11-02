@@ -12,7 +12,7 @@ export type Executor = Database | Transaction;
 export type DatabasePools = Pick<DatabaseHandle, 'primary' | 'analytics' | 'ping' | 'close'>;
 
 export interface AppDatabase {
-  /** Authz, `app.*` reads and every write (README D9). */
+  /** Authz, `app.*` reads and every write (docs/decisions.md D9). */
   readonly primary: Database;
   /** Read-only analytics over `c15t.*`. The primary pool when no replica is configured. */
   readonly analytics: Database;

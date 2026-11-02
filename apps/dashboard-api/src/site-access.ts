@@ -14,7 +14,7 @@ import type { SessionSlot } from './session.js';
 /**
  * Sites the user may see. Admins see every site, including disabled ones. Users see only the
  * active sites an admin assigned to them, read from the primary so a revoked membership takes
- * effect at once (README D9).
+ * effect at once (docs/decisions.md D9).
  */
 export async function accessibleSites(executor: Executor, user: SessionUser): Promise<SiteRow[]> {
   if (user.role === 'admin') {

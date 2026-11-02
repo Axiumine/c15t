@@ -11,7 +11,7 @@ import { createListener, createRegistry } from './server-wiring.js';
 import { createPgSiteStore } from './site-store.js';
 
 /*
- * Wiring only. Node 26, systemd (README D7): `node dist/server.js` with the environment from
+ * Wiring only. Node 26, systemd (docs/decisions.md D7): `node dist/server.js` with the environment from
  * EnvironmentFile=. SIGTERM stops accepting, lets in-flight requests finish, then closes the
  * listener, the c15t instances and the registry pool.
  */

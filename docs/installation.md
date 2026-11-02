@@ -6,15 +6,14 @@ Copyright (C) 2026 Axiumine
 # Installation
 
 How to install, upgrade, roll back and uninstall the platform on one Linux server, in the order you run the
-commands. The reasoning behind the layout is in [README D7](../README.md#d7-hosting-cloudflare-then-nginx-then-systemd-no-docker)
-and the [Production](../README.md#production) section of the README; this page is the install path, plus the
-part the README does not cover: removing everything again. The nginx files and the firewall allowlist are in
+commands. The reasoning behind the layout is in [decisions.md D7](./decisions.md#d7-hosting-cloudflare-then-nginx-then-systemd-no-docker);
+this page is the install path, plus the part the other documents do not cover: removing everything again. The nginx files and the firewall allowlist are in
 [nginx.md](./nginx.md).
 
 The convention is a signed source tarball plus one script, `infra/deploy.sh`, which has the sub-commands
 `install`, a plain deploy, `rollback` and `uninstall`. Each one accepts `--dry-run`, which prints every step and
 changes nothing. There is no Docker image and no distribution package: the platform runs as two systemd services
-behind nginx (README D7).
+behind nginx (decisions.md D7).
 
 ## What goes where
 
@@ -106,7 +105,7 @@ Run the following as a user with `sudo` rights (or as root), from the unpacked s
 infra/deploy.sh install --dry-run
 infra/deploy.sh install
 
-# 2. Fill in the two env files (README "Configuration"). Both must set the bind address and port.
+# 2. Fill in the two env files (docs/configuration.md). Both must set the bind address and port.
 sudoedit /etc/c15t-platform/consent-api.env      # CONSENT_API_HOST, CONSENT_API_PORT, DATABASE_URL_C15T, C15T_ADMIN_API_KEY, ...
 sudoedit /etc/c15t-platform/dashboard-api.env    # DASHBOARD_API_HOST, DASHBOARD_API_PORT, DATABASE_URL_DASHBOARD, BETTER_AUTH_SECRET, BETTER_AUTH_URL, ...
 
@@ -127,7 +126,7 @@ one level deep, a `C15T_SERVICES` entry that does not start with `c15t-`, and a 
 
 Then, once:
 
-1. Create the first admin (README, "2. Database": `yarn admin:create --email you@example.com`, run from the source tree).
+1. Create the first admin ([getting-started.md](./getting-started.md), "2. Database": `yarn admin:create --email you@example.com`, run from the source tree).
 2. Add the dashboard vhost and test nginx ([nginx.md](./nginx.md)):
    ```bash
    sudo cp infra/nginx/dashboard.conf /etc/nginx/sites-available/c15t-dashboard.conf   # edit the per-host lines
@@ -140,7 +139,7 @@ Then, once:
    RHEL family and Fedora ship it; if your nginx uses another directory, add the include.) `uninstall` does not
    remove that copy; delete it before you run `uninstall` (step 2 of "Uninstall"), or `nginx -t` fails and it puts
    everything back.
-3. Add each website (README, "Adding a website"): its vhost gets `set $c15t_site <siteKey>;` and `include snippets/c15t.conf;`.
+3. Add each website ([adding-a-website.md](./adding-a-website.md)): its vhost gets `set $c15t_site <siteKey>;` and `include snippets/c15t.conf;`.
 4. Optional but recommended: the Cloudflare firewall allowlist and its boot unit ([nginx.md](./nginx.md)).
 
 ## Setting up by hand
@@ -155,7 +154,7 @@ sudo useradd --system --home-dir /nonexistent --shell /usr/sbin/nologin c15t
 sudo install -d -o c15t -g c15t -m 0750 /etc/c15t-platform
 sudo install -d -o "$USER" -m 0755 /opt/c15t-platform          # deploy.sh writes releases/ and current here
 
-# 2. Service env files (README "Configuration"). Both MUST set the bind address and port explicitly:
+# 2. Service env files (docs/configuration.md). Both MUST set the bind address and port explicitly:
 #    consent-api.env:   CONSENT_API_HOST, CONSENT_API_PORT, DATABASE_URL_C15T, C15T_ADMIN_API_KEY, ...
 #    dashboard-api.env: DASHBOARD_API_HOST, DASHBOARD_API_PORT, DATABASE_URL_DASHBOARD, BETTER_AUTH_SECRET, BETTER_AUTH_URL, ...
 #    (C15T_ADMIN_API_KEY and CONSENT_API_URL: leave them out of dashboard-api.env, they are reserved and unused today)
@@ -175,7 +174,7 @@ infra/deploy.sh
 
 The first `infra/deploy.sh` also starts `cloudflare-ips.service` once, because the real_ip file `cloudflare-realip.conf` is still missing and the unit runs its script from `current/`, which only exists after the first switch. So do not start that unit by hand before the first deploy. The unit creates `/etc/nftables.d` itself. After the first deploy, install the dashboard vhost and test nginx (see [nginx.md](./nginx.md)), and read there how to keep the firewall allowlist across reboots.
 
-The database must already exist (README, "2. Database") when you run the first deploy, because it runs the migrations. The first admin is created like in README, "2. Database", from a checkout, with `DATABASE_URL_DASHBOARD`, `BETTER_AUTH_SECRET` and `BETTER_AUTH_URL` exported (the CLI needs only these three).
+The database must already exist ([getting-started.md](./getting-started.md), "2. Database") when you run the first deploy, because it runs the migrations. The first admin is created like in [getting-started.md](./getting-started.md), "2. Database", from a checkout, with `DATABASE_URL_DASHBOARD`, `BETTER_AUTH_SECRET` and `BETTER_AUTH_URL` exported (the CLI needs only these three).
 
 ## Upgrade
 
@@ -228,7 +227,7 @@ PostgreSQL**: consent records are legal proof, so removing them is a separate de
 Cloudflare real_ip file and the nftables allowlist** unless you ask for `--remove-cloudflare`, because they are
 host-wide: other websites on the same server may rely on them.
 
-1. **Back up first.** The cluster's backups should already cover the database (README D9). For a dump you control:
+1. **Back up first.** The cluster's backups should already cover the database (decisions.md D9). For a dump you control:
    ```bash
    pg_dump --format=custom --schema=c15t --schema=app --file=c15t-platform-$(date +%F).dump "$PRIMARY_ADMIN_URL"
    ```

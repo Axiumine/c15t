@@ -4,7 +4,7 @@
 import type { Logger } from './log.js';
 
 /*
- * LISTEN on the primary (README D9, CLAUDE.md "PostgreSQL"). `NOTIFY` is never delivered on a
+ * LISTEN on the primary (docs/decisions.md D9, CLAUDE.md "PostgreSQL"). `NOTIFY` is never delivered on a
  * replica and is lost while the listener is down, so a reconnect always ends with a full resync.
  * The driver is a seam: postgres.js's own `listen()` swallows a failed re-listen and then stays
  * silent for good, which is the one failure this listener must not have.

@@ -38,7 +38,7 @@ const checkSchema = z.object({ schema_ok: z.boolean(), active_sites: z.number() 
 
 /**
  * Reads the site registry with the `c15t_api` role, which has SELECT on `app.site` and nothing
- * else in `app` (README D2). `sql` must be a primary pool: after a failover the registry has to
+ * else in `app` (docs/decisions.md D2). `sql` must be a primary pool: after a failover the registry has to
  * see the new leader's data, and `NOTIFY` is only delivered there. Lookups are idempotent reads,
  * so they retry once after a failover error.
  */

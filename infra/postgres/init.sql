@@ -1,7 +1,7 @@
 -- SPDX-License-Identifier: AGPL-3.0-or-later
 -- Copyright (C) 2026 Axiumine
 
--- One-time, idempotent bootstrap of roles, database, schemas and grants (README D2, D9).
+-- One-time, idempotent bootstrap of roles, database, schemas and grants (docs/decisions.md D2, D9).
 -- Run as a SUPERUSER, once, on the Patroni PRIMARY. On PostgreSQL 16 and newer a role with only
 -- CREATEROLE and CREATEDB is not enough: it stops at the first ALTER ROLE below with "permission
 -- denied to alter role". Everything replicates to the other nodes. Safe to rerun: nothing is
@@ -59,7 +59,7 @@ REVOKE CREATE ON SCHEMA public FROM PUBLIC;
 CREATE SCHEMA IF NOT EXISTS c15t AUTHORIZATION c15t_api;
 CREATE SCHEMA IF NOT EXISTS app AUTHORIZATION dashboard;
 
--- dashboard: read-only on c15t.* (README D2, D4). dashboard-api never writes to consent data.
+-- dashboard: read-only on c15t.* (docs/decisions.md D2, D4). dashboard-api never writes to consent data.
 GRANT USAGE ON SCHEMA c15t TO dashboard;
 -- Tables that c15t creates later, owned by c15t_api:
 ALTER DEFAULT PRIVILEGES FOR ROLE c15t_api IN SCHEMA c15t GRANT SELECT ON TABLES TO dashboard;

@@ -5,7 +5,7 @@ import { parseIpv4Value } from './ip-v4.js';
 
 /*
  * Browser-safe IPv6 literal parsing (no `node:net`), because @consent/shared is also bundled by
- * dashboard-web. Part of the bind-address rules in README D1 and CLAUDE.md "Network configuration".
+ * dashboard-web. Part of the bind-address rules in docs/decisions.md D1 and CLAUDE.md "Network configuration".
  */
 
 export const IPV6_BITS = 128;

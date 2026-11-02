@@ -2,8 +2,9 @@
 
 ## Where to look first
 
-- [`README.md`](./README.md): what the platform is, the design decisions (D1 to D11), configuration and
-  the production setup.
+- [`README.md`](./README.md): what the platform is. The design decisions (D1 to D11) are in
+  [`docs/decisions.md`](./docs/decisions.md), the settings in [`docs/configuration.md`](./docs/configuration.md)
+  and the production setup in [`docs/installation.md`](./docs/installation.md).
 - [`docs/database-setup.md`](./docs/database-setup.md): preparing PostgreSQL.
 - [`docs/architecture.md`](./docs/architecture.md) and [`docs/security-model.md`](./docs/security-model.md).
 - [`CONTRIBUTING.md`](./CONTRIBUTING.md): building and testing from source.

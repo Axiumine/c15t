@@ -6,7 +6,7 @@ import { randomInt } from 'node:crypto';
 /*
  * The test "website": one static page, served by the nginx test container for both site
  * hostnames. It carries the banner tag exactly as the dashboard's Setup screen gives it
- * (`setup.scriptTag` of `GET /api/sites/:siteKey`, README "Adding a website", step 4), so the page
+ * (`setup.scriptTag` of `GET /api/sites/:siteKey`, docs/adding-a-website.md, step 4), so the page
  * is only as good as what an operator would paste.
  */
 export function sitePage(scriptTag: string): string {

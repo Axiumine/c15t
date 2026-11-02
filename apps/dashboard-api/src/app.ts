@@ -26,7 +26,7 @@ export interface AppDeps {
 }
 
 /**
- * The JSON API below `/api` (README "API (dashboard-api)"), without Better Auth. Each group
+ * The JSON API below `/api` (docs/dashboard.md "API (dashboard-api)"), without Better Auth. Each group
  * attaches its own guard: `/admin/*` needs `requireAdmin`, `/sites/:siteKey/*` needs
  * `requireSiteAccess`, `/me` and `/sites` need a session. `/health` is the only open route.
  */

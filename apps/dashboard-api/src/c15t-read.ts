@@ -2,7 +2,7 @@
 // Copyright (C) 2026 Axiumine
 
 /*
- * Read-only queries over the `c15t` schema (README D4). Rules, in order of importance:
+ * Read-only queries over the `c15t` schema (docs/decisions.md D4). Rules, in order of importance:
  * 1. Every query filters by `tenantId IN scope.tenantIds`. A `TenantScope` can only come from
  *    authz.ts, never from request input.
  * 2. Related rows (subject, domain, policy decision) are joined on the same tenant.

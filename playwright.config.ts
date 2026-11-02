@@ -7,7 +7,7 @@ import { assertDatabaseEnv } from './e2e/support/db.js';
 import { allocateRuntime, REPO_ROOT } from './e2e/support/runtime.js';
 
 /*
- * End-to-end suite (README Roadmap, phase 4). See docs/e2e.md.
+ * End-to-end suite (docs/status.md). See docs/e2e.md.
  *
  * The runner starts the real stack on free ports: consent-api and dashboard-api from source
  * (the same entry points as `yarn dev`, without the file watcher) and the built dashboard-web

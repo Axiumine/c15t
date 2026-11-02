@@ -5,7 +5,7 @@ import { CONSENT_CATEGORIES, siteDetailSchema } from '@consent/shared';
 import { expect, test } from 'vitest';
 import { siteSetup, toSiteDetail } from './site-mapping.js';
 
-test('the nginx snippet is exactly the two lines of the README', () => {
+test('the nginx snippet is exactly the two lines of docs/adding-a-website.md', () => {
   expect(siteSetup('shop').nginx).toBe('set $c15t_site shop;\ninclude snippets/c15t.conf;');
 });
 

@@ -4,7 +4,7 @@
 import { type C15TOptions, defineConfig } from '@c15t/backend';
 
 // Used only by the migration CLI (`yarn c15t:plan` / `yarn c15t:migrate`). consent-api builds
-// one instance per site at runtime. Migrations always run against the primary (README D9), and
+// one instance per site at runtime. Migrations always run against the primary (docs/decisions.md D9), and
 // the schema must match the one consent-api uses (CLAUDE.md "c15t gotchas").
 const url = process.env['DATABASE_URL_C15T'];
 if (url === undefined || url === '') {

@@ -4,7 +4,7 @@
 import { parseIp } from '@consent/shared';
 
 /*
- * Host. Defense in depth behind the nginx vhost mapping (README D1): a request that arrives
+ * Host. Defense in depth behind the nginx vhost mapping (docs/decisions.md D1): a request that arrives
  * through a vhost must name one of the site's domains, so a wrong `set $c15t_site` cannot serve
  * site A's consents under site B's hostname.
  */

@@ -7,7 +7,7 @@ import { firstLine, type Logger } from './logger.js';
 const SESSION_LIFETIME_SECONDS = 60 * 60 * 24 * 7;
 const SESSION_REFRESH_SECONDS = 60 * 60 * 24;
 
-/** Failed logins per client IP: 10 in five minutes (README "Security notes"). */
+/** Failed logins per client IP: 10 in five minutes (docs/security-model.md, "Credentials and sessions"). */
 const LOGIN_RATE_LIMIT = { window: 300, max: 10 } as const;
 const PASSWORD_RATE_LIMIT = { window: 300, max: 10 } as const;
 const DEFAULT_RATE_LIMIT = { window: 60, max: 120 } as const;

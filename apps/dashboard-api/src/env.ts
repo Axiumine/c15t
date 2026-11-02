@@ -36,12 +36,12 @@ const optionalPostgresUrl = emptyIsUnset(postgresUrl);
 const envSchema = z.object({
   DASHBOARD_API_HOST: hostSchema.default('127.0.0.1'),
   DASHBOARD_API_PORT: portSchema.default(4200),
-  /** Role `dashboard`, primary by internal DNS name (README D9). */
+  /** Role `dashboard`, primary by internal DNS name (docs/decisions.md D9). */
   DATABASE_URL_DASHBOARD: postgresUrl,
   /** Optional replica endpoint, used only for read-only analytics over `c15t.*`. */
   DATABASE_URL_DASHBOARD_REPLICA: optionalPostgresUrl,
   /**
-   * Reserved for @c15t/node-sdk calls (README D4), which dashboard-api does not make yet. Both
+   * Reserved for @c15t/node-sdk calls (docs/decisions.md D4), which dashboard-api does not make yet. Both
    * are optional so that this process does not need the key that can call key-protected c15t
    * endpoints. When set, they are validated: the URL must be a bare origin.
    */

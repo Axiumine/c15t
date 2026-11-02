@@ -24,7 +24,7 @@ export function toSite(row: SiteRow): Site {
 }
 
 /**
- * Copy-paste text for the Setup screen (README "Adding a website"). The nginx lines are the
+ * Copy-paste text for the Setup screen (docs/adding-a-website.md). The nginx lines are the
  * trusted tenant mapping. Values come from the site key only, and the server snippet names
  * environment variables instead of printing the API key or an address. The script tag declares
  * `data-categories`: without it c15t v3 records only `necessary` on "Accept All" for a page that

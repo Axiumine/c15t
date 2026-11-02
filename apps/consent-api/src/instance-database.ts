@@ -15,7 +15,7 @@ export interface InstanceDatabaseConfig {
   readonly poolMax: number;
   /** Set `false` behind PgBouncer in transaction mode. */
   readonly prepare: boolean;
-  /** Connections older than this are replaced, so they leave a demoted node (README D9). */
+  /** Connections older than this are replaced, so they leave a demoted node (docs/decisions.md D9). */
   readonly maxLifetimeSeconds: number;
 }
 

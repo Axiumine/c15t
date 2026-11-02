@@ -33,7 +33,7 @@ export function siteRoutes({ db, authz, now }: SiteRouteDeps) {
   const scoped = new Hono<SiteEnv>()
     .use('*', authz.requireSiteAccess)
     .get('/', (c) => c.json(toSiteDetail(c.get('site'))))
-    // Analytics pool: heavy aggregates may run on a replica (README D9).
+    // Analytics pool: heavy aggregates may run on a replica (docs/decisions.md D9).
     .get('/stats', validate('query', statsQuerySchema), async (c) => {
       const range = statsRange(c.req.valid('query'), now());
       return c.json(await retryRead(() => consentStats(db.analytics, c.get('scope'), range)));

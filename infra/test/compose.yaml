@@ -1,4 +1,4 @@
-# TEST ONLY. Production has no Docker (README D7). This runs a clean nginx that loads the real
+# TEST ONLY. Production has no Docker (docs/decisions.md D7). This runs a clean nginx that loads the real
 # snippets from infra/nginx, so they can be exercised against consent-api / dashboard-api on the host.
 #
 #   docker compose -f infra/test/compose.yaml --env-file <file with the four *_API_HOST/PORT> --env-file infra/test/test.env up -d

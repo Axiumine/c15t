@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Please read the design decisions in the [README](https://github.com/Axiumine/c15t/blob/main/README.md)
+        Please read the design decisions in the [decisions](https://github.com/Axiumine/c15t/blob/main/docs/decisions.md)
         first (D1 to D11). A request that conflicts with one of them is welcome, but say which decision
         you would change and why.
   - type: textarea

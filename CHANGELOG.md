@@ -52,6 +52,13 @@ their own "Security" heading and name the advisory.
   `packages/*` were split into smaller modules, with the same behaviour and the same tests. The size-cap ratchet
   (`.code-caps-baseline.json`) is down to three remaining violations. Source pointers in the documentation follow
   the moved symbols.
+- The README is a front page again (about 150 lines, 50 of them the architecture diagram). The text moved unchanged into `docs/decisions.md` (D1 to D11),
+  `docs/dashboard.md` (roles, data model, screens, API), `docs/configuration.md`, `docs/getting-started.md`,
+  `docs/adding-a-website.md` and `docs/status.md` (status and open questions). The "Security notes" bullets were
+  already in `docs/security-model.md`; its two missing sentences were added there. Every pointer follows the move:
+  "README D9" in code comments is now "docs/decisions.md D9", and the links in `docs/`, `CLAUDE.md`,
+  `CONTRIBUTING.md`, `SUPPORT.md` and the OpenSSF evidence file were updated. `GOVERNANCE.md` now says that
+  architecture decisions are recorded in `docs/decisions.md`.
 
 ### Fixed
 

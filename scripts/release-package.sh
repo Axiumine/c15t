@@ -20,7 +20,7 @@
 #
 # The built tarballs hold compiled output, the manifests and yarn.lock; install the runtime
 # dependencies from the lockfile with `yarn workspaces focus --production <workspace>`.
-# Production deployments build from the tagged source with infra/deploy.sh (README D7).
+# Production deployments build from the tagged source with infra/deploy.sh (docs/decisions.md D7).
 #
 # Needs: git, GNU tar, gzip, sha256sum, node, and `cyclonedx-yarn` (the pinned
 # @cyclonedx/yarn-plugin-cyclonedx from .github/ci-tools) on PATH. The tarballs are

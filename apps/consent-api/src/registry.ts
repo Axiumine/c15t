@@ -78,7 +78,7 @@ export class SiteRegistry {
 
   /**
    * A request saw a database failure through this instance. Retire it so the next request opens
-   * fresh connections, which resolve the primary's DNS name again (README D9).
+   * fresh connections, which resolve the primary's DNS name again (docs/decisions.md D9).
    */
   evict(siteKey: string, handle: SiteHandle): EvictOutcome {
     const entry = this.entries.get(siteKey);

@@ -120,7 +120,7 @@ test.describe
       const script = page.waitForResponse((r) => r.url().includes('/api/c15t/c15t.js'));
       await page.goto(`${siteA.origin}/index.html`);
 
-      // The script and /init come through nginx, on the website's own origin (README D1).
+      // The script and /init come through nginx, on the website's own origin (docs/decisions.md D1).
       const scriptResponse = await script;
       expect(scriptResponse.status()).toBe(200);
       expect(scriptResponse.headers()['server'] ?? '').toContain('nginx');
