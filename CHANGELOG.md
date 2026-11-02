@@ -16,6 +16,14 @@ their own "Security" heading and name the advisory.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-02
+
+Moves the c15t stack to 3.2.0, which changes two consent-api answers: a consent save whose `domain` field the site's
+domains do not cover gets `400 DOMAIN_NOT_ALLOWED`, and `POST`/`PATCH /subjects` without a JSON body get `415`. Adds
+mutation testing, ESLint and the other quality gates, Qodana and git hooks, and resolves the `qs` and `minimatch`
+advisories. 39 source files were split into smaller modules with the same behaviour; dashboard-api and dashboard-web
+behave as in 0.2.0.
+
 ### Added
 
 - Mutation testing with StrykerJS 10.1.1 (exact pins, Apache-2.0; the vitest runner and the TypeScript checker):
@@ -170,6 +178,7 @@ First release. The project is pre-1.0: minor versions may contain breaking chang
   absolute checkout path reaching a shell command in `scripts/check-dco.test.mjs`.
 - The cursor pagination fuzz test no longer times out on a loaded CI runner.
 
-[Unreleased]: https://github.com/Axiumine/c15t/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/Axiumine/c15t/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/Axiumine/c15t/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Axiumine/c15t/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Axiumine/c15t/releases/tag/v0.1.0
