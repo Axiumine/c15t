@@ -3,7 +3,7 @@
 # update-cloudflare-ips.sh writes /etc/nftables.d/c15t-cloudflare.nft and, with CF_NFT_APPLY=1,
 # loads it into the running kernel. The kernel forgets it at a reboot, and until the weekly timer
 # runs again ports 80 and 443 would be open to everyone: anyone could reach the origin directly
-# and forge CF-Connecting-IP / CF-IPCountry (README D7). This unit closes that gap.
+# and forge CF-Connecting-IP / CF-IPCountry (docs/decisions.md D7). This unit closes that gap.
 #
 #   sudo systemctl enable --now c15t-cloudflare-nft.service     # once, after the first CF_NFT_APPLY=1 run
 #

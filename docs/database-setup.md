@@ -6,8 +6,8 @@ Copyright (C) 2026 Axiumine
 # Database setup
 
 How to prepare PostgreSQL for the platform. For the reasoning behind the layout, see
-[README D2](../README.md#d2-one-postgresql-database-two-schemas-two-roles) and
-[D9](../README.md#d9-postgresql-runs-on-the-existing-patroni-cluster-5-nodes-etcd).
+[decisions.md D2](./decisions.md#d2-one-postgresql-database-two-schemas-two-roles) and
+[D9](./decisions.md#d9-postgresql-runs-on-the-existing-patroni-cluster-5-nodes-etcd).
 
 ## What you are building
 
@@ -177,7 +177,7 @@ Keep pools small (c15t per-site instance 2 to 3, dashboard-api at most 10) and, 
   postgres.js (dashboard-api, the site registry, migrations) sends it to Postgres as a startup parameter,
   which Postgres rejects. For a private CA, set `NODE_EXTRA_CA_CERTS=<ca bundle>` in both service env files
   instead. It covers postgres.js and the `@effect/sql-pg` driver that c15t uses (which verifies the
-  certificate even for `sslmode=require`; postgres.js does not). See README D9, "TLS to PostgreSQL".
+  certificate even for `sslmode=require`; postgres.js does not). See decisions.md D9, "TLS to PostgreSQL".
 - Make sure the cluster's backups include this database.
 
 ## Rotating a password

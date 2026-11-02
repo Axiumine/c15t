@@ -2,14 +2,14 @@
 
 The suite in `e2e/` runs the real stack in Chromium: the built dashboard-web (`vite preview`),
 dashboard-api, consent-api, the real database, and, for the website scenario, the nginx test container
-from `infra/test`. It is part of the hardening phase in README "Status and what is next".
+from `infra/test`. It is part of the hardening phase in [status.md](./status.md).
 
 ## What it covers
 
 | File | Scenario |
 |---|---|
 | `e2e/auth-roles.spec.ts` | Admin bootstrap with the `yarn admin:create` code path. Forced password change blocks every other screen (UI and API). The admin creates two sites and two users, and each one-time password is shown once. User A sees site 1 only: site 2 and `/admin/*` are not found or forbidden in the UI and return 404 or 403 from the API. Banning user A ends their access at the next call. The audit log shows the actions. Sign-out invalidates the session on the server. |
-| `e2e/consent-flow.spec.ts` | A test website behind an nginx vhost (site key set by nginx, README D1). The banner appears, "Accept All" and "Reject All" return 2xx through nginx, and the rows exist for the right tenant. Each assigned user sees only their own list, stats and CSV. A direct request with spoofed `X-Forwarded-For` or `CF-IPCountry` from an untrusted peer is ignored, and the same headers through nginx are honoured. A wrong `Host`, an unknown site and a path traversal are refused. Disabling a site stops its banner at once and keeps its records. |
+| `e2e/consent-flow.spec.ts` | A test website behind an nginx vhost (site key set by nginx, decisions.md D1). The banner appears, "Accept All" and "Reject All" return 2xx through nginx, and the rows exist for the right tenant. Each assigned user sees only their own list, stats and CSV. A direct request with spoofed `X-Forwarded-For` or `CF-IPCountry` from an untrusted peer is ignored, and the same headers through nginx are honoured. A wrong `Host`, an unknown site and a path traversal are refused. Disabling a site stops its banner at once and keeps its records. |
 | `e2e/headers-robots.spec.ts` | `robots.txt`, the robots meta tag, `X-Robots-Tag` and `Cache-Control` on every API answer, no inline script, a strict CSP, and the app running under it without a violation. It includes a negative control that proves the violation watcher works. |
 | `e2e/a11y.spec.ts` | axe-core (WCAG 2.0 to 2.2 A and AA plus best practices) on 9 screens: login, sites list, site overview, admin users, consent records, site setup, manage sites, audit log, account. Each runs in light, dark, phone light and phone dark (390 px). It asserts zero serious or critical violations and no sideways page scroll. |
 
@@ -20,7 +20,7 @@ test visited.
 
 ## Prerequisites
 
-- Node 26 and Yarn 4 (see the README), and `yarn install`.
+- Node 26 and Yarn 4 (see [getting-started.md](./getting-started.md)), and `yarn install`.
 - The Chromium that matches the pinned Playwright: `yarn playwright install chromium`. Browser binaries
   are never committed.
 - A migrated PostgreSQL: the root env file must define `DATABASE_URL_DASHBOARD` (role `dashboard`),
@@ -105,7 +105,7 @@ All three were fixed. The tests that found them stay as regression tests.
 - The "Show" link in the audit log used `text-primary` on the dark card (about 3.2:1). It uses the
   `--link` token now (`audit-table.tsx`, `styles.css`).
 - A page with no declared categories records only `necessary`, because c15t v3 infers categories from
-  the page's scripts. The Setup screen's script tag and the README now carry
+  the page's scripts. The Setup screen's script tag and [adding-a-website.md](./adding-a-website.md) now carry
   `data-categories="measurement,marketing"`. The test website page is built from that very tag
   (`GET /api/sites/:siteKey`, `setup.scriptTag`), and the consent test asserts that "Accept All" stores
   `measurement` and `marketing`.

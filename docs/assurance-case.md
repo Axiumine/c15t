@@ -57,7 +57,7 @@ Line numbers are left out on purpose, because they go stale.
 
 In scope: consent-api, dashboard-api, dashboard-web, the `c15t` and `app` database schemas and their
 roles, the nginx and systemd files in [`infra/`](../infra), and the build and release pipeline. The
-platform runs on one operator-controlled server behind Cloudflare, with a PostgreSQL cluster (README D7,
+platform runs on one operator-controlled server behind Cloudflare, with a PostgreSQL cluster (decisions.md D7,
 D9). It was written against release 0.2.0. When the code changes, the questions at the end of
 `security-model.md` ("Reviewing a change for security") apply.
 
@@ -163,7 +163,7 @@ Website server code ----------------------------------------> consent-api (CONSE
 
 | Id | Boundary | Untrusted side | Trusted side | What enforces it |
 |---|---|---|---|---|
-| B1 | Internet to nginx | Everyone | nginx and Cloudflare, for the headers they set | Firewall allowlist and Authenticated Origin Pulls (operator, README D7). `real_ip` trusts only Cloudflare ranges ([`update-cloudflare-ips.sh`](../infra/nginx/update-cloudflare-ips.sh)). |
+| B1 | Internet to nginx | Everyone | nginx and Cloudflare, for the headers they set | Firewall allowlist and Authenticated Origin Pulls (operator, decisions.md D7). `real_ip` trusts only Cloudflare ranges ([`update-cloudflare-ips.sh`](../infra/nginx/update-cloudflare-ips.sh)). |
 | B2 | nginx to consent-api | The request, including all its headers | The tenant mapping (`set $c15t_site`) and `CF-*` headers, from configured proxies only | [`c15t.conf`](../infra/nginx/c15t.conf) replaces `X-Forwarded-*`. [`request-guard.ts`](../apps/consent-api/src/request-guard.ts) strips what a non-proxy peer sends. |
 | B3 | nginx to dashboard-api | The request | `X-Forwarded-For` set by nginx | [`dashboard-locations.conf`](../infra/nginx/dashboard-locations.conf), then [`authz.ts`](../apps/dashboard-api/src/authz.ts) |
 | B4 | Anything that can reach the consent-api port | The caller | The tenant, taken from the path | The bind address (loopback or private only) and the firewall. A direct caller by IP or `localhost` skips the `Host` check, so any caller that reaches the port can address any active `siteKey`. |
@@ -385,7 +385,7 @@ code. Sign-in failures show one generic message.
 `SAFE_MESSAGES` in [`error-response.ts`](../apps/dashboard-api/src/error-response.ts).
 
 **Test.** `password.test.ts`: `meets the platform password rules and avoids look-alike characters`.
-`site-mapping.test.ts`: `the nginx snippet is exactly the two lines of the README`.
+`site-mapping.test.ts`: `the nginx snippet is exactly the two lines of docs/adding-a-website.md`.
 `one-time-password.test.tsx`: `the one-time password is shown once, survives Escape, and is gone after closing`.
 `login.test.tsx`: `wrong credentials show one generic message and keep the form` and
 `first login with a temporary password forces a change, then opens the app`. `errors.test.ts`:
@@ -468,7 +468,7 @@ Verdicts: **Countered**, **Partly** (countered, with a stated residual risk), **
 | A06 Vulnerable and Outdated Components | Partly | Exact pins, committed `yarn.lock`, `--immutable` installs, Dependabot with cooldown, `dependency-review`, CodeQL, Scorecard, written response times ([`dependency-policy.md`](./dependency-policy.md)). Left: `yarn npm audit` before a release is a manual step, not a CI job, and a flaw in a dependency stays until patched. |
 | A07 Identification and Authentication Failures | Partly | No sign-up, no default account (the first admin gets a random one-time password), 12 to 128 character passwords, forced change, rate limit, bans, session revocation (CWE-287, 307, 521, 613). Left: no MFA, and the rate limit is per client IP and path, not per account. |
 | A08 Software and Data Integrity Failures | Partly | Actions pinned by commit SHA (one documented exception), signed releases with provenance and SBOM, no unsafe deserialization (CWE-502). Left: `infra/deploy.sh` does not verify release signatures, and consent records have no integrity protection. |
-| A09 Security Logging and Monitoring Failures | Partly | `app.admin_audit` written in the same transaction as the change, with triggers that refuse update, delete and truncate (owned by the role dashboard-api uses, so not a defence against a compromised dashboard-api or a database administrator). JSON logs with no secrets (CWE-532). Left: failed sign-ins and read access (including CSV exports) are not written to the audit table, and alerting is the operator's job (README). |
+| A09 Security Logging and Monitoring Failures | Partly | `app.admin_audit` written in the same transaction as the change, with triggers that refuse update, delete and truncate (owned by the role dashboard-api uses, so not a defence against a compromised dashboard-api or a database administrator). JSON logs with no secrets (CWE-532). Left: failed sign-ins and read access (including CSV exports) are not written to the audit table, and alerting is the operator's job ([`status.md`](./status.md#status-and-what-is-next)). |
 | A10 Server-Side Request Forgery | Not applicable for our code | The application code makes no outbound HTTP request. c15t has outbound paths that are not reachable with the current presets (CWE-918 in 4.2). A caller cannot choose a URL. |
 
 ### 4.2 CWE Top 25 and related weaknesses
@@ -541,7 +541,7 @@ which has the operator advice.
     `site A's reader gets the record, site B's does not`). Within the same site, that same test shows that the
     ID alone is the gate: it reads the record with no API key. No test covers `PATCH /subjects/:id`. The platform
     adds no check of its own on these routes. Short or predictable IDs, or IDs placed in URLs, logs or analytics,
-    expose the record. The README (D4) says c15t's admin API covers
+    expose the record. The decisions page (D4) says c15t's admin API covers
     "subject lookup by `externalId`". That holds for `GET /subjects` only, not for the routes above.
 - **The origin must be locked down by the operator.** Without the firewall allowlist (and Authenticated
   Origin Pulls on the dashboard vhost), a direct caller can send any `CF-IPCountry` and `cf-region-code`, and so

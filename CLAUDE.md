@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Guidance for Claude Code working in this repo. Product overview, decisions (D1–D11) and setup live in `README.md`; this file covers how to work on the code.
+Guidance for Claude Code working in this repo. The product overview is in `README.md`, the decisions (D1–D11) in `docs/decisions.md` and the setup in `docs/getting-started.md`; this file covers how to work on the code.
 
 ## Project
 
@@ -9,16 +9,16 @@ Self-hosted cookie-consent platform for websites that run on the same server.
 - **consent-api**: one **internal** HTTP service that runs a [c15t](https://c15t.com/docs/self-host) backend instance for each registered website (multi-tenant). It binds to `CONSENT_API_HOST:CONSENT_API_PORT` (default `127.0.0.1:4100`, a private LAN address is allowed) and has no public hostname.
   - Browsers reach it through each website's own nginx vhost (`https://<site>/api/c15t/*`), behind Cloudflare.
   - Website server code calls `CONSENT_API_URL` directly.
-  - See README D1.
+  - See docs/decisions.md D1.
 - **dashboard** is private, with no SEO and no indexing. It has two roles:
   - `admin` manages websites, users and credentials, and sees every site.
   - `user` sees only the sites an admin assigned to them, and has read-only access.
-  - It is built from two parts (README D10):
+  - It is built from two parts (docs/decisions.md D10):
     - **dashboard-web**: a React single-page app (Vite), shipped as static files that nginx serves.
     - **dashboard-api**: a Hono JSON API with Better Auth, on the same origin under `/api/`.
-- **PostgreSQL**: a single database with two schemas. `c15t` holds consent data and is owned by the c15t migrations. `app` holds dashboard data: auth, sites, memberships and the audit log. The database runs on the existing **Patroni cluster** (5 nodes, etcd). Apps reach the leader only through its internal DNS name, plus an optional replica URL (README D9).
+- **PostgreSQL**: a single database with two schemas. `c15t` holds consent data and is owned by the c15t migrations. `app` holds dashboard data: auth, sites, memberships and the audit log. The database runs on the existing **Patroni cluster** (5 nodes, etcd). Apps reach the leader only through its internal DNS name, plus an optional replica URL (docs/decisions.md D9).
 
-Status: **implemented, pre-1.0 (0.x)**. consent-api, dashboard-api and dashboard-web, the shared packages, the database layer, `infra/` (nginx, systemd, `deploy.sh`) and the unit, integration and Playwright tests all exist; releases are cut from `vX.Y.Z` tags (see CONTRIBUTING.md "Releases" and README "Status and what is next"). The layout and commands below describe the repository as it is. Update this file whenever reality diverges from it.
+Status: **implemented, pre-1.0 (0.x)**. consent-api, dashboard-api and dashboard-web, the shared packages, the database layer, `infra/` (nginx, systemd, `deploy.sh`) and the unit, integration and Playwright tests all exist; releases are cut from `vX.Y.Z` tags (see CONTRIBUTING.md "Releases" and docs/status.md). The layout and commands below describe the repository as it is. Update this file whenever reality diverges from it.
 
 ## Stack
 
@@ -36,7 +36,7 @@ Status: **implemented, pre-1.0 (0.x)**. consent-api, dashboard-api and dashboard
 | Validation | zod at every boundary (env, request bodies, route params, query strings, forms) |
 | Lint / format | Biome |
 | Tests | Vitest on Node (API integration against a real Postgres, UI with Testing Library + jsdom), Playwright (e2e) |
-| Deploy | No Docker. Cloudflare (proxied) in front of nginx. nginx serves the static UI and proxies to the systemd services. PostgreSQL is the existing Patroni cluster. See README D7 and D9. |
+| Deploy | No Docker. Cloudflare (proxied) in front of nginx. nginx serves the static UI and proxies to the systemd services. PostgreSQL is the existing Patroni cluster. See docs/decisions.md D7 and D9. |
 
 ## Layout
 
@@ -210,9 +210,9 @@ Run `yarn typecheck && yarn lint && yarn lint:eslint && yarn test` before you ca
   - Enable TCP keepalive and send a periodic ping.
 - Treat `25006 read_only_sql_transaction`, `57P01 admin_shutdown` and connection resets as failover. Drop the connection, let the pool reconnect, and return 503. Retry only reads.
 - Never `process.exit()` from a pool `error` handler. Log it, and let the pool recover.
-- Keep pools small: c15t per-site instance 2–3, dashboard-api ≤10. Total usage must fit the primary's `max_connections` budget (see README open questions).
+- Keep pools small: c15t per-site instance 2–3, dashboard-api ≤10. Total usage must fit the primary's `max_connections` budget (see docs/status.md, Open questions).
 - Migrations (`c15t:migrate`, `db:migrate`) always run against the primary URL.
-- Do not add `@axiumine/koa-utils` for database access (README D11).
+- Do not add `@axiumine/koa-utils` for database access (docs/decisions.md D11).
 
 ### Hosting (Cloudflare, nginx, systemd)
 

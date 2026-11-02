@@ -9,7 +9,7 @@ import { wrapDatabase } from './db.js';
 import { silentLogger } from './logger.js';
 
 /*
- * The route coverage test of README D10 / CLAUDE.md "Authorization": it walks `app.routes` and
+ * The route coverage test of docs/decisions.md D10 / CLAUDE.md "Authorization": it walks `app.routes` and
  * calls every route WITHOUT a session. Anything outside the allowlist must answer 401. The
  * database behind the app throws on any use, so a route that reaches a query before its guard
  * fails this test as well. A new route that forgets its guard fails here before it can ship.
@@ -78,7 +78,7 @@ function call(method: string, path: string, headers: Record<string, string> = {}
   });
 }
 
-test('the route tree is exactly the documented API (README "API (dashboard-api)")', () => {
+test('the route tree is exactly the documented API (docs/dashboard.md "API (dashboard-api)")', () => {
   const found = routesOf().map((route) => `${route.method} ${route.path}`);
   expect(found).toEqual(
     [

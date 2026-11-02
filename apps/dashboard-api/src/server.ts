@@ -45,7 +45,7 @@ function shutdown(signal: string): void {
 
 process.once('SIGTERM', () => shutdown('SIGTERM'));
 process.once('SIGINT', () => shutdown('SIGINT'));
-// A failed query during a Patroni failover must never take the service down (README D9).
+// A failed query during a Patroni failover must never take the service down (docs/decisions.md D9).
 process.on('unhandledRejection', (reason) => {
   logger.error('unhandled rejection', {
     reason: reason instanceof Error ? reason.name : typeof reason,

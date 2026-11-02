@@ -7,7 +7,7 @@ import type { BrowserContext, Page } from '@playwright/test';
 import { REPO_ROOT, type Runtime } from './runtime.js';
 
 /*
- * What the dashboard must satisfy on every screen a test visits (README D10, "Security notes"):
+ * What the dashboard must satisfy on every screen a test visits (docs/decisions.md D10 and docs/security-model.md, "Dashboard delivery"):
  * the strict Content-Security-Policy from infra/nginx/dashboard-headers.conf is enforced, so a
  * blocked script, style or connection is a violation; no inline <script> exists; and nothing
  * throws an uncaught exception. `vite preview` sends no CSP, so the policy is read from the nginx
