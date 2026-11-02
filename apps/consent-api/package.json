@@ -12,7 +12,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@c15t/backend": "3.1.0",
+    "@c15t/backend": "3.2.0",
     "@c15t/schema": "3.1.1",
     "@consent/db": "workspace:*",
     "@consent/shared": "workspace:*",
