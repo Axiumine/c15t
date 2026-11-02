@@ -1030,10 +1030,28 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@c15t/schema@npm:3.1.1":
+  version: 3.1.1
+  resolution: "@c15t/schema@npm:3.1.1"
+  dependencies:
+    "@c15t/translations": "npm:3.2.0"
+    base-x: "npm:5.0.1"
+    valibot: "npm:1.4.2"
+  checksum: 10c0/b3edc7fc2f1aee85ce2d5ed2df8bc563de8b080d1d0db923550293fa3ba5e921713727c7d07fa830b50c5b91b519ba6b7ebb8cbea7c9fff0f6f5a8509ea6038f
+  languageName: node
+  linkType: hard
+
 "@c15t/translations@npm:3.1.0":
   version: 3.1.0
   resolution: "@c15t/translations@npm:3.1.0"
   checksum: 10c0/90196264e6657843c4f302a64fa29738b81b3cb0f190ff2e5362f99bf1f7c68706048072ae27078fd1e9037ab3dcb28ce419c59f4b10444c208a79f2713091dd
+  languageName: node
+  linkType: hard
+
+"@c15t/translations@npm:3.2.0":
+  version: 3.2.0
+  resolution: "@c15t/translations@npm:3.2.0"
+  checksum: 10c0/546d3a788fdb537b4b37765c8c8dfc8a202ca1477ce24c771e22f829db0d7794dc8c21f98955eefe575fb42cde31a3b31b42c78941dba6ab64f7f724a94a2b8c
   languageName: node
   linkType: hard
 
@@ -1102,7 +1120,7 @@ __metadata:
   resolution: "@consent/consent-api@workspace:apps/consent-api"
   dependencies:
     "@c15t/backend": "npm:3.1.0"
-    "@c15t/schema": "npm:3.1.0"
+    "@c15t/schema": "npm:3.1.1"
     "@consent/db": "workspace:*"
     "@consent/shared": "workspace:*"
     "@effect/sql-pg": "npm:4.0.0"
