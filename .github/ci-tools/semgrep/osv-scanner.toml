@@ -1,0 +1,34 @@
+# OSV-Scanner configuration for requirements.txt in this directory (the Semgrep lockfile). OpenSSF Scorecard's
+# Vulnerabilities check runs OSV-Scanner and honours this file; Dependabot dismissals do not reach it.
+#
+# Semgrep (1.182.1 and the latest 1.183.0) pins `mcp==1.29.0` and `opentelemetry-*~=1.37.0`, so these packages
+# cannot move without breaking the Semgrep install. `semgrep scan` runs neither an MCP server or client nor the
+# OTLP `tracestate` parser. See docs/security-scanning.md ("Semgrep lockfile advisories").
+#
+# Every entry expires. When one does, check whether a Semgrep release accepts the fixed version, regenerate the
+# lockfile if so (docs/security-scanning.md, "Update the pins") and delete the entry, otherwise extend the date.
+
+[[IgnoredVulns]]
+id = "GHSA-5h93-6whr-6q8j"
+ignoreUntil = 2027-02-01
+reason = "mcp 1.29.0 pinned by Semgrep; semgrep scan does not run the MCP server or client code"
+
+[[IgnoredVulns]]
+id = "GHSA-84m7-p3x7-pcfv"
+ignoreUntil = 2027-02-01
+reason = "mcp 1.29.0 pinned by Semgrep; semgrep scan does not run the MCP server or client code"
+
+[[IgnoredVulns]]
+id = "GHSA-rwrf-2pqf-9j8j"
+ignoreUntil = 2027-02-01
+reason = "mcp 1.29.0 pinned by Semgrep; semgrep scan does not run the MCP server or client code"
+
+[[IgnoredVulns]]
+id = "GHSA-w4fh-qvv9-3v23"
+ignoreUntil = 2027-02-01
+reason = "mcp 1.29.0 pinned by Semgrep; semgrep scan does not run the MCP server or client code"
+
+[[IgnoredVulns]]
+id = "GHSA-xcq7-p3pf-p88h"
+ignoreUntil = 2027-02-01
+reason = "opentelemetry-api 1.37.0 pinned by Semgrep (~=1.37.0); semgrep scan does not parse incoming tracestate headers"

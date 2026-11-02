@@ -59,9 +59,8 @@ paths. `semgrep --disable-nosem` lists them.
   added later is checked.
 - **Gate:** `--severity HIGH,CRITICAL --exit-code 1`. Lower severities are shown by
   `yarn trivy --severity UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL` but do not fail. They follow the response times in
-  `dependency-policy.md`. Five MEDIUM advisories are open in the Semgrep lockfile: Semgrep pins `mcp==1.29.0`
-  and `opentelemetry-*~=1.37`, so we cannot move them, and the code involved (an MCP server and an OTLP
-  header parser) is not run by `semgrep scan`.
+  `dependency-policy.md`. Five MEDIUM advisories are open in the Semgrep lockfile; see
+  ["Semgrep lockfile advisories"](#semgrep-lockfile-advisories).
 - **What it scans:** a copy of the tracked and untracked-but-not-ignored files in a temporary directory
   (removed afterwards), not the working directory. A developer's `.env`, `.yarnrc` and `node_modules` are
   therefore never read.
@@ -219,6 +218,27 @@ the code, with the reason, or add the inspection ID and the paths to `exclude` i
 to it says why). The inspection ID is shown in the report. Do not exclude a whole directory with `name: All` to
 make the scan pass.
 
+## Semgrep lockfile advisories
+
+Semgrep (1.182.1, and the latest 1.183.0) pins `mcp==1.29.0` and `opentelemetry-*~=1.37.0`. Five MEDIUM
+advisories affect those versions: GHSA-5h93-6whr-6q8j, GHSA-84m7-p3x7-pcfv, GHSA-rwrf-2pqf-9j8j and
+GHSA-w4fh-qvv9-3v23 (mcp), and GHSA-xcq7-p3pf-p88h (opentelemetry-api). We cannot move them: bumping
+`opentelemetry-api` alone breaks the Semgrep import (`cannot import name '_ExtendedAttributes'`), and a
+hand-edited `mcp` would be undone by the next `uv pip compile`. The code involved (an MCP server and client,
+and the OTLP `tracestate` parser) is not run by `semgrep scan`, which runs in CI only and ships in no
+release asset.
+
+- **Dependabot:** the alerts are dismissed as "vulnerable code not used". Dependabot *security* updates still
+  open pull requests for this lockfile even though `dependabot.yml` has no entry for it (#23 and #24 were
+  two). Close them with a pointer to this section.
+- **Scorecard:** the Vulnerabilities check runs OSV-Scanner and does not see Dependabot dismissals.
+  [`.github/ci-tools/semgrep/osv-scanner.toml`](../.github/ci-tools/semgrep/osv-scanner.toml) ignores the
+  five IDs, each with a reason and an `ignoreUntil` date. `osv-scanner scan source -r .` lists them as
+  "filtered out".
+- **When a Semgrep release accepts the fixed versions:** regenerate the lockfile ("Update the pins"), run
+  `osv-scanner scan source -r .`, and delete the entries that no longer match. When an `ignoreUntil` date
+  passes first, check again and either do that or extend the date.
+
 ## The Trivy supply-chain incident, and how we install it
 
 On **19 March 2026** an attacker who still held credentials from a February breach (the first rotation was
@@ -286,7 +306,8 @@ printf 'semgrep==<new version>\n' | uv pip compile - --generate-hashes --univers
 ```
 
 Then update the version in the "Install Semgrep" comment of `security-scan.yml`, run `yarn semgrep` and
-`yarn trivy` (which also reads the new lockfile), and commit the file.
+`yarn trivy` (which also reads the new lockfile), drop the entries of `semgrep/osv-scanner.toml` that
+`osv-scanner scan source -r .` no longer needs, and commit the files.
 
 **Trivy.** Pick the release, then verify it before you write anything down:
 

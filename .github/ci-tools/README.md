@@ -18,4 +18,7 @@ To change a version by hand, edit `package.json`, then run
 
 The `semgrep/` directory is the Python side: `semgrep/requirements.txt` holds Semgrep and everything it
 needs, with a SHA-256 for every file, for `pip install --require-hashes` in the "Security scan" workflow.
-Dependabot does not update it; `docs/security-scanning.md` says how to regenerate it.
+Dependabot version updates do not cover it, but Dependabot security updates still open pull requests
+against it: close them (`docs/security-scanning.md`, "Semgrep lockfile advisories"). `semgrep/osv-scanner.toml`
+keeps the advisories that Semgrep's own pins hold back out of the Scorecard Vulnerabilities check.
+`docs/security-scanning.md` says how to regenerate the lockfile.
