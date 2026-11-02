@@ -35,6 +35,8 @@ Website server code ----------------------------------------> consent-api (CONSE
 
 ## What is protected, and how
 
+The network rules are in [D1](./decisions.md#d1-websites-reach-consent-api-over-a-private-path-and-there-is-no-public-consent-hostname) (consent-api is never public, and bind addresses are loopback or private LAN), [D7](./decisions.md#d7-hosting-cloudflare-then-nginx-then-systemd-no-docker) (the origin accepts traffic only from Cloudflare) and [D10](./decisions.md#d10-dashboard-a-react-single-page-app-vite-plus-a-hono-api-with-no-ssr-and-no-seo) (the dashboard is never indexed).
+
 ### Tenant isolation (consent-api)
 
 - One c15t instance per site, with `tenantId = siteKey` and `requireTenantId: true`, so a failed lookup
@@ -109,6 +111,7 @@ Website server code ----------------------------------------> consent-api (CONSE
 
 ### Dashboard delivery
 
+- The dashboard is the only new public hostname. You can add **Cloudflare Access** (Zero Trust) in front of it as a second login layer.
 - A strict CSP (same-origin scripts), `X-Robots-Tag: noindex, nofollow` on every response, and
   `Cache-Control: no-store` on `/api/*`. The bundle contains no secrets.
 - CSV export neutralises formula injection (cells starting with `=`, `+`, `-`, `@`, tab or carriage
