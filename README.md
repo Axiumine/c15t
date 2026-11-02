@@ -15,29 +15,56 @@ Self-hosted cookie-consent backend and dashboard for websites that run on the sa
 
 ## Architecture
 
+```mermaid
+%%{init: {"flowchart": {"rankSpacing": 32, "nodeSpacing": 24, "padding": 8}}}%%
+flowchart LR
+  subgraph Internet["Internet"]
+    V1["Browser on<br/>shop.example.com<br/>GET /api/c15t/init<br/>POST /api/c15t/subjects"]
+    V2["Browser on<br/>blog.example.org"]
+    AD["Admin or user<br/>browser"]
+  end
+
+  subgraph Cloudflare["Cloudflare"]
+    CFS["shop.example.com<br/>blog.example.org<br/>proxied (orange cloud),<br/>cache bypass for<br/>/api/c15t/*,<br/>adds CF-IPCountry"]
+    CFD["dashboard.example.com<br/>proxied, noindex"]
+  end
+
+  subgraph Server["This server (nginx and systemd, no Docker)"]
+    NS["nginx vhost<br/>shop.example.com<br/>sets siteKey shop<br/>/ goes to the<br/>shop's own app"]
+    NB["nginx vhost<br/>blog.example.org<br/>sets siteKey blog<br/>/ goes to the<br/>blog's own app"]
+    SSR["Website server code<br/>(SSR, jobs)"]
+    ND["nginx vhost<br/>dashboard.example.com"]
+    CAPI["consent-api<br/>Node 26 + Hono<br/>one c15tInstance per site<br/>CONSENT_API_HOST:<br/>CONSENT_API_PORT"]
+    SPA["Static SPA files"]
+    DAPI["dashboard-api<br/>Node 26 + Hono<br/>DASHBOARD_API_HOST:<br/>DASHBOARD_API_PORT"]
+  end
+
+  subgraph PG["PostgreSQL<br/>existing Patroni<br/>cluster"]
+    C15T[("schema c15t")]
+    APPDB[("schema app")]
+  end
+
+  V1 --> CFS
+  V2 --> CFS
+  CFS --> NS
+  CFS --> NB
+  AD --> CFD
+  CFD --> ND
+
+  NS -->|"/api/c15t/*<br/>rewritten to<br/>/s/shop/*"| CAPI
+  NB -->|"/api/c15t/*<br/>rewritten to<br/>/s/blog/*"| CAPI
+  SSR -->|"CONSENT_API_URL/<br/>s/#lt;siteKey#gt;"| CAPI
+
+  ND -->|"location /"| SPA
+  ND -->|"location /api/*"| DAPI
+
+  CAPI -->|"read, write<br/>primary via<br/>internal DNS name"| C15T
+  DAPI -->|"read only"| C15T
+  DAPI -->|"read, write"| APPDB
+  CAPI <-.->|"trigger on app.site:<br/>NOTIFY site_changed,<br/>consent-api LISTENs,<br/>rebuilds that site's<br/>instance"| APPDB
 ```
- Browser                    Cloudflare edge             This server (nginx + systemd, no Docker)
- ───────                    ───────────────             ───────────────────────────────────────────────
- shop.example.com page ───► shop.example.com ─────────► nginx vhost shop.example.com
-   GET  /api/c15t/init        proxied (orange cloud)       /            -> shop's own app
-   POST /api/c15t/subjects    cache bypass /api/c15t/*     /api/c15t/*  -> upstream /s/shop/* ───────┐
-                              adds CF-IPCountry                                                       │
- blog.example.org page ───► blog.example.org ─────────► nginx vhost blog.example.org                  │
-                                                           /api/c15t/*  -> upstream /s/blog/* ───────┤
-                                                                                                      ▼
- Website server code (SSR, jobs) ──── CONSENT_API_URL/s/<siteKey> ───────────────────► consent-api (Node 26 + Hono)
-                                                                                       CONSENT_API_HOST:PORT
-                                                                                       default 127.0.0.1:4100
-                                                                                       c15tInstance per site
-                                                                                            │ rw schema c15t
-                                                                                            ▼
- Admin / user ────────────► dashboard.example.com ────► nginx vhost dashboard.example.com   PostgreSQL
-                              (noindex)                    /       -> static SPA files      Patroni cluster,
-                                                           /api/*  -> dashboard-api ──────► primary via DNS
-                                                                      (Node 26 + Hono)      app rw, c15t read-only
-                                                                      DASHBOARD_API_HOST:PORT
-                                                                      default 127.0.0.1:4200
-```
+
+Each site's nginx vhost sets the `siteKey`, so the browser never sees it. The details are in [`docs/decisions.md`](./docs/decisions.md): [D1](./docs/decisions.md#d1-websites-reach-consent-api-over-a-private-path-and-there-is-no-public-consent-hostname) (the private path to consent-api), [D3](./docs/decisions.md#d3-one-c15t-instance-per-website-isolated-by-tenantid) (one c15t instance per website), [D7](./docs/decisions.md#d7-hosting-cloudflare-then-nginx-then-systemd-no-docker) (hosting), [D9](./docs/decisions.md#d9-postgresql-runs-on-the-existing-patroni-cluster-5-nodes-etcd) (PostgreSQL on Patroni) and [D10](./docs/decisions.md#d10-dashboard-a-react-single-page-app-vite-plus-a-hono-api-with-no-ssr-and-no-seo) (the dashboard).
 
 | Component | Tech | Runs as | Listens on (configurable) | Public? |
 |---|---|---|---|---|
