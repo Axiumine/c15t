@@ -48,6 +48,14 @@ their own "Security" heading and name the advisory.
 
 ### Changed
 
+- `@c15t/backend` and `@c15t/cli` 3.1.0 -> 3.2.0 and `@c15t/schema` 3.1.0 -> 3.1.1, moved as one set (Dependabot had
+  bumped only `@c15t/schema`, which left two copies of it and of `@c15t/translations` in the lockfile). `@effect/sql-pg`
+  stays at the 4.0.0 peer. The geo, client-IP and `/init` override handling, the options consent-api passes, the
+  migrations and the database schema are unchanged, so `request-guard.ts` and `c15t.generated.ts` stay as they are.
+  New in 3.2.0: `trustedOrigins` (our `site.domains`) also gates consent saves, so a `POST /subjects` whose `domain`
+  field the list does not cover gets `400 DOMAIN_NOT_ALLOWED`; `POST`/`PATCH /subjects` without a JSON body get `415`.
+  `CLAUDE.md`, `docs/security-model.md`, `docs/assurance-case.md` and `docs/cryptography.md` were re-checked against
+  3.2.0 and updated.
 - The FTA maintainability cap is now 50 (was 65): 39 source files in consent-api, dashboard-api, dashboard-web and
   `packages/*` were split into smaller modules, with the same behaviour and the same tests. The size-cap ratchet
   (`.code-caps-baseline.json`) is down to three remaining violations. Source pointers in the documentation follow

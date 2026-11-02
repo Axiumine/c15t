@@ -9,8 +9,8 @@ import type { SiteRecord } from './site-store.js';
 type PolicyRules = NonNullable<NonNullable<C15TOptions['manifest']>['policyRules']>;
 
 /**
- * In c15t 3.1.0 an empty `trustedOrigins` only changes CORS (no origin is allowed), and `*` and
- * `*.example.com` are honoured. The platform allows neither an empty list nor a wildcard
+ * In c15t 3.2.0 an empty `trustedOrigins` lets no cross-origin browser read the answers (CORS) but
+ * accepts a consent save for any `domain`, and `*` and `*.example.com` are honoured by both checks. The platform allows neither an empty list nor a wildcard
  * (CLAUDE.md "Multi-tenancy"), whatever the database says.
  */
 export function assertTrustedOrigins(siteKey: string, origins: readonly string[]): string[] {
