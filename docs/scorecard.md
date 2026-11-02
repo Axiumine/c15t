@@ -47,7 +47,7 @@ maintainer or contributor is needed, **settings** means a repository setting tha
 | Security-Policy | `SECURITY.md` with a reporting URL, free-form text, disclosure timelines and the word "vulnerability". | 10 | 10 | none |
 | Signed-Releases | Release assets are signed with keyless cosign (`.sigstore.json`) and come with SLSA provenance (`.intoto.jsonl`). | not scored before a release | 10 | time (first release) |
 | Token-Permissions | Top-level `permissions: contents: read` in every workflow, with write access granted only on the jobs that need it. | 10 | 10 | none |
-| Vulnerabilities | `yarn.lock` has no known vulnerability (checked with `yarn npm audit` and `osv-scanner` before publishing). Dependabot keeps it that way. | 10 | 10, but it can drop at any time when a new advisory appears | none |
+| Vulnerabilities | `yarn.lock` has no known vulnerability (checked with `yarn npm audit` and `osv-scanner` before publishing). Dependabot keeps it that way, and a transitive fix Dependabot cannot open goes in as a Yarn `resolutions` entry (`minimatch`, `qs`). The five advisories that Semgrep's pins hold in `.github/ci-tools/semgrep/requirements.txt` are ignored, with reasons and expiry dates, in `.github/ci-tools/semgrep/osv-scanner.toml` (docs/security-scanning.md). | 10 | 10, but it can drop at any time when a new advisory appears | none |
 | Webhooks | No webhooks are configured. | 10 | 10 | none |
 
 ### Estimated aggregate

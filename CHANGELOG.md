@@ -79,6 +79,16 @@ their own "Security" heading and name the advisory.
 
 ### Security
 
+- Resolved `qs` to 6.16.2 for `typed-rest-client`, which `@stryker-mutator/core` pulls in and which pins 6.15.1
+  ([GHSA-q8mj-m7cp-5q26](https://github.com/advisories/GHSA-q8mj-m7cp-5q26),
+  [GHSA-4mjr-xmp4-gh2g](https://github.com/advisories/GHSA-4mjr-xmp4-gh2g),
+  [GHSA-x5fp-wj9c-mxmx](https://github.com/advisories/GHSA-x5fp-wj9c-mxmx) and
+  [GHSA-6pq8-jhm2-2vcw](https://github.com/advisories/GHSA-6pq8-jhm2-2vcw), denial of service and an array-limit
+  bypass). Mutation testing is a development tool and ships in no release asset.
+- `.github/ci-tools/semgrep/osv-scanner.toml` ignores the five MEDIUM advisories that Semgrep's own pins hold in its
+  lockfile (`mcp` 1.29.0, `opentelemetry-api` 1.37.0), each with a reason and an `ignoreUntil` date, so the Scorecard
+  Vulnerabilities check matches the dismissed Dependabot alerts. `docs/security-scanning.md` has a new section,
+  "Semgrep lockfile advisories".
 - Resolved every `minimatch` in the tree to 11.0.1, not only the one under `@ts-morph/common`
   ([GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249), fixed only in 11.x). The quality-gate
   tools added in 0.2.0 (ESLint, `@eslint/config-array`, typescript-eslint, eslint-plugin-sonarjs, type-coverage) had
