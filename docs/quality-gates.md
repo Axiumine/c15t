@@ -70,7 +70,7 @@ How to fix a failure of each analyser, and the reasons for its settings, are in 
 |---|---|
 | Node.js 24 | Not used. The runtime is Node 26 LTS, pinned by `.nvmrc`, `engines.node` and `packageManager` (decisions.md D8); `scripts/check-code-caps.ts` and the other tools run on it. |
 | Qodana (`jetbrains/qodana-js`) | **Added, advisory, never run with a token.** `qodana.yaml`, `.github/workflows/qodana.yml` (push to `main`, pull requests, weekly, manual) and `yarn qodana`. The job needs the `QODANA_TOKEN` repository secret (a Qodana Cloud project token) and is skipped with a notice when it is missing, so it is not a required check. Its first result is unknown until the maintainer runs it with the token; the gate is a placeholder ceiling of 500 problems until then (`docs/security-scanning.md`, "The first run"). It is not in the pre-push hook: a run takes minutes, needs Docker and a 1.2 GB image, and a hook that needs a token would fail for everyone without one. It overlaps CodeQL, Semgrep and ESLint only in part. |
-| Mutation testing (`yarn mutation`) | **Weekly and by hand, not in the pre-push hook and not a pull-request check.** `.github/workflows/mutation.yml` runs it on the self-hosted runners ([`ci-runners.md`](./ci-runners.md)) on Mondays and on demand. A cold run took about 8 minutes on 32 cores and takes longer on the 8 to 12 CPU runners, so it must not block a push or a pull request. It is still a gate: the run fails when the score drops below `thresholds.break` ([below](#the-score-gate)). |
+| Mutation testing (`yarn mutation`) | **Weekly and by hand, not in the pre-push hook and not a pull-request check.** `.github/workflows/mutation.yml` runs it on the self-hosted runners ([`ci-runners.md`](./ci-runners.md)) on Mondays and on demand. A cold run took about 8 minutes on 32 cores and 41 minutes on an 8 CPU runner with `--concurrency 4`, so it must not block a push or a pull request. It is still a gate: the run fails when the score drops below `thresholds.break` ([below](#the-score-gate)). |
 | FTA `score_cap` | **50**, the upper end of the "OK" band. When the check was added the cap was 65 (36 files scored between 50 and 65); those files were split into smaller modules and the cap was lowered to 50 (CONTRIBUTING.md, "Static analysers"). The worst file now scores about 49, so a change that makes a file worse than 50 must split it. |
 | gitnexus | Stays optional (`.gitnexus/` is not in a clone). The pre-commit hook runs `detect-changes` for the staged change when the index exists and never blocks. |
 | Rules relaxed in ESLint | Listed with their finding counts in `eslint.config.mjs`; none for security rules. Per-line disables carry a reason. |
@@ -132,6 +132,13 @@ started from a shell where Yarn injected a dotenv file with all four database va
 
 An earlier port of the same work on another base measured 93.4% to 93.8%, and 93.36% on 4 cores, so expect a
 point of variation.
+
+First run of `mutation.yml` on the self-hosted runners (a manual run on `main`, 2026-11-02): an 8 CPU, 15 GiB
+runner, `--concurrency 4`, cold cache. The Stryker step took **41 minutes 21 seconds** (the job 42 minutes, against
+the 90 minute limit). Score **93.17%**: 1533 mutants killed, 21 killed by a time-out, 114 survived, 952 did not
+compile. That is about a point below the local run, which is the variation described above, and 3 points above
+`thresholds.break`. The HTML report was uploaded as the `mutation-report` artifact and the incremental file was
+saved for the next run.
 
 Stryker warns that module-level code (the zod schemas, the regexes and the message tables) is *static*:
 each such mutant needs the whole suite to be loaded again, which is most of the run time. `ignoreStatic: true`

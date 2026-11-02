@@ -15,7 +15,7 @@ is gated by a maintainer's approval.
 | `release.yml`, `scorecard.yml` | GitHub-hosted, always. |
 
 Load of the mutation run: Stryker starts one test worker per core by default; the workflow passes
-`--concurrency 4` so a 8 to 12 CPU host stays usable for other jobs. A cold run needs about 8 minutes on 32 cores (more on a smaller host; an earlier port measured 23.6 minutes on 4 cores) and the job has a 90 minute limit.
+`--concurrency 4` so a 8 to 12 CPU host stays usable for other jobs. A cold run needs about 8 minutes on 32 cores, and took 41 minutes on the first self-hosted run (an 8 CPU runner with `--concurrency 4`). The job has a 90 minute limit.
 The job removes its `.stryker-tmp` sandbox at the end (the runner is persistent), and a killed job can leave
 it behind. It needs no database and no port (PGlite only), and nothing beyond the tools in the table below.
 
