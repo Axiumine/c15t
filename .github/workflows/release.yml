@@ -219,7 +219,8 @@ jobs:
           ## Verify the assets
 
           Every asset has a keyless cosign signature (\`<asset>.sigstore.json\`) and the release has
-          SLSA provenance (\`*.intoto.jsonl\`). The SBOMs are CycloneDX 1.6 (\`*.cdx.json\`).
+          SLSA provenance (\`*.intoto.jsonl\`, which needs slsa-verifier 2.7.0 or later). The SBOMs are
+          CycloneDX 1.6 (\`*.cdx.json\`).
 
           \`\`\`sh
           sha256sum --check SHA256SUMS
