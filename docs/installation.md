@@ -38,7 +38,8 @@ behind nginx (decisions.md D7).
 - Node.js 26 at `/usr/bin/node`, and Yarn 4 through Corepack: `npm install -g corepack && corepack enable`.
   The build downloads the dependencies from the npm registry, pinned by `yarn.lock`.
 - A PostgreSQL database prepared as described in [database-setup.md](./database-setup.md), reachable from the server.
-- To verify a release: `cosign` 3.x, `sha256sum` (GNU coreutils), optionally `slsa-verifier`.
+- To verify a release: `cosign` 3.x, `sha256sum` (GNU coreutils), optionally `slsa-verifier` 2.7.0 or later
+  (older versions cannot read the provenance and fail with `unexpected tlog entry type: expected intoto:0.0.2, got dsse:0.0.1`).
 
 ## Get and verify a release
 

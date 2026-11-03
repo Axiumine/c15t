@@ -16,6 +16,13 @@ their own "Security" heading and name the advisory.
 
 ## [Unreleased]
 
+### Fixed
+
+- `SECURITY.md`, `docs/installation.md` and the release notes now name the minimum `slsa-verifier`, 2.7.0.
+  slsa-github-generator v2.1.0 records the provenance in Rekor as a DSSE entry, which older versions cannot read:
+  they fail with `unexpected tlog entry type: expected intoto:0.0.2, got dsse:0.0.1`. Every release so far
+  (v0.1.0 to v0.3.0) verifies with 2.7.1.
+
 ## [0.3.0] - 2026-11-02
 
 Moves the c15t stack to 3.2.0, which changes two consent-api answers: a consent save whose `domain` field the site's

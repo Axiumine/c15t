@@ -1939,7 +1939,7 @@ Select: **Met** | URL required: no | N/A allowed: yes
 Justification to paste:
 
 ```text
-Releases are cryptographically signed. Every release asset has a keyless cosign (Sigstore) signature bundle (<asset>.sigstore.json) made by the release workflow (.github/workflows/release.yml), and the release carries SLSA provenance (multiple.intoto.jsonl). There is no long-lived private key. SECURITY.md documents how to verify with cosign verify-blob and slsa-verifier; both were run against the v0.1.0 assets and passed. https://github.com/Axiumine/c15t/releases/tag/v0.1.0
+Releases are cryptographically signed. Every release asset has a keyless cosign (Sigstore) signature bundle (<asset>.sigstore.json) made by the release workflow (.github/workflows/release.yml), and the release carries SLSA provenance (multiple.intoto.jsonl). There is no long-lived private key. SECURITY.md documents how to verify with cosign verify-blob and slsa-verifier; both were run against the v0.1.0 assets and passed (slsa-verifier needs 2.7.0 or later; v0.1.0 to v0.3.0 were re-checked with 2.7.1). https://github.com/Axiumine/c15t/releases/tag/v0.1.0
 ```
 
 Evidence: [SECURITY.md](https://github.com/Axiumine/c15t/blob/main/SECURITY.md), [.github/workflows/release.yml](https://github.com/Axiumine/c15t/blob/main/.github/workflows/release.yml), [scripts/release-package.sh](https://github.com/Axiumine/c15t/blob/main/scripts/release-package.sh)

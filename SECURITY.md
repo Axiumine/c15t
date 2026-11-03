@@ -92,5 +92,7 @@ slsa-verifier verify-artifact <asset> \
   --source-uri github.com/Axiumine/c15t --source-tag vX.Y.Z
 ```
 
-Get [`slsa-verifier`](https://github.com/slsa-framework/slsa-verifier) from its own releases and verify it
-before you use it. The release notes repeat these commands for the exact tag.
+Get [`slsa-verifier`](https://github.com/slsa-framework/slsa-verifier) 2.7.0 or later from its own releases and
+verify it before you use it. Older versions cannot read the provenance, which the generator records in Rekor as a
+DSSE entry, and fail with `unexpected tlog entry type: expected intoto:0.0.2, got dsse:0.0.1`. The release
+notes repeat these commands for the exact tag.
