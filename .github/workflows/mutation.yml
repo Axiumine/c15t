@@ -52,8 +52,8 @@ jobs:
       # No database service: the suites run on PGlite only (stryker.config.mjs removes the database
       # variables), so nothing here can reach a real database.
       # Four workers keep the shared host usable for other jobs (8 to 12 CPUs). The first cold run on a
-      # self-hosted 8 CPU runner took 41 minutes (docs/quality-gates.md); later runs restore the
-      # incremental file and should be shorter.
+      # self-hosted 8 CPU runner took 41 minutes; the next run restored the incremental file and took
+      # 2 minutes (docs/quality-gates.md).
       - name: Mutation testing
         run: yarn mutation --concurrency 4
 
