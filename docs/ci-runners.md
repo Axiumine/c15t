@@ -72,6 +72,22 @@ Checked on 2026-11-01 with a throwaway workflow on a branch: six jobs of 40 seco
 took at least one, each printing the version of the tools above. The branch, the run and its logs were
 deleted afterwards. Repeat that when a runner is added or rebuilt.
 
+## Cache retention
+
+GitHub evicts an Actions cache entry that was not used for 7 days (the default), and the weekly `mutation.yml`
+schedule restores its incremental file about every 7 days. A missed week would cost a 41 minute cold run, so the
+retention is 30 days. It is a setting, not a workflow file, and it is capped by the organisation's value, so both
+are set (Settings, Actions, General, "Cache" at the organisation and at the repository):
+
+```bash
+gh api -X PUT orgs/Axiumine/actions/cache/retention-limit -F max_cache_retention_days=30
+gh api -X PUT repos/Axiumine/c15t/actions/cache/retention-limit -F max_cache_retention_days=30
+gh api repos/Axiumine/c15t/actions/cache/retention-limit   # check
+```
+
+The size limit (10 GB per repository) still evicts the oldest entries first. The two entries `mutation.yml` keeps
+are about 300 KiB each.
+
 ## Ports
 
 CI never uses a fixed port, because jobs of several repositories share a host, and a fixed port (5432 for
