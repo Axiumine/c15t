@@ -143,8 +143,9 @@ saved for the next run.
 The next run was the Monday schedule (2026-11-02), on another self-hosted runner. It restored the incremental file
 from the first run, found 13 changed mutants out of 2620, and finished in **about 2 minutes** (the Stryker step
 1 minute 42 seconds, most of it the initial test run). The score stayed at 93.17%. An unchanged week therefore costs
-two minutes, and the 41 minutes are paid only when the cache is gone (GitHub drops a cache entry that was not used
-for 7 days) or when much of the source changed.
+two minutes, and the 41 minutes are paid only when the cache is gone or when much of the source changed. GitHub drops
+a cache entry that was not used for 7 days, which a weekly schedule meets almost exactly, so the cache retention of
+the organisation and of this repository is set to 30 days ([`ci-runners.md`](./ci-runners.md#cache-retention)).
 
 Stryker warns that module-level code (the zod schemas, the regexes and the message tables) is *static*:
 each such mutant needs the whole suite to be loaded again, which is most of the run time. `ignoreStatic: true`
