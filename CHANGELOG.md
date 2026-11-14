@@ -31,6 +31,26 @@ their own "Security" heading and name the advisory.
   they fail with `unexpected tlog entry type: expected intoto:0.0.2, got dsse:0.0.1`. Every release so far
   (v0.1.0 to v0.3.0) verifies with 2.7.1.
 
+### Security
+
+- `hono` 4.13.14 to 4.13.16 and `@hono/node-server` 2.1.5 to 2.1.6, in every workspace and in the single `hono` copy
+  that `@c15t/backend` uses (the lockfile held a second, older one). The advisories: RegExpRouter skipped wildcard
+  middleware for paths with an encoded line terminator (GHSA-h7mg-cq63-vhpq; consent-api and dashboard-api register
+  their guards with `app.use('*' | '/api/*', ...)`, so this one reached the code), `mount()` could forward a path past
+  scoped middleware, `validator('form')` skipped validation for some multipart bodies, `csrf()` ignored hyperlink
+  auditing pings, and the `css` helper did not escape a split closing tag; for `@hono/node-server`, a backslash in the
+  request path was parsed as a separator (GHSA-jpvv-r467-5p4w) and a socket error during a WebSocket upgrade was
+  unhandled. The code uses neither `mount()`, `validator('form')`, `csrf()`, `css` nor WebSocket upgrades, and
+  consent-api already refuses a backslash in the path. A raw backslash now gets the server's own 400 (a
+  `RequestError` in `@hono/node-server`) before the app's JSON error.
+
+### Changed
+
+- Minor and patch updates of the development and runtime dependencies: better-auth 1.7.14 to 1.7.18 (the password
+  hashing code is unchanged; the four exposed endpoints and the options in use are unaffected), Vite 8.3.6, Tailwind CSS
+  4.3.4, lucide-react 1.66.0, @tanstack/react-query 5.105.3, @electric-sql/pglite 0.5.15, Biome 2.6.5 (the `$schema`
+  URLs follow), knip 6.44.1, type-coverage 2.31.2 and globals 17.14.0.
+
 ## [0.3.0] - 2026-11-02
 
 Moves the c15t stack to 3.2.0, which changes two consent-api answers: a consent save whose `domain` field the site's
