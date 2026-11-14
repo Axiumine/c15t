@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Axiumine
 
-import type { Locator, Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
 import { DashboardClient, newPassword } from './support/api.js';
 import { bootstrapAdmin } from './support/bootstrap.js';
 import {
@@ -25,8 +25,10 @@ import { consentBody, subjectId } from './support/website.js';
  * What keeps a screenshot reproducible:
  * - fixed viewport, colour scheme, device scale, reduced motion, UTC and en-US (`PINNED` below);
  * - `animations: 'disabled'` and a hidden caret (`expect.toHaveScreenshot` in playwright.config.ts);
- * - everything that depends on the run (the run id in site keys and e-mail addresses, "created"
- *   times, chart data) is masked, or the screen has none (the login page).
+ * - everything that depends on the run (the run id in site names, site keys and e-mail addresses) is
+ *   rewritten to a fixed value before the shot (`pinRunId`), or the screen has none (the login page).
+ *   A mask would not be enough: it paints over the element's box, and that box is as wide as the
+ *   random text inside it, so the edges of the mask move from run to run.
  */
 
 const DESKTOP = { width: 1280, height: 800 };
@@ -40,8 +42,6 @@ interface Shot {
   readonly options: VisitorOptions;
   /** Resolves when the screen has finished loading its data. */
   readonly ready: (page: Page, runId: string) => Promise<void>;
-  /** Regions whose content differs from run to run. They are painted over, the layout stays. */
-  readonly mask?: (page: Page, runId: string) => Locator[];
 }
 
 const PINNED = {
@@ -80,7 +80,6 @@ const SHOTS: readonly Shot[] = [
       await expect(page.getByRole('heading', { name: 'Sites', level: 1 })).toBeVisible();
       await expect(page.getByRole('heading', { name: runId, level: 2 })).toBeVisible();
     },
-    mask: (page, runId) => [page.getByText(runId)],
   },
   {
     name: 'account-dark',
@@ -88,9 +87,30 @@ const SHOTS: readonly Shot[] = [
     signedIn: true,
     options: dark,
     ready: (page) => expect(page.getByRole('heading', { name: 'Account', level: 1 })).toBeVisible(),
-    mask: (page, runId) => [page.getByText(runId)],
   },
 ];
+
+/** What the run id becomes in the shot: the same shape (`e2e-` and eight hex digits), the same text every run. */
+const PINNED_RUN_ID = 'e2e-00000000';
+
+/**
+ * Replaces the run id in every text node with `PINNED_RUN_ID`, so the text, and with it the width of
+ * the elements that hold it, is identical on every run. The pages are client-rendered and are not
+ * re-rendered while the shot is taken, so the change stays.
+ */
+async function pinRunId(page: Page, runId: string): Promise<void> {
+  await page.evaluate(
+    ({ from, to }) => {
+      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+      for (let node = walker.nextNode(); node !== null; node = walker.nextNode()) {
+        const text = node.nodeValue ?? '';
+        if (text.includes(from)) node.nodeValue = text.replaceAll(from, to);
+      }
+    },
+    { from: runId, to: PINNED_RUN_ID },
+  );
+  await expect(page.getByText(runId)).toHaveCount(0);
+}
 
 let userEmail = '';
 let userPassword = '';
@@ -143,10 +163,8 @@ for (const shot of SHOTS) {
       }
       await page.goto(shot.path);
       await shot.ready(page, rt.runId);
-      await expect(page).toHaveScreenshot(`${shot.name}.png`, {
-        fullPage: true,
-        ...(shot.mask === undefined ? {} : { mask: shot.mask(page, rt.runId) }),
-      });
+      if (shot.signedIn) await pinRunId(page, rt.runId);
+      await expect(page).toHaveScreenshot(`${shot.name}.png`, { fullPage: true });
     } finally {
       await closeVisitor(visitor, test.info());
     }

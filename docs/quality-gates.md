@@ -220,7 +220,7 @@ force that:
 
 - The dashboard uses system fonts. A baseline is therefore only valid on the machine and font set that
   made it, and images made on a development machine are expected to fail on the GitHub runner on the first pixel
-  of text. Until the first `update` and `verify` runs on the runner are done, this is a prediction, not a result.
+  of text. That was not measured: no development-machine image was ever compared on the runner.
 - The e2e suite needs the real stack and a migrated PostgreSQL. The only platform that can make faithful
   baselines is the one the verification runs on: GitHub's `ubuntu-24.04` with Playwright's Chromium (a hosted
   runner on purpose, never a self-hosted one, whose fonts can change with the host).
@@ -244,9 +244,14 @@ does (`scripts/ci-start-postgres.sh`, a random port above 50000, never 5432) and
 
 What keeps a screenshot reproducible: fixed viewport, colour scheme, device scale factor, locale, time
 zone and reduced motion in the browser context; `animations: 'disabled'` and a hidden caret; screens
-without run-specific data (the login page) or with the run-specific text masked (`mask`: the random run
-id in site names and e-mail addresses). `maxDiffPixelRatio` is `0.0005` (0.05%: about 512 pixels of a
-1280x800 page, about 165 of the 390x844 phone shot, more for a taller full page). It starts from a measurement
-on one development machine, not on the runner: the unmasked screens differed by 0 pixels between runs and the
-masked ones by 32 (the run id changes the width of the masked text). A moved element, a changed colour or a
-wrapped line is far above that. The first `verify` runs on the runner decide whether to tighten or loosen it.
+without run-specific data (the login page), or with the run id in the rendered text replaced by the fixed
+`e2e-00000000` before the shot (`pinRunId` in `e2e/visual.spec.ts`). A mask is not enough for that text: it
+paints over the element's box, the box is as wide as the random text inside it, and so the edges of the mask
+move from run to run. The first `verify` on the runner showed it: `sites-list-light` differed by 525 pixels
+(7 px wide strips at the e-mail address and at the site name, nothing else) against a limit of 512.
+`maxDiffPixelRatio` is `0.0005` (0.05%: about 512 pixels of a 1280x800 page, about 165 of the 390x844
+phone shot, more for a taller full page). With the run id pinned, the two login baselines came out
+byte-identical in two `update` runs, and two `verify` runs on separate runners passed against the baselines
+of an earlier run (2026-11-14). `verify` only reports pass or fail, so the actual difference is not known;
+the limit stays until more runs justify tightening it. A moved
+element, a changed colour or a wrapped line changes far more than 512 pixels.

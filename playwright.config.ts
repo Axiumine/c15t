@@ -69,10 +69,11 @@ export default defineConfig({
     timeout: 10_000,
     // Visual regression (e2e/visual.spec.ts, project `visual` only). Animations stop at their end
     // state and the caret is hidden. `maxDiffPixelRatio` 0.0005 lets 0.05% of the pixels differ
-    // (about 500 of a 1280x800 page). Measured on one development machine (not yet on the runner): the screens without masks differ by 0
-    // pixels between runs, and the masked ones by 32 (the masks cover run-specific text such as the
-    // e-mail address, and the random run id changes the text width). A moved element, a changed
-    // colour or a wrapped line changes far more than that.
+    // (about 500 of a 1280x800 page). Measured on the runner (docs/quality-gates.md, "Visual
+    // regression"): masking the random run id failed by 525 pixels, because a mask is as wide as the
+    // text under it; with the run id pinned to a fixed text, two `verify` runs on separate runners
+    // passed against baselines made by an earlier run. A moved element, a changed colour or a wrapped
+    // line changes far more than the limit.
     toHaveScreenshot: {
       animations: 'disabled',
       caret: 'hide',
