@@ -46,6 +46,9 @@ there. Nothing prints an environment value.
 
 Without Docker, run the other three files: `yarn test:e2e e2e/auth-roles.spec.ts e2e/headers-robots.spec.ts e2e/a11y.spec.ts`.
 
+`e2e/visual.spec.ts` (screenshots) is **not** part of `yarn test:e2e`: it has its own project and script,
+`yarn test:e2e:visual`. Why, and how its baselines are made: [`docs/quality-gates.md`](quality-gates.md).
+
 ## How a run is isolated
 
 - **Run id.** `playwright.config.ts` makes one id, `e2e-<8 hex>`, in the runner process and passes it to
