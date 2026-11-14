@@ -18,7 +18,7 @@ Short answer:
 How this relates to the [assurance case](./assurance-case.md) and the
 [security model](./security-model.md): both rely on this page for the "no custom cryptography" claim.
 
-Every statement below was checked against the pinned versions in `yarn.lock` (better-auth 1.7.18,
+Every statement below was checked against the pinned versions in `yarn.lock` (better-auth 1.7.20,
 `@better-auth/utils` 0.5.1, better-call 1.4.5, `@c15t/backend` 3.2.2, `postgres` 3.4.9,
 `@effect/sql-pg` 4.0.0) by reading the installed package sources. Where a fact comes from the project's
 own documentation, or could not be checked from the repository, the text says so.
@@ -114,7 +114,7 @@ should require SCRAM-SHA-256. This is a recommendation; the repository does not 
 
 ### Algorithm and stored format
 
-Better Auth 1.7.18 hashes passwords in `dist/crypto/password.mjs`. On Node.js it delegates to
+Better Auth 1.7.20 hashes passwords in `dist/crypto/password.mjs`. On Node.js it delegates to
 `@better-auth/utils` 0.5.1, `dist/password.node.mjs` (the `node` export condition of
 `@better-auth/utils/password`). What that file does:
 
@@ -160,7 +160,7 @@ algorithms therefore means:
 
 1. Write `hash` and `verify` in `auth.ts`. `verify` must accept both the old `<salt>:<key>` scrypt
    format and the new format, because existing hashes stay as they are until each password is set again.
-2. I found no rehash-on-login logic in Better Auth 1.7.18 (`grep` for `rehash` in `dist`), so old hashes
+2. I found no rehash-on-login logic in Better Auth 1.7.20 (`grep` for `rehash` in `dist`), so old hashes
    are replaced only when a user changes their password or an admin resets it.
 3. Add tests, release a new version, and have operators deploy it.
 
