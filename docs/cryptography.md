@@ -19,7 +19,7 @@ How this relates to the [assurance case](./assurance-case.md) and the
 [security model](./security-model.md): both rely on this page for the "no custom cryptography" claim.
 
 Every statement below was checked against the pinned versions in `yarn.lock` (better-auth 1.7.18,
-`@better-auth/utils` 0.5.1, better-call 1.4.5, `@c15t/backend` 3.2.0, `postgres` 3.4.9,
+`@better-auth/utils` 0.5.1, better-call 1.4.5, `@c15t/backend` 3.2.2, `postgres` 3.4.9,
 `@effect/sql-pg` 4.0.0) by reading the installed package sources. Where a fact comes from the project's
 own documentation, or could not be checked from the repository, the text says so.
 
@@ -199,7 +199,7 @@ randomness in application code is `Math.random` for reconnect jitter in
 `C15T_ADMIN_API_KEY` is read by consent-api (at least 16 characters,
 [`apps/consent-api/src/env.ts`](../apps/consent-api/src/env.ts)) and passed to every c15t instance as
 `apiKeys: [key]` ([`apps/consent-api/src/instance.ts`](../apps/consent-api/src/instance.ts)). This
-repository never compares the key itself. c15t does it in `@c15t/backend` 3.2.0, `dist/http/auth.js` (unchanged since 3.1.0):
+repository never compares the key itself. c15t does it in `@c15t/backend` 3.2.2, `dist/http/auth.js` (unchanged since 3.1.0):
 the key is read from `Authorization: Bearer <key>` and compared with a hand-written loop that visits every
 character when the lengths are equal and has no early exit. It does not use `crypto.timingSafeEqual`. The
 key is stored as plain text in the service environment file (mode 0600). dashboard-api does not need it

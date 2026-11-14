@@ -520,12 +520,12 @@ covered in the last row.
 These are limits of the design, not bugs. Most are in [`security-model.md`](./security-model.md#what-is-not-protected),
 which has the operator advice.
 
-- **A script can still post consents.** Consent saves are not authenticated. In c15t 3.2.0, `trustedOrigins`
+- **A script can still post consents.** Consent saves are not authenticated. In c15t 3.2.2, `trustedOrigins`
   sets the CORS response headers and checks the `domain` field of a save, which the caller chooses. Anyone who
   can reach a site's public endpoint can submit fake records.
   Consent counts are indicative, not proof that a person acted.
 - **c15t's subject routes are not gated by an API key, so the subject ID works as a bearer secret.** All of
-  this is in `@c15t/backend` 3.2.0, `dist/http/routes/subject.js` (re-checked after the upgrade from 3.1.0).
+  this is in `@c15t/backend` 3.2.2, `dist/http/routes/subject.js` (re-checked after the upgrades from 3.1.0 and 3.2.0).
   - `GET /subjects/:id` has no authentication check. It returns the subject's `createdAt`, `externalId` and
     `identityProvider`, every consent with its choice, preferences and vendor choices, and the subject's
     overall choice and vendor choice.
@@ -627,4 +627,4 @@ them so the case does not read stronger than the evidence.
   `security-model.md` apply to every change.
 - When a claim here names a test, renaming or deleting the test is a change to this page.
 - Re-check the c15t statements (4.3 and 4.4) after every `@c15t/*` upgrade, because they were verified
-  against 3.1.0 and re-checked against 3.2.0.
+  against 3.1.0 and re-checked against 3.2.0 and 3.2.2.

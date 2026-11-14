@@ -904,13 +904,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@c15t/backend@npm:3.2.0":
-  version: 3.2.0
-  resolution: "@c15t/backend@npm:3.2.0"
+"@c15t/backend@npm:3.2.2":
+  version: 3.2.2
+  resolution: "@c15t/backend@npm:3.2.2"
   dependencies:
-    "@c15t/browser": "npm:3.2.0"
-    "@c15t/schema": "npm:3.1.1"
-    "@c15t/translations": "npm:3.2.0"
+    "@c15t/browser": "npm:3.2.2"
+    "@c15t/schema": "npm:3.1.3"
+    "@c15t/translations": "npm:3.2.2"
     "@hono/standard-validator": "npm:0.2.3"
     "@standard-community/standard-json": "npm:0.3.5"
     "@standard-community/standard-openapi": "npm:0.2.9"
@@ -936,30 +936,30 @@ __metadata:
       optional: true
     "@upstash/redis":
       optional: true
-  checksum: 10c0/631506ea22aadd35be75a059b700258be5825116c9f0c2c1a4c632225c89f71dfbdd6f4274ab0bf39aaf01f316612c71558af034cc097ce275d8ba0ed60b86ec
+  checksum: 10c0/4d6d51f8ce8e5371e2a78a532cd37454f65645da43a8230dfab03fcf730fdba64786c0951430d205d5b58d00caf3b4547054efe73a679c8bdaeb0119a381ffee
   languageName: node
   linkType: hard
 
-"@c15t/browser@npm:3.2.0":
-  version: 3.2.0
-  resolution: "@c15t/browser@npm:3.2.0"
+"@c15t/browser@npm:3.2.2":
+  version: 3.2.2
+  resolution: "@c15t/browser@npm:3.2.2"
   dependencies:
-    "@c15t/core": "npm:3.2.0"
-    "@c15t/dev-tools": "npm:3.2.0"
-    "@c15t/iab": "npm:3.2.0"
-    "@c15t/schema": "npm:3.1.1"
-    "@c15t/translations": "npm:3.2.0"
-    "@c15t/ui": "npm:3.1.0"
-  checksum: 10c0/8d32f21929f52db4e84eaa5666b158ada76555716417113bce431dd80561f059b44267456c1aed9523e1880a20147bb43b72b872598de9441e8bc40ca4015b9e
+    "@c15t/core": "npm:3.2.2"
+    "@c15t/dev-tools": "npm:3.2.2"
+    "@c15t/iab": "npm:3.2.2"
+    "@c15t/schema": "npm:3.1.3"
+    "@c15t/translations": "npm:3.2.2"
+    "@c15t/ui": "npm:3.1.2"
+  checksum: 10c0/361a40c83678e14938cd3699b24cbb0a8a6c633d250e52bed2d0e28386d9d72e34e11886490ce78913debd13f94b0e24c0de32da31413e95d95ff08459a1b57f
   languageName: node
   linkType: hard
 
-"@c15t/cli@npm:3.2.0":
-  version: 3.2.0
-  resolution: "@c15t/cli@npm:3.2.0"
+"@c15t/cli@npm:3.2.2":
+  version: 3.2.2
+  resolution: "@c15t/cli@npm:3.2.2"
   dependencies:
-    "@c15t/backend": "npm:3.2.0"
-    "@c15t/integrations": "npm:3.2.0"
+    "@c15t/backend": "npm:3.2.2"
+    "@c15t/integrations": "npm:3.2.2"
     "@clack/prompts": "npm:1.7.0"
     "@inth/cli": "npm:0.0.4"
     c12: "npm:3.3.3"
@@ -976,74 +976,74 @@ __metadata:
   bin:
     c15t: dist/bin.mjs
     cli: dist/bin.mjs
-  checksum: 10c0/5a8973b5532ee5b87c38b597b5c2a4d3e9e09d4286cc9b96e56c8cdcf90a2206c4e29b45dcc3335a3e40ac83a5b3fe8ce272465b538a3e9d6106c2ad778ab97b
+  checksum: 10c0/dada08b7487dbfabc3cbcd1b48d064cec70947ab4a0c0f4f5e4494ffb74b07911b4f0ddda31a20118d054d948151d7ab5df4c1faa4d307c0eeb65817b57d3d30
   languageName: node
   linkType: hard
 
-"@c15t/core@npm:3.2.0":
-  version: 3.2.0
-  resolution: "@c15t/core@npm:3.2.0"
+"@c15t/core@npm:3.2.2":
+  version: 3.2.2
+  resolution: "@c15t/core@npm:3.2.2"
   dependencies:
-    "@c15t/schema": "npm:3.1.1"
-    "@c15t/translations": "npm:3.2.0"
-  checksum: 10c0/49608dc3d95b1b0adc94949db3dd18cfeb727e52d4f18677b16d4b78eaa838b1570a1ca062d10da09a82dd37c9ca5e27de2585789d2cd5071abf9cfc7d48b607
+    "@c15t/schema": "npm:3.1.3"
+    "@c15t/translations": "npm:3.2.2"
+  checksum: 10c0/e54d649df0b86921355d47b96b71350fd33cb9444acf478b17406d2b2c3aa71560032662f1063072bdf2152d9afa979c74a1cfbb273dbc859cfd107416678676
   languageName: node
   linkType: hard
 
-"@c15t/dev-tools@npm:3.2.0":
-  version: 3.2.0
-  resolution: "@c15t/dev-tools@npm:3.2.0"
+"@c15t/dev-tools@npm:3.2.2":
+  version: 3.2.2
+  resolution: "@c15t/dev-tools@npm:3.2.2"
   dependencies:
-    "@c15t/core": "npm:3.2.0"
-  checksum: 10c0/d4fca1da67d2d23f83609104a03f49679f0640651b9666c7f75b1a3bb97104babf313116607a9e6c7c49e0aaa77a6a592a4ed40819a7eb6992a61700c5a214a5
+    "@c15t/core": "npm:3.2.2"
+  checksum: 10c0/e434eddb8387d5a037dd33d84d6becb10ffcaaa53b0143c308ba829a66a72e9b4145ec7ba8b78c1589a21202b50d6a02cf1db746775050dc6ad309c9c2537604
   languageName: node
   linkType: hard
 
-"@c15t/iab@npm:3.2.0":
-  version: 3.2.0
-  resolution: "@c15t/iab@npm:3.2.0"
+"@c15t/iab@npm:3.2.2":
+  version: 3.2.2
+  resolution: "@c15t/iab@npm:3.2.2"
   dependencies:
-    "@c15t/core": "npm:3.2.0"
-    "@c15t/schema": "npm:3.1.1"
+    "@c15t/core": "npm:3.2.2"
+    "@c15t/schema": "npm:3.1.3"
     "@iabtechlabtcf/core": "npm:^1.5.22"
-  checksum: 10c0/8e240b3873b90245d1191451dc3b525e7af82f8f77da8846ee9780c335cd156fc93856a75257e9b042930fa8320004463d5adfe5b38593491766e73f5c11bfc0
+  checksum: 10c0/62f385924cd1083856c4158a2f4c70caa37d9bd4c099c8d67e5b14f4d34ad9a538e4242f22d9b9ef191ac4a5514f9241aca2f44f4cc0718593485919c92c478f
   languageName: node
   linkType: hard
 
-"@c15t/integrations@npm:3.2.0":
-  version: 3.2.0
-  resolution: "@c15t/integrations@npm:3.2.0"
+"@c15t/integrations@npm:3.2.2":
+  version: 3.2.2
+  resolution: "@c15t/integrations@npm:3.2.2"
   dependencies:
-    "@c15t/core": "npm:3.2.0"
-  checksum: 10c0/229752a36bf5406b05ce0ca249bb3cc6e5439216a865d8955b22b4bf8dddd548d97118bf8f92961573dd1826b311b1c5fe8d7dc13d4de32a14b0c2d26b89cff7
+    "@c15t/core": "npm:3.2.2"
+  checksum: 10c0/a76a4ee5c6fa8612353bff547af0d101c960f50142b00fbf46af2e7cd088f2e700ca95404687e45e75fc291030ceee2322542d29c481aca38882a9b67e80e46a
   languageName: node
   linkType: hard
 
-"@c15t/schema@npm:3.1.1":
-  version: 3.1.1
-  resolution: "@c15t/schema@npm:3.1.1"
+"@c15t/schema@npm:3.1.3":
+  version: 3.1.3
+  resolution: "@c15t/schema@npm:3.1.3"
   dependencies:
-    "@c15t/translations": "npm:3.2.0"
+    "@c15t/translations": "npm:3.2.2"
     base-x: "npm:5.0.1"
     valibot: "npm:1.4.2"
-  checksum: 10c0/b3edc7fc2f1aee85ce2d5ed2df8bc563de8b080d1d0db923550293fa3ba5e921713727c7d07fa830b50c5b91b519ba6b7ebb8cbea7c9fff0f6f5a8509ea6038f
+  checksum: 10c0/974d17c42c55ce02992f55ac2c28a22210f6be966a8d1e9957496c31c204bd994887bfc4e4bffd84066f457bc0ce35a0c64b4c07504aac82dabad049d3a97aad
   languageName: node
   linkType: hard
 
-"@c15t/translations@npm:3.2.0":
-  version: 3.2.0
-  resolution: "@c15t/translations@npm:3.2.0"
-  checksum: 10c0/546d3a788fdb537b4b37765c8c8dfc8a202ca1477ce24c771e22f829db0d7794dc8c21f98955eefe575fb42cde31a3b31b42c78941dba6ab64f7f724a94a2b8c
+"@c15t/translations@npm:3.2.2":
+  version: 3.2.2
+  resolution: "@c15t/translations@npm:3.2.2"
+  checksum: 10c0/9be1de64ed8ad71d5dabeb2a748860aa64ef95f381cd7c97bed770d36ca7c0e2da279e7267b3255e86ec6c60e93c66d4107eaff99457136e5edc25276a12a91a
   languageName: node
   linkType: hard
 
-"@c15t/ui@npm:3.1.0":
-  version: 3.1.0
-  resolution: "@c15t/ui@npm:3.1.0"
+"@c15t/ui@npm:3.1.2":
+  version: 3.1.2
+  resolution: "@c15t/ui@npm:3.1.2"
   dependencies:
-    "@c15t/core": "npm:3.2.0"
-    "@c15t/translations": "npm:3.2.0"
-  checksum: 10c0/de257631f1230bfb0441ffe948676cc19c2fec1f0b6bd0a36b71f1961b2ff07edc6b8f87e2fb2bcb7ac12d2acf318632016e99ddb6de6783d13fc0a1b8869fdd
+    "@c15t/core": "npm:3.2.2"
+    "@c15t/translations": "npm:3.2.2"
+  checksum: 10c0/4988a5ae08116aeda3bea010df12d3ed1534fe1d9d6ac7a2366fd25873b93f7968fb7cc586c4e8d602e9bc2dc29afe2d610e179e091932b11b176524d9ea4387
   languageName: node
   linkType: hard
 
@@ -1101,8 +1101,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@consent/consent-api@workspace:apps/consent-api"
   dependencies:
-    "@c15t/backend": "npm:3.2.0"
-    "@c15t/schema": "npm:3.1.1"
+    "@c15t/backend": "npm:3.2.2"
+    "@c15t/schema": "npm:3.1.3"
     "@consent/db": "workspace:*"
     "@consent/shared": "workspace:*"
     "@effect/sql-pg": "npm:4.0.0"
@@ -5526,8 +5526,8 @@ __metadata:
   dependencies:
     "@axe-core/playwright": "npm:4.14.0"
     "@biomejs/biome": "npm:2.6.5"
-    "@c15t/backend": "npm:3.2.0"
-    "@c15t/cli": "npm:3.2.0"
+    "@c15t/backend": "npm:3.2.2"
+    "@c15t/cli": "npm:3.2.2"
     "@effect/sql-pg": "npm:4.0.0"
     "@eslint/js": "npm:10.0.1"
     "@playwright/test": "npm:1.64.1"

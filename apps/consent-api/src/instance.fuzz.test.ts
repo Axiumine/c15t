@@ -8,7 +8,7 @@ import { SiteConfigError } from './errors.js';
 import { assertTrustedOrigins } from './instance-checks.js';
 
 /*
- * c15t 3.2.0 honours `*` in `trustedOrigins`, and an empty list blocks CORS but lets a save use any domain. Whatever the
+ * c15t 3.2.2 honours `*` in `trustedOrigins`, and an empty list blocks CORS but lets a save use any domain. Whatever the
  * database holds, neither may reach a c15t instance (CLAUDE.md "Multi-tenancy").
  */
 
