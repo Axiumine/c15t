@@ -44,7 +44,7 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "4.14.0",
-    "@biomejs/biome": "2.6.4",
+    "@biomejs/biome": "2.6.5",
     "@c15t/backend": "3.2.0",
     "@c15t/cli": "3.2.0",
     "@effect/sql-pg": "4.0.0",
@@ -61,15 +61,15 @@
     "eslint-plugin-security": "4.2.1",
     "eslint-plugin-sonarjs": "4.2.2",
     "fta-cli": "3.1.0",
-    "globals": "17.13.0",
-    "knip": "6.44.0",
+    "globals": "17.14.0",
+    "knip": "6.44.1",
     "lefthook": "2.2.2",
     "playwright-core": "1.64.1",
     "postgres": "3.4.9",
-    "type-coverage": "2.31.0",
+    "type-coverage": "2.31.2",
     "typescript": "6.0.3",
     "typescript-eslint": "8.72.1",
-    "vite": "8.3.5",
+    "vite": "8.3.6",
     "vitest": "5.0.5"
   },
   "typeCoverage": {
