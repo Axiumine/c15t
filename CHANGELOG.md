@@ -22,7 +22,9 @@ their own "Security" heading and name the advisory.
   the account page) compared with committed baselines. It has its own Playwright project and script,
   `yarn test:e2e:visual`, and is not part of `yarn test:e2e`, because the dashboard uses system fonts and a baseline is
   only valid on the platform that made it. The baselines are made on the GitHub runner image by the manual workflow
-  `.github/workflows/visual.yml` (`update` and `verify`); see `docs/quality-gates.md`, "Visual regression".
+  `.github/workflows/visual.yml` (`update` and `verify`); see `docs/quality-gates.md`, "Visual regression". The four
+  baselines are committed in `e2e/__screenshots__/`; the run id in the rendered text is pinned to a fixed value instead
+  of masked, because a mask moves with the width of the random text under it.
 
 ### Fixed
 
