@@ -544,7 +544,7 @@ describeEnvironments('authz', ({ env }) => {
     expect(statuses.slice(10)).toEqual([429, 429]);
     // Another client IP is unaffected.
     expect(await t.signIn(probe)).not.toBe('');
-  });
+  }, 30_000); // a dozen scrypt hashes: 0.5 s when idle, over the 5 s default on a loaded CI runner
 });
 
 test('a role the platform does not know gets no access at all, on every guard', async () => {
