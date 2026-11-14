@@ -1,9 +1,10 @@
 # OSV-Scanner configuration for requirements.txt in this directory (the Semgrep lockfile). OpenSSF Scorecard's
 # Vulnerabilities check runs OSV-Scanner and honours this file; Dependabot dismissals do not reach it.
 #
-# Semgrep (1.182.1 and the latest 1.183.0) pins `mcp==1.29.0` and `opentelemetry-*~=1.37.0`, so these packages
+# Semgrep (1.182.1 and the latest 1.185.0) pins `mcp==1.29.0` and `opentelemetry-*~=1.37.0`, so these packages
 # cannot move without breaking the Semgrep install. `semgrep scan` runs neither an MCP server or client nor the
-# OTLP `tracestate` parser. See docs/security-scanning.md ("Semgrep lockfile advisories").
+# OTLP `tracestate` parser, and it parses a `traceparent` only from its own SEMGREP_TRACE_PARENT_* variables and
+# only with `--trace`. See docs/security-scanning.md ("Semgrep lockfile advisories").
 #
 # Every entry expires. When one does, check whether a Semgrep release accepts the fixed version, regenerate the
 # lockfile if so (docs/security-scanning.md, "Update the pins") and delete the entry, otherwise extend the date.
@@ -32,3 +33,8 @@ reason = "mcp 1.29.0 pinned by Semgrep; semgrep scan does not run the MCP server
 id = "GHSA-xcq7-p3pf-p88h"
 ignoreUntil = 2027-02-01
 reason = "opentelemetry-api 1.37.0 pinned by Semgrep (~=1.37.0); semgrep scan does not parse incoming tracestate headers"
+
+[[IgnoredVulns]]
+id = "GHSA-mf5v-w3w3-f6cg"
+ignoreUntil = 2027-02-01
+reason = "opentelemetry-api 1.37.0 pinned by Semgrep (~=1.37.0); semgrep builds the traceparent only from its own SEMGREP_TRACE_PARENT_* variables and only with --trace, which scripts/semgrep.sh never passes"
