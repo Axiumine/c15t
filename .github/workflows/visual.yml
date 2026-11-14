@@ -1,0 +1,118 @@
+name: Visual regression baselines
+
+# Manual only. The screenshot spec (e2e/visual.spec.ts) is not part of `yarn test:e2e`, because the
+# dashboard uses system fonts and a baseline is only valid on the platform that made it. This workflow
+# is that platform: ubuntu-24.04 with Playwright's Chromium. It runs on a GitHub-hosted runner on
+# purpose, never on a self-hosted one. Never make or update the baselines on a developer machine
+# (docs/quality-gates.md, "Visual regression").
+#
+#   update  Regenerates every baseline and uploads them as the artifact `visual-baselines`. Download it,
+#           unpack it into e2e/__screenshots__/, look at every changed image, and commit them.
+#   verify  Compares the dashboard with the committed baselines and uploads the diffs when it fails.
+#           A new runner image or a new system font package (a font change) shows up here first: run
+#           `update` and review the images.
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "update regenerates the baselines, verify compares with the committed ones"
+        type: choice
+        options:
+          - update
+          - verify
+        default: update
+
+permissions:
+  contents: read
+
+env:
+  # .yarnrc.yml sets the same values; they are repeated here so CI does not depend on that file.
+  YARN_NODE_LINKER: node-modules
+  YARN_ENABLE_TELEMETRY: "0"
+
+jobs:
+  visual:
+    name: Screenshots (${{ inputs.mode }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      # Throwaway administrator password of a container that only this job can reach.
+      CI_PG_ADMIN_PASSWORD: ci-only-throwaway-admin-password
+      TZ: UTC
+      MODE: ${{ inputs.mode }}
+      # The same image and digest as the test job in ci.yml (see docs/dependency-policy.md for how it is bumped).
+      PG_IMAGE: postgres:17@sha256:31ba9c94a03ada9988f2bb493a22a75eef3a185884533e5cdbcd498ea835b08f
+      # Unique per run, so the last step can remove it.
+      PG_CONTAINER: c15t-visual-pg-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up toolchain
+        uses: ./.github/actions/setup
+
+      # A script, not `services:`: the port is random and above 50000, never 5432 (CLAUDE.md, "Network
+      # configuration"). The script sets PGPORT.
+      - name: Start PostgreSQL
+        env:
+          POSTGRES_PASSWORD: ${{ env.CI_PG_ADMIN_PASSWORD }}
+        run: bash scripts/ci-start-postgres.sh
+
+      # Creates the roles and schemas, applies the c15t and app migrations and exports
+      # DATABASE_URL_C15T, DATABASE_URL_DASHBOARD and C15T_ADMIN_API_KEY with every secret masked.
+      - name: Bootstrap the database
+        env:
+          PGHOST: 127.0.0.1
+          PGUSER: postgres
+          PGPASSWORD: ${{ env.CI_PG_ADMIN_PASSWORD }}
+        run: bash scripts/ci-bootstrap-db.sh
+
+      # The Better Auth secret of the throwaway stack, masked before it is exported.
+      - name: Create the session secret
+        run: |
+          set -euo pipefail
+          secret=$(openssl rand -hex 32)
+          echo "::add-mask::${secret}"
+          echo "BETTER_AUTH_SECRET=${secret}" >> "$GITHUB_ENV"
+
+      # The Chromium that matches the pinned @playwright/test, with the system libraries it needs.
+      # `--with-deps` installs those libraries and fonts from the Ubuntu archive with apt, and nothing
+      # pins them (the one exception to "no unpinned package in CI", docs/dependency-policy.md). They
+      # decide how text renders, so a change there can break `verify` like a new runner image does.
+      - name: Install Chromium
+        run: yarn playwright install --with-deps chromium
+
+      # `--update-snapshots` alone means "changed": it rewrites only the baselines that differ. Name `all`
+      # so an update replaces every baseline.
+      - name: Take or compare the screenshots
+        run: |
+          set -euo pipefail
+          if [ "$MODE" = "update" ]; then
+            yarn test:e2e:visual --update-snapshots=all
+          else
+            yarn test:e2e:visual
+          fi
+
+      - name: Upload the baselines
+        if: ${{ !cancelled() && inputs.mode == 'update' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: visual-baselines
+          path: e2e/__screenshots__/
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload the differences
+        if: ${{ failure() && inputs.mode == 'verify' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: visual-differences
+          path: test-results/artifacts/
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Stop PostgreSQL
+        if: ${{ always() }}
+        run: docker rm --force "${PG_CONTAINER}" > /dev/null 2>&1 || true

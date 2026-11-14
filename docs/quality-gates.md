@@ -39,6 +39,7 @@ is skipped and green, which proves nothing (`docs/security-scanning.md`, "Qodana
 | Mutation testing (weekly, not per pull request) | StrykerJS | `yarn mutation` | mutation score of the chosen scope at least 90 (`thresholds.break`); PGlite only, no database |
 | API snapshots | Vitest snapshots | `yarn test` | the dashboard API's JSON shapes and the CSV export bytes (`apps/dashboard-api/src/api-snapshots.test.ts`) |
 | End to end | Playwright | `yarn test:e2e` | the dashboard and the consent flow in a real browser (needs the dev database; see `docs/e2e.md`) |
+| Visual regression (by hand, never per pull request) | Playwright `toHaveScreenshot` | `yarn test:e2e:visual` | four dashboard screenshots against baselines made on the GitHub runner image by `.github/workflows/visual.yml` ([below](#visual-regression-playwright-tohavescreenshot)) |
 | Static analysis, JetBrains inspections (advisory) | Qodana (`jetbrains/qodana-js`, profile `qodana.recommended`), needs a license token and Docker | `yarn qodana` | `failureConditions` of `qodana.yaml`: at most 500 problems, a ceiling to be replaced after the first real run; CI job `qodana.yml` runs only with the `QODANA_TOKEN` secret |
 | SAST | Semgrep (`p/typescript`, `p/javascript`, `p/react`, `p/nodejsscan`, `p/secrets`) | `yarn semgrep` | zero findings; CI uses a hash-pinned install |
 | Vulnerabilities, secrets, misconfiguration | Trivy `fs` | `yarn trivy` | no HIGH or CRITICAL finding in `yarn.lock` and the CI tool lockfiles; no committed secret |
@@ -59,8 +60,10 @@ How to fix a failure of each analyser, and the reasons for its settings, are in 
   `LEFTHOOK_EXCLUDE=tests git push`. Run a stage by hand: `yarn lefthook run pre-push --force`.
 - The configuration is `lefthook.yml`. When you add a gate, add its script to `package.json`, to the
   pre-push stage (in dependency order) and to a CI job in the same change, and list it in the table above.
-  The two exceptions are Qodana, which needs a token and minutes of Docker time, and mutation testing, which takes
-  minutes on many cores and must not block a push or a pull request (see "Decisions" below).
+  The exceptions are Qodana, which needs a token and minutes of Docker time, mutation testing, which takes
+  minutes on many cores and must not block a push or a pull request, and the visual regression baselines, which are
+  only valid on one platform and are made by a manual workflow (see "Decisions" below). `yarn test:e2e` is in
+  neither the hook nor a workflow either: it needs the dev database (`docs/e2e.md`).
 - A Node version manager is optional: fnm and mise both read `.nvmrc` (`fnm use`, `mise install`), and
   Corepack provides Yarn 4.
 
@@ -71,6 +74,7 @@ How to fix a failure of each analyser, and the reasons for its settings, are in 
 | Node.js 24 | Not used. The runtime is Node 26 LTS, pinned by `.nvmrc`, `engines.node` and `packageManager` (decisions.md D8); `scripts/check-code-caps.ts` and the other tools run on it. |
 | Qodana (`jetbrains/qodana-js`) | **Added, advisory, never run with a token.** `qodana.yaml`, `.github/workflows/qodana.yml` (push to `main`, pull requests, weekly, manual) and `yarn qodana`. The job needs the `QODANA_TOKEN` repository secret (a Qodana Cloud project token) and is skipped with a notice when it is missing, so it is not a required check. Its first result is unknown until the maintainer runs it with the token; the gate is a placeholder ceiling of 500 problems until then (`docs/security-scanning.md`, "The first run"). It is not in the pre-push hook: a run takes minutes, needs Docker and a 1.2 GB image, and a hook that needs a token would fail for everyone without one. It overlaps CodeQL, Semgrep and ESLint only in part. |
 | Mutation testing (`yarn mutation`) | **Weekly and by hand, not in the pre-push hook and not a pull-request check.** `.github/workflows/mutation.yml` runs it on the self-hosted runners ([`ci-runners.md`](./ci-runners.md)) on Mondays and on demand. A cold run took about 8 minutes on 32 cores and 41 minutes on an 8 CPU runner with `--concurrency 4`, so it must not block a push or a pull request. It is still a gate: the run fails when the score drops below `thresholds.break` ([below](#the-score-gate)). |
+| Visual regression (`yarn test:e2e:visual`) | **By hand only, not in the pre-push hook and not a pull-request check.** `.github/workflows/visual.yml` (`workflow_dispatch`) makes and verifies the baselines on a GitHub-hosted `ubuntu-24.04` runner ([`ci-runners.md`](./ci-runners.md)). The dashboard uses system fonts, so an image is only valid on the platform that made it, and a hook would compare with images from another machine and fail for everyone. [Details below](#visual-regression-playwright-tohavescreenshot). |
 | FTA `score_cap` | **50**, the upper end of the "OK" band. When the check was added the cap was 65 (36 files scored between 50 and 65); those files were split into smaller modules and the cap was lowered to 50 (CONTRIBUTING.md, "Static analysers"). The worst file now scores about 49, so a change that makes a file worse than 50 must split it. |
 | gitnexus | Stays optional (`.gitnexus/` is not in a clone). The pre-commit hook runs `detect-changes` for the staged change when the index exists and never blocks. |
 | Rules relaxed in ESLint | Listed with their finding counts in `eslint.config.mjs`; none for security rules. Per-line disables carry a reason. |
@@ -206,3 +210,43 @@ it is, so a new field, a renamed field or a changed message shows up in the diff
 A changed snapshot is a change of the API contract: read the diff before you accept it. Update with
 `yarn vitest run -u apps/dashboard-api/src/api-snapshots.test.ts` and commit the changed files with the code
 change that caused them. In CI (`CI` set) Vitest never writes a missing snapshot, so a lost file fails the run.
+
+## Visual regression (Playwright `toHaveScreenshot`)
+
+`e2e/visual.spec.ts` takes four screenshots: login (desktop, light), login (phone, dark), the sites list
+(user with one site, light) and the account page (dark). **It is not part of `yarn test:e2e`** and `ci.yml` does
+not run it: it has its own Playwright project, started by `yarn test:e2e:visual`. Two facts about the dashboard
+force that:
+
+- The dashboard uses system fonts. A baseline is therefore only valid on the machine and font set that
+  made it, and images made on a development machine are expected to fail on the GitHub runner on the first pixel
+  of text. Until the first `update` and `verify` runs on the runner are done, this is a prediction, not a result.
+- The e2e suite needs the real stack and a migrated PostgreSQL. The only platform that can make faithful
+  baselines is the one the verification runs on: GitHub's `ubuntu-24.04` with Playwright's Chromium (a hosted
+  runner on purpose, never a self-hosted one, whose fonts can change with the host).
+
+So the baselines are made by `.github/workflows/visual.yml`, "Visual regression baselines", which only a
+maintainer starts by hand (it has no other trigger). It starts PostgreSQL the way the `test` job of `ci.yml`
+does (`scripts/ci-start-postgres.sh`, a random port above 50000, never 5432) and bootstraps it with
+`scripts/ci-bootstrap-db.sh`.
+
+1. Run the workflow with `mode = update`. It runs `yarn test:e2e:visual --update-snapshots=all` and uploads the
+   artifact `visual-baselines` (14 days).
+2. Download the artifact, unpack it into `e2e/__screenshots__/` (the layout is
+   `e2e/__screenshots__/visual.spec.ts/<name>.png`, no platform suffix), look at every image, and commit them.
+   Never make or update a baseline on a development machine.
+3. Run the workflow again with `mode = verify` to prove the committed images match. The run fails and uploads
+   the differences (`visual-differences`) when they do not. A missing baseline fails the run too.
+4. When `verify` starts to fail on text rendering only, repeat step 1 and review every changed image. Two things
+   can change the text: GitHub's runner image, and the fonts and libraries that `playwright install --with-deps`
+   installs from the Ubuntu archive with apt (nothing pins them: the one unpinned install in CI, see
+   [`dependency-policy.md`](./dependency-policy.md)). An intended change of the dashboard's look needs the same steps.
+
+What keeps a screenshot reproducible: fixed viewport, colour scheme, device scale factor, locale, time
+zone and reduced motion in the browser context; `animations: 'disabled'` and a hidden caret; screens
+without run-specific data (the login page) or with the run-specific text masked (`mask`: the random run
+id in site names and e-mail addresses). `maxDiffPixelRatio` is `0.0005` (0.05%: about 512 pixels of a
+1280x800 page, about 165 of the 390x844 phone shot, more for a taller full page). It starts from a measurement
+on one development machine, not on the runner: the unmasked screens differed by 0 pixels between runs and the
+masked ones by 32 (the run id changes the width of the masked text). A moved element, a changed colour or a
+wrapped line is far above that. The first `verify` runs on the runner decide whether to tighten or loosen it.
