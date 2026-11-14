@@ -50,6 +50,12 @@ their own "Security" heading and name the advisory.
   hashing code is unchanged; the four exposed endpoints and the options in use are unaffected), Vite 8.3.6, Tailwind CSS
   4.3.4, lucide-react 1.66.0, @tanstack/react-query 5.105.3, @electric-sql/pglite 0.5.15, Biome 2.6.5 (the `$schema`
   URLs follow), knip 6.44.1, type-coverage 2.31.2 and globals 17.14.0.
+- `@c15t/backend` and `@c15t/cli` 3.2.0 -> 3.2.2 and `@c15t/schema` 3.1.1 -> 3.1.3, moved as one set. The `@c15t/backend`
+  `dist/` differs only in `version.js`. `@c15t/schema` replaces `structuredClone` with a small `copyPlainData` in the
+  policy presets and `Object.hasOwn` with `Object.prototype.hasOwnProperty.call`; the `@c15t/cli` change is its version
+  string. The CORS and `trustedOrigins` code, the `domain` check on a consent save, the API-key comparison, the subject
+  routes and the IP and geo header handling are unchanged, so the statements in `CLAUDE.md`, `docs/security-model.md`
+  and `docs/assurance-case.md` still hold and now name 3.2.2. `@effect/sql-pg` stays at 4.0.0.
 
 ## [0.3.0] - 2026-11-02
 
