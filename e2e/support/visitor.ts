@@ -19,6 +19,10 @@ export interface VisitorOptions {
   readonly colorScheme?: 'light' | 'dark';
   readonly viewport?: { width: number; height: number };
   readonly reducedMotion?: 'reduce' | 'no-preference';
+  /** Pin what a screenshot depends on (visual.spec.ts). */
+  readonly locale?: string;
+  readonly timezoneId?: string;
+  readonly deviceScaleFactor?: number;
 }
 
 export function assertClean(hygiene: Hygiene): void {

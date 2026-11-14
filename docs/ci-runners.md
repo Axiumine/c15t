@@ -12,6 +12,7 @@ is gated by a maintainer's approval.
 |---|---|
 | `ci.yml` (all four jobs), `codeql.yml`, `dco.yml`, `dependency-review.yml`, `security-scan.yml` (Semgrep, Trivy), `qodana.yml` | The organisation's self-hosted runners (`[self-hosted, Linux, X64]`). A pull request from a fork, or one whose head repository cannot be read, runs on `ubuntu-24.04` instead. |
 | `mutation.yml` (StrykerJS) | The same self-hosted runners, always: plain `[self-hosted, Linux, X64]`, no fork fallback. It starts only on `schedule` (Mondays) and `workflow_dispatch`, never on `pull_request` or `pull_request_target`, so a fork cannot make it run: a fork cannot start a manual run in this repository, and a schedule runs the default branch only. It is not a pull request check. |
+| `visual.yml` (screenshot baselines) | GitHub-hosted `ubuntu-24.04`, always: no fork fallback and no self-hosted label. It starts only on `workflow_dispatch`, never on `pull_request`, and it is not a pull request check. It starts its own PostgreSQL with `scripts/ci-start-postgres.sh` (random port) and needs Docker, `psql` and `ss` from the runner image. |
 | `release.yml`, `scorecard.yml` | GitHub-hosted, always. |
 
 Load of the mutation run: Stryker starts one test worker per core by default; the workflow passes
@@ -19,8 +20,11 @@ Load of the mutation run: Stryker starts one test worker per core by default; th
 The job removes its `.stryker-tmp` sandbox at the end (the runner is persistent), and a killed job can leave
 it behind. It needs no database and no port (PGlite only), and nothing beyond the tools in the table below.
 
-Why those two stay hosted:
+Why those three stay hosted:
 
+- **Visual regression.** The screenshot baselines are only valid on the platform that made them (the dashboard uses
+  system fonts), so they are made and checked on one fixed runner image. The fonts of a persistent self-hosted
+  host change with the host ([`quality-gates.md`](./quality-gates.md), "Visual regression").
 - **Scorecard.** The action's README says the job that publishes results "should run on one of the Ubuntu
   hosted runners", and its API may reject results from anything else (the step then only logs a warning).
 - **Release.** The SLSA generator is a reusable workflow that picks its own runner, so it cannot move. The

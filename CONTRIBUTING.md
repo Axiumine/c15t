@@ -57,6 +57,7 @@ and do not switch to Plug'n'Play: Vite, drizzle-kit and the c15t CLI need `node_
 | `yarn build` | builds every workspace to `dist/` |
 | `yarn dev` | consent-api, dashboard-api and the Vite dev server |
 | `yarn test:e2e` | Playwright end-to-end tests |
+| `yarn test:e2e:visual` | the Playwright screenshot spec only; its baselines are made by the manual `visual.yml` workflow, never on a development machine (see [`docs/quality-gates.md`](./docs/quality-gates.md#visual-regression-playwright-tohavescreenshot)) |
 | `yarn spdx` | adds the SPDX header to new source files (`yarn spdx:check` only verifies) |
 | `yarn semgrep` | Semgrep static analysis with the registry rule sets (needs `semgrep`, see [`docs/security-scanning.md`](./docs/security-scanning.md); skipped with a message when it is not installed) |
 | `yarn trivy` | Trivy scan of the lockfiles, secrets and misconfigurations (needs `trivy`, same document and same skip rule) |
@@ -370,7 +371,7 @@ exact version pins, an AGPL-compatible license, and a maintained package. Commit
 A new GitHub Action is pinned by its full commit SHA, with a `# vX.Y.Z` comment. The only exception is the
 SLSA generator in `release.yml`, which its authors require to be referenced by tag. For that reason the
 repository setting "Require actions to be pinned to a full-length commit SHA" must stay off. Dependabot
-updates the actions, but not the digest of the PostgreSQL image in `ci.yml`: that is bumped by hand (see
+updates the actions, but not the digest of the PostgreSQL image in `ci.yml` and `visual.yml`: that is bumped by hand (see
 [`docs/dependency-policy.md`](./docs/dependency-policy.md)). The same goes for the Trivy release and the
 Semgrep lockfile used by the "Security scan" workflow ([`docs/security-scanning.md`](./docs/security-scanning.md)
 explains why Trivy is never installed through its action).

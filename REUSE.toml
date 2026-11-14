@@ -35,6 +35,7 @@ path = [
   "**/*.svg",
   "**/*.txt",
   "**/*.snap",
+  "**/*.png",
   "**/*.lock",
   "**/*.service",
   "**/*.timer",

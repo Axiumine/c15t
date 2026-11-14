@@ -65,7 +65,24 @@ export default defineConfig({
   retries: 1,
   workers: 3,
   timeout: 60_000,
-  expect: { timeout: 10_000 },
+  expect: {
+    timeout: 10_000,
+    // Visual regression (e2e/visual.spec.ts, project `visual` only). Animations stop at their end
+    // state and the caret is hidden. `maxDiffPixelRatio` 0.0005 lets 0.05% of the pixels differ
+    // (about 500 of a 1280x800 page). Measured on one development machine (not yet on the runner): the screens without masks differ by 0
+    // pixels between runs, and the masked ones by 32 (the masks cover run-specific text such as the
+    // e-mail address, and the random run id changes the text width). A moved element, a changed
+    // colour or a wrapped line changes far more than that.
+    toHaveScreenshot: {
+      animations: 'disabled',
+      caret: 'hide',
+      scale: 'css',
+      maxDiffPixelRatio: 0.0005,
+    },
+  },
+  // One baseline per screen, with no platform or project suffix: they are valid for exactly one
+  // platform, the GitHub runner image that .github/workflows/visual.yml uses (docs/quality-gates.md).
+  snapshotPathTemplate: '{testDir}/__screenshots__/{testFileName}/{arg}{ext}',
   reporter: [['list']],
   globalSetup: './e2e/global-setup.ts',
   globalTeardown: './e2e/global-teardown.ts',
@@ -80,7 +97,24 @@ export default defineConfig({
       args: [`--host-resolver-rules=MAP *.test ${loopback}`],
     },
   },
-  projects: [{ name: 'chromium', use: { browserName: 'chromium' } }],
+  projects: [
+    {
+      name: 'chromium',
+      use: { browserName: 'chromium' },
+      // Screenshots need a platform-specific baseline, so they run only on request (below).
+      testIgnore: /visual\.spec\.ts$/,
+    },
+    // `yarn test:e2e:visual` (E2E_VISUAL=1): only the screenshot spec, never part of `yarn test:e2e`.
+    ...(process.env['E2E_VISUAL'] === '1'
+      ? [
+          {
+            name: 'visual',
+            use: { browserName: 'chromium' as const },
+            testMatch: /visual\.spec\.ts$/,
+          },
+        ]
+      : []),
+  ],
   webServer: [
     {
       name: 'consent-api',

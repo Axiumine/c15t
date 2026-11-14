@@ -45,11 +45,12 @@ default owner).
   exception**: the SLSA generator, a reusable workflow that `release.yml` calls by the tag `v2.1.0`. Its
   authors require a tag, because the builder resolves its own ref at run time and the provenance names
   that ref. Dependabot's `github-actions` ecosystem still updates that tag.
-- The PostgreSQL service image in CI (`ci.yml`, `services: postgres`) is pinned by digest, and
+- The PostgreSQL image in CI (`PG_IMAGE` in the `test` job of `ci.yml` and in `visual.yml`, started by
+  `scripts/ci-start-postgres.sh`) is pinned by digest, and
   **Dependabot cannot update it**: it has no support for images in a workflow's `services:` or
-  `container:`. A maintainer bumps the digest by hand about once per quarter and on every PostgreSQL
+  `container:`, or named in an env value. A maintainer bumps the digest by hand about once per quarter and on every PostgreSQL
   security release: take the `Docker-Content-Digest` header of the registry manifest for the tag
-  (`postgres:17`), put it after `@sha256:` and run CI. The test-only nginx container in
+  (`postgres:17`), put it after `@sha256:` in both files and run CI. The test-only nginx container in
   `infra/test/compose.yaml` uses the floating tag `nginx:stable-alpine` and never ships to production, so
   there is nothing for Dependabot to bump.
 - The security scanners of `security-scan.yml` have no action. Trivy is a release archive of a pinned
@@ -66,14 +67,18 @@ default owner).
 - Because of the SLSA exception, do not switch on the repository setting *Require actions to be pinned to
   a full-length commit SHA*: it rejects every `uses:` that is not a SHA, and `release.yml` would fail.
   Pinning is kept by review and by the Scorecard Pinned-Dependencies check instead.
-- Nothing is installed with `curl | sh`, and no CI step runs an unpinned package.
+- Nothing is installed with `curl | sh`, and no CI step runs an unpinned package, with **one exception**:
+  `visual.yml` runs `yarn playwright install --with-deps chromium`, which installs Chromium's system libraries and
+  fonts from the Ubuntu archive with apt. Nothing pins them, and the fonts decide how the screenshot baselines
+  render, so a change there can show up as a failing `verify` ([`quality-gates.md`](./quality-gates.md), "Visual
+  regression"). The workflow is manual and produces no release artifact.
 
 ## Updating
 
 | What | How | When |
 |---|---|---|
 | npm packages and GitHub Actions (workflows and the composite action, SLSA generator tag included) | Dependabot opens grouped pull requests (minor and patch together, majors one by one) | weekly |
-| PostgreSQL service image digest in `ci.yml` | A maintainer, by hand (see "Pinning and reproducibility") | about quarterly, and on a PostgreSQL security release |
+| PostgreSQL image digest (`PG_IMAGE` in `ci.yml` and `visual.yml`) | A maintainer, by hand (see "Pinning and reproducibility") | about quarterly, and on a PostgreSQL security release |
 | Trivy release and checksum, Semgrep lockfile (`security-scan.yml`) | A maintainer, by hand, with a release at least seven days old ([`security-scanning.md`](./security-scanning.md)) | about quarterly, and on a security release of either tool |
 | Qodana action SHA, Qodana CLI checksum, `jetbrains/qodana-js` image digest (`qodana.yml`, `qodana.yaml`) | A maintainer, by hand, with an action release at least seven days old ([`security-scanning.md`](./security-scanning.md)) | about quarterly, and on a security release |
 | Security updates | Dependabot security updates open a pull request as soon as an advisory exists, and are exempt from the cooldown | immediately |

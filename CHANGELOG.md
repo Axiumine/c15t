@@ -16,6 +16,14 @@ their own "Security" heading and name the advisory.
 
 ## [Unreleased]
 
+### Added
+
+- Visual regression spec, `e2e/visual.spec.ts`: four dashboard screenshots (login on desktop and phone, the sites list,
+  the account page) compared with committed baselines. It has its own Playwright project and script,
+  `yarn test:e2e:visual`, and is not part of `yarn test:e2e`, because the dashboard uses system fonts and a baseline is
+  only valid on the platform that made it. The baselines are made on the GitHub runner image by the manual workflow
+  `.github/workflows/visual.yml` (`update` and `verify`); see `docs/quality-gates.md`, "Visual regression".
+
 ### Fixed
 
 - `SECURITY.md`, `docs/installation.md` and the release notes now name the minimum `slsa-verifier`, 2.7.0.

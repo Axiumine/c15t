@@ -101,6 +101,7 @@ yarn dev                 # yarn workspaces foreach -Api run dev: consent-api, da
 yarn typecheck && yarn lint && yarn test   # tsc -b, biome check, vitest run
 yarn lint:eslint         # ESLint zero-findings gate (strictTypeChecked, sonarjs, security, no-unsanitized, size caps); needs `yarn typecheck` first
 yarn test:e2e            # Playwright
+yarn test:e2e:visual     # screenshot spec only; baselines come from .github/workflows/visual.yml (docs/quality-gates.md)
 yarn db:migrate          # drizzle migrations for `app` schema
 yarn c15t:plan           # @c15t/cli self-host migrate --config ./c15t-backend.config.ts --plan
 yarn c15t:migrate        # same with --apply (review the plan first)
