@@ -59,7 +59,7 @@ paths. `semgrep --disable-nosem` lists them.
   added later is checked.
 - **Gate:** `--severity HIGH,CRITICAL --exit-code 1`. Lower severities are shown by
   `yarn trivy --severity UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL` but do not fail. They follow the response times in
-  `dependency-policy.md`. Five MEDIUM advisories are open in the Semgrep lockfile; see
+  `dependency-policy.md`. Six MEDIUM advisories are open in the Semgrep lockfile; see
   ["Semgrep lockfile advisories"](#semgrep-lockfile-advisories).
 - **What it scans:** a copy of the tracked and untracked-but-not-ignored files in a temporary directory
   (removed afterwards), not the working directory. A developer's `.env`, `.yarnrc` and `node_modules` are
@@ -220,20 +220,25 @@ make the scan pass.
 
 ## Semgrep lockfile advisories
 
-Semgrep (1.182.1, and the latest 1.183.0) pins `mcp==1.29.0` and `opentelemetry-*~=1.37.0`. Five MEDIUM
+Semgrep (1.182.1, and the latest 1.185.0) pins `mcp==1.29.0` and `opentelemetry-*~=1.37.0`. Six MEDIUM
 advisories affect those versions: GHSA-5h93-6whr-6q8j, GHSA-84m7-p3x7-pcfv, GHSA-rwrf-2pqf-9j8j and
-GHSA-w4fh-qvv9-3v23 (mcp), and GHSA-xcq7-p3pf-p88h (opentelemetry-api). We cannot move them: bumping
-`opentelemetry-api` alone breaks the Semgrep import (`cannot import name '_ExtendedAttributes'`), and a
-hand-edited `mcp` would be undone by the next `uv pip compile`. The code involved (an MCP server and client,
-and the OTLP `tracestate` parser) is not run by `semgrep scan`, which runs in CI only and ships in no
-release asset.
+GHSA-w4fh-qvv9-3v23 (mcp), and GHSA-xcq7-p3pf-p88h and GHSA-mf5v-w3w3-f6cg (opentelemetry-api). We cannot move
+them: bumping `opentelemetry-api` alone breaks the Semgrep import (`cannot import name '_ExtendedAttributes'`;
+the 1.37.0 exporter and SDK packages import private names that 1.45 removed, and Semgrep's own metadata pins
+`~=1.37.0`, in 1.185.0 too), and a hand-edited `mcp` would be undone by the next `uv pip compile`. Moving the
+whole `opentelemetry` release train needs `uv pip compile --override`, which breaks Semgrep's declared pins
+(`pip check` reports conflicts) and jumps `protobuf` and `wrapt` a major version: not done. The code involved
+(an MCP server and client, the OTLP `tracestate` parser, and `traceparent` parsing, which Semgrep does only from
+its own `SEMGREP_TRACE_PARENT_*` variables and only with `--trace`) is not run by `semgrep scan` as
+`scripts/semgrep.sh` calls it, in CI only, and ships in no release asset.
 
 - **Dependabot:** the alerts are dismissed as "vulnerable code not used". Dependabot *security* updates still
-  open pull requests for this lockfile even though `dependabot.yml` has no entry for it (#23 and #24 were
-  two). Close them with a pointer to this section.
+  open pull requests for this lockfile even though `dependabot.yml` has no entry for it (#23, #24 and #48 were
+  three). Close them with a pointer to this section: #48 bumped `opentelemetry-api` alone and failed the
+  `semgrep` job with that `ImportError`.
 - **Scorecard:** the Vulnerabilities check runs OSV-Scanner and does not see Dependabot dismissals.
   [`.github/ci-tools/semgrep/osv-scanner.toml`](../.github/ci-tools/semgrep/osv-scanner.toml) ignores the
-  five IDs, each with a reason and an `ignoreUntil` date. `osv-scanner scan source -r .` lists them as
+  six IDs, each with a reason and an `ignoreUntil` date. `osv-scanner scan source -r .` lists them as
   "filtered out".
 - **When a Semgrep release accepts the fixed versions:** regenerate the lockfile ("Update the pins"), run
   `osv-scanner scan source -r .`, and delete the entries that no longer match. When an `ignoreUntil` date
