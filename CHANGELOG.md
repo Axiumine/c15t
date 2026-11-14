@@ -50,6 +50,19 @@ their own "Security" heading and name the advisory.
   hashing code is unchanged; the four exposed endpoints and the options in use are unaffected), Vite 8.3.6, Tailwind CSS
   4.3.4, lucide-react 1.66.0, @tanstack/react-query 5.105.3, @electric-sql/pglite 0.5.15, Biome 2.6.5 (the `$schema`
   URLs follow), knip 6.44.1, type-coverage 2.31.2 and globals 17.14.0.
+- `@c15t/backend` and `@c15t/cli` 3.2.0 -> 3.2.2 and `@c15t/schema` 3.1.1 -> 3.1.3, moved as one set. The `@c15t/backend`
+  `dist/` differs only in `version.js`. `@c15t/schema` replaces `structuredClone` with a small `copyPlainData` in the
+  policy presets and `Object.hasOwn` with `Object.prototype.hasOwnProperty.call`; the `@c15t/cli` change is its version
+  string. The CORS and `trustedOrigins` code, the `domain` check on a consent save, the API-key comparison, the subject
+  routes and the IP and geo header handling are unchanged, so the statements in `CLAUDE.md`, `docs/security-model.md`
+  and `docs/assurance-case.md` still hold and now name 3.2.2. `@effect/sql-pg` stays at 4.0.0.
+- Minor and patch updates, second round: hono 4.13.18 and @hono/node-server 2.1.7, better-auth 1.7.20 (the password
+  hashing and `dist/crypto/password.mjs` are unchanged; the admin `createUser` now creates the user and its credential
+  account in one transaction), @electric-sql/pglite 0.5.16, Vite 8.3.8, Vitest and @vitest/coverage-v8 5.1.0,
+  @vitejs/plugin-react 6.2.1, Tailwind CSS 4.3.5, @tanstack/react-query 5.107.1, lucide-react 1.70.0,
+  @testing-library/user-event 14.6.9, Biome 2.6.6 (the `$schema` URLs follow), Playwright 1.65.0, knip 6.44.2 and
+  typescript-eslint 8.72.2. The lockfile keeps one `hono` entry (`yarn dedupe hono`), so c15t's own Hono app gets 4.13.18
+  too. The local end-to-end specs (auth-roles, headers-robots, a11y) pass on these versions.
 
 ## [0.3.0] - 2026-11-02
 
