@@ -30,7 +30,7 @@
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.16",
-    "better-auth": "1.7.20",
+    "better-auth": "1.7.22",
     "drizzle-kit": "0.31.11"
   }
 }
