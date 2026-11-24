@@ -34,7 +34,7 @@ pre-commit:
       skip:
         - run: "! command -v shellcheck > /dev/null 2>&1"
       run: shellcheck {staged_files}
-    # Advisory: what the staged change touches in the code graph (CLAUDE.md). Never blocks a commit, and
+    # Advisory: what the staged change touches in the code graph (docs/quality-gates.md). Never blocks a commit, and
     # only runs where the optional GitNexus index exists.
     - name: gitnexus
       skip:

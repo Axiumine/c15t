@@ -26,7 +26,7 @@ export type Change = { from: unknown; to: unknown };
 
 /**
  * Appends one `app.admin_audit` row. Always call it with the transaction that holds the change
- * it describes, so both commit or neither does (CLAUDE.md "Authorization").
+ * it describes, so both commit or neither does (apps/dashboard-api/CLAUDE.md "Authorization").
  */
 export async function writeAudit(
   executor: Executor,
