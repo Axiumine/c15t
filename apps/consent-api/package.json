@@ -17,14 +17,14 @@
     "@consent/db": "workspace:*",
     "@consent/shared": "workspace:*",
     "@effect/sql-pg": "4.0.0",
-    "@hono/node-server": "2.1.7",
+    "@hono/node-server": "2.1.9",
     "effect": "4.0.0",
-    "hono": "4.13.18",
+    "hono": "4.13.19",
     "postgres": "3.4.9",
     "zod": "4.6.7"
   },
   "devDependencies": {
-    "fast-check": "4.10.2",
+    "fast-check": "4.10.3",
     "tsx": "4.23.15"
   }
 }
