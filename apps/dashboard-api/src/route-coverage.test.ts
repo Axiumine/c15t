@@ -9,7 +9,7 @@ import { wrapDatabase } from './db.js';
 import { silentLogger } from './logger.js';
 
 /*
- * The route coverage test of docs/decisions.md D10 / CLAUDE.md "Authorization": it walks `app.routes` and
+ * The route coverage test of docs/decisions.md D10 / apps/dashboard-api/CLAUDE.md "Authorization": it walks `app.routes` and
  * calls every route WITHOUT a session. Anything outside the allowlist must answer 401. The
  * database behind the app throws on any use, so a route that reaches a query before its guard
  * fails this test as well. A new route that forgets its guard fails here before it can ship.

@@ -20,7 +20,7 @@
 # the previous copy is kept next to it as <unit>.c15t-saved (put your own changes in a drop-in).
 # Then: fill in the env files, prepare the database (docs/database-setup.md), run `infra/deploy.sh`.
 #
-# Steps (docs/decisions.md D7, CLAUDE.md "Hosting"):
+# Steps (docs/decisions.md D7, infra/CLAUDE.md "Hosting"):
 #   1. copy the source into releases/<git sha, or a UTC timestamp when the tree is not a git repo>
 #      (a git tree is exported with `git archive`, so only committed files are deployed)
 #   2. yarn install --immutable, yarn build, check that the build outputs exist

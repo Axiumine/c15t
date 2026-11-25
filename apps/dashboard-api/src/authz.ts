@@ -14,7 +14,7 @@ export { type AuthedEnv, type SessionUser, type SiteEnv, tenantScope } from './a
 export { accessibleSiteKeys, accessibleSites } from './site-access.js';
 
 /*
- * ALL access checks live here (CLAUDE.md "Authorization"). dashboard-api is the security
+ * ALL access checks live here (apps/dashboard-api/CLAUDE.md "Authorization"). dashboard-api is the security
  * boundary: dashboard-web guards are UX only. Every route group attaches one of the guards
  * below explicitly, and a route coverage test fails for any route that answers without a session.
  * The session, tenant scope and site lookup helpers they call are in authz-types.ts, session.ts

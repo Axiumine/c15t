@@ -22,105 +22,46 @@ Status: **implemented, pre-1.0 (0.x)**. consent-api, dashboard-api and dashboard
 
 ## Stack
 
+Node.js 26 LTS and TypeScript (strict, ESM only), Yarn 4 through Corepack (no npm, pnpm, Bun or Turborepo), Biome, Vitest, Playwright. Versions and the rest of the stack are in `package.json`.
+
 | Concern | Choice |
 |---|---|
-| Language | TypeScript (strict), ESM only |
-| Runtime | **Node.js 26 LTS**, pinned by `engines.node: ">=26 <27"` and `.nvmrc`. All app code, CLIs and tests run on Node. |
-| Package manager | **Yarn 4** through Corepack, pinned in `package.json` `packageManager`. Yarn workspaces, `nodeLinker: node-modules`, `yarn.lock`. No npm, pnpm, Bun or Turborepo. |
 | Consent backend | `@c15t/backend` (v3) + `@effect/sql-pg` driver. `@c15t/cli` (pinned devDependency) for migrations |
-| HTTP servers | Hono on `@hono/node-server` for both consent-api and dashboard-api. Built with `tsc -b` to `dist/` |
-| Dashboard UI | React 19 + Vite, TanStack Router (file routes) + TanStack Query, react-hook-form + zod, Tailwind CSS + shadcn/ui, Recharts |
-| Dashboard API | Hono + `@hono/zod-validator`. The typed client for the UI is Hono RPC (`hc<AppType>`) |
 | Dashboard auth | Better Auth: email + password, `admin` plugin, public sign-up disabled, mounted at `/api/auth/*`. Only four endpoints are exposed over HTTP (sign-in, sign-out, get-session, change-password). The UI uses `createAuthClient` from `better-auth/react` for those four, without `adminClient()`: admin actions go through `/api/admin/*` |
-| ORM / migrations (`app` schema) | Drizzle ORM + drizzle-kit, `postgres` (postgres.js) driver |
-| Validation | zod at every boundary (env, request bodies, route params, query strings, forms) |
-| Lint / format | Biome |
-| Tests | Vitest on Node (API integration against a real Postgres, UI with Testing Library + jsdom), Playwright (e2e) |
 | Deploy | No Docker. Cloudflare (proxied) in front of nginx. nginx serves the static UI and proxies to the systemd services. PostgreSQL is the existing Patroni cluster. See docs/decisions.md D7 and D9. |
 
 ## Layout
 
-```
-apps/
-  consent-api/          Node + Hono; site registry -> c15t instance per site
-    src/env.ts          zod env: CONSENT_API_HOST/PORT/TRUSTED_PROXIES, DB URL, API key, CONSENT_API_{INSTANCE,REGISTRY}_POOL_MAX (1-3), CONSENT_API_DB_PREPARE
-    src/registry.ts     SiteRegistry: loads app.site rows, builds/caches/disposes c15tInstance (state and lookup in registry-*.ts)
-    src/instance.ts     one c15tInstance per site (instance-database.ts: the pool layer; instance-checks.ts: trustedOrigins, policy rules)
-    src/listener.ts     LISTEN site_changed with reconnect and resync (listener-*.ts: postgres.js settings, ping, backoff)
-    src/request-guard.ts  strips forwarded and visitor-override headers from untrusted peers (override-*.ts, request-path.ts, request-host.ts)
-    src/app.ts          createApp: guards.ts, status-routes.ts, site-routes.ts (/s/:siteKey/* -> instance.handler(request), via site-server.ts)
-    src/server.ts       process entry, wiring only (server-*.ts: serve({ fetch, hostname, port }), signals, shutdown)
-  dashboard-api/        Node + Hono JSON API (package @consent/dashboard-api)
-    src/env.ts          zod env: DASHBOARD_API_HOST/PORT, DB URLs, auth secrets; CONSENT_API_URL and C15T_ADMIN_API_KEY are optional (reserved for future @c15t/node-sdk calls, not used yet)
-    src/auth.ts         Better Auth (admin plugin, disableSignUp), mounted at /api/auth/* (auth-options.ts, auth-hooks.ts; auth-endpoints.ts: the four exposed endpoints)
-    src/authz.ts        ALL access checks: requireSession / requireAdmin / requireSiteAccess middleware (helpers: session.ts, site-access.ts, authz-types.ts)
-    src/db.ts           db.primary and db.analytics pools (D9)
-    src/c15t-read.ts    read-only queries against the c15t schema (entry point; the queries are in consent-*.ts)
-    src/routes/         me.ts, sites.ts (detail, stats, consents, CSV stream), admin-sites.ts, admin-users.ts, admin-audit.ts, health.ts (admin handlers in admin-sites/ and admin-users/)
-    src/app.ts          route tree; exports `type AppType` for the RPC client (http-guards.ts: Origin check, body limit, response headers)
-    src/server.ts       serve({ fetch, hostname, port })
-  dashboard-web/        React 19 + Vite SPA, static build to dist/
-    src/api.ts          barrel for src/api/ (client.ts: hc<AppType>('/api'); the TanStack Query hooks, keys and error mapping in the other files)
-    src/auth.ts         better-auth/react createAuthClient (sign-in, sign-out, session, change-password only)
-    src/routes/         TanStack Router file routes (route guards are UX only)
-    index.html          <meta name="robots" content="noindex, nofollow">
-    public/robots.txt   User-agent: * / Disallow: /
-packages/
-  db/                   Drizzle schema for `app`, migrations, generated c15t read types (@consent/db)
-  shared/               zod schemas and enums shared by api and web (@consent/shared)
-  config/               shared tsconfig, biome.json
-infra/
-  postgres/init.sql     roles, schemas, grants
-  nginx/c15t.conf       shared `/api/c15t/` location for website vhosts (rewrite to /s/$c15t_site/)
-  nginx/dashboard.conf  dashboard vhost (TLS, per-host values): listen/certs/Authenticated Origin Pulls, includes the locations
-  nginx/dashboard-locations.conf  the dashboard's locations without TLS: SPA, /api/ -> c15t_dashboard_api, /assets/; also used by infra/test
-  nginx/dashboard-headers.conf  noindex + CSP + security headers, included in every location
-  nginx/upstreams.conf.tmpl     c15t_consent_api + c15t_dashboard_api + the $c15t_assets_cache map, rendered from env
-  nginx/update-cloudflare-ips.sh  regenerates real_ip config + nftables allowlist (+ ufw script with --ufw)
-  systemd/              c15t-consent-api.service, c15t-dashboard-api.service, cloudflare-ips.service + .timer, c15t-cloudflare-nft.service (reloads the nftables allowlist at boot)
-  deploy.sh             build into releases/<sha>, migrate, render upstreams, switch `current`, restart, health check, rollback;
-                        `install` prepares the host (user, directories, empty env files, units), `uninstall` removes it again (docs/installation.md)
-  test/                 test-only nginx container (compose.yaml, stub upstream, placeholder SPA);
-                        nginx-snippet.test.sh (needs Docker: nginx behaviour of the real snippets),
-                        update-cloudflare-ips.test.sh (no Docker: the Cloudflare IP updater with stand-ins) and
-                        uninstall.test.sh (no Docker, no root: deploy.sh install and uninstall on a temporary tree; run in CI)
-eslint.config.mjs       ESLint flat config (type-aware via each workspace's tsconfig.json + tsconfig.test.json, tsconfig.tools.json for configs and e2e)
-c15t-backend.config.ts  config used by the c15t migration CLI
-stryker.config.mjs, vitest.mutation.config.ts, tsconfig.mutation.json   StrykerJS mutation testing (yarn mutation); never touches a database
-knip.json, fta.json      analyser configs (yarn knip, yarn fta); typeCoverage in package.json configures yarn type-coverage
-scripts/check-code-caps.ts (+ scripts/code-caps/) + .code-caps-baseline.json   size caps with a ratchet baseline (yarn code-caps)
-.yarnrc.yml             nodeLinker, injectEnvironmentFiles, packageExtensions
-```
+`apps/` (consent-api, dashboard-api, dashboard-web), `packages/` (db, shared, config) and `infra/` are laid out as their names say; each app reads its env variables in `src/env.ts`. Nested `CLAUDE.md` files load when you work in `apps/consent-api/`, `apps/dashboard-api/` and `infra/`. Not obvious from the tree:
+
+- `apps/dashboard-api/src/authz.ts` holds ALL access checks (the session loader, the site lookup and the `TenantScope` type are in `session.ts`, `site-access.ts` and `authz-types.ts` next to it).
+- `apps/dashboard-web/index.html` carries `<meta name="robots" content="noindex, nofollow">` and `public/robots.txt` is `Disallow: /`.
+- `packages/db` holds the Drizzle schema for `app`, its migrations and the generated c15t read types (`yarn db:pull-c15t`). `infra/postgres/init.sql` creates the roles, schemas and grants.
+- `c15t-backend.config.ts` is the config of the c15t migration CLI.
+- `infra/test/` is the test-only nginx container plus `nginx-snippet.test.sh` (needs Docker), `update-cloudflare-ips.test.sh` and `uninstall.test.sh` (no Docker, no root; run in CI).
+- `eslint.config.mjs` is type-aware through each workspace's `tsconfig.json` + `tsconfig.test.json`, and `tsconfig.tools.json` for configs and e2e.
+- `stryker.config.mjs`, `vitest.mutation.config.ts` and `tsconfig.mutation.json` are the mutation-testing setup (`yarn mutation`); it never touches a database.
+- `scripts/check-code-caps.ts` (+ `scripts/code-caps/`) and `.code-caps-baseline.json` are the size caps with a ratchet baseline (`yarn code-caps`).
+- The Yarn rc file sets `nodeLinker`, `injectEnvironmentFiles` and `packageExtensions`.
 
 ## Commands
 
+Scripts are in `package.json`. Not obvious from there:
+
 ```bash
 corepack enable          # once per machine; the Yarn version comes from packageManager
-yarn install
-yarn dev                 # yarn workspaces foreach -Api run dev: consent-api, dashboard-api, Vite (proxies /api)
-yarn typecheck && yarn lint && yarn test   # tsc -b, biome check, vitest run
 yarn lint:eslint         # ESLint zero-findings gate (strictTypeChecked, sonarjs, security, no-unsanitized, size caps); needs `yarn typecheck` first
-yarn test:e2e            # Playwright
 yarn test:e2e:visual     # screenshot spec only; baselines come from .github/workflows/visual.yml (docs/quality-gates.md)
-yarn db:migrate          # drizzle migrations for `app` schema
-yarn c15t:plan           # @c15t/cli self-host migrate --config ./c15t-backend.config.ts --plan
-yarn c15t:migrate        # same with --apply (review the plan first)
-yarn db:pull-c15t        # drizzle-kit pull, schemaFilter ['c15t'] -> packages/db/src/c15t.generated.ts
+yarn c15t:migrate        # @c15t/cli self-host migrate --config ./c15t-backend.config.ts --apply (run `yarn c15t:plan` and review it first)
 yarn admin:create --email you@example.com   # bootstrap first admin, prints a one-time password
-yarn spdx                # add the SPDX licence header to new source files; yarn spdx:check only verifies
-yarn test:coverage       # vitest with the 100% coverage gate; lefthook (installed by yarn install) runs the whole gate set before a push, docs/quality-gates.md
 yarn semgrep             # scripts/semgrep.sh: registry rule sets, exit 1 on any finding (skips with exit 0 when semgrep is missing and CI is unset)
 yarn trivy               # scripts/trivy.sh: trivy fs vuln,secret,misconfig, HIGH/CRITICAL fail, .trivyignore needs exp: dates (same skip rule); see docs/security-scanning.md
 yarn qodana              # scripts/qodana.sh: JetBrains Qodana on a copy of the tree; needs QODANA_TOKEN, Docker and the qodana CLI, refuses otherwise; advisory, never run with a token yet (docs/security-scanning.md)
-yarn mutation            # StrykerJS, incremental, no database (PGlite only); weekly in CI on the self-hosted runners (docs/quality-gates.md)
-yarn knip                # unused files, exports, types and dependencies (knip.json lists only entries it cannot infer)
-yarn type-coverage       # 100% strict type coverage per tsconfig project (scripts/type-coverage.mjs; no any, no casts in src)
-yarn fta                 # FTA maintainability score per file, fails above score_cap in fta.json (lower is better)
-yarn code-caps           # file 500 / function 50 / class 300 lines, 4 params, depth 4; ratchet in .code-caps-baseline.json (--update only lowers it)
-yarn test:scripts-coverage  # node:test for scripts/check-code-caps.ts and scripts/code-caps/, gated at 100% (Vitest's scripts project skips that test file)
 yarn build && infra/deploy.sh               # yarn workspaces foreach -Apt run build; systemd restart
 scripts/verify-reproducible-build.sh       # two clean builds of HEAD in different dirs/time zones; every dist/ and release file must match (CI job "Reproducible build")
 ```
+
+The other gates (`yarn test:coverage` at 100%, `knip`, `type-coverage`, `fta`, `code-caps`, whose ratchet `--update` only lowers the baseline, `mutation`, `test:scripts-coverage`) are described in `docs/quality-gates.md`; lefthook runs the whole set before a push.
 
 Run `yarn typecheck && yarn lint && yarn lint:eslint && yarn test` before you call a task done. ESLint (`eslint.config.mjs`) is a zero-findings gate: fix the finding, or silence a proven false positive on that line with `// eslint-disable-next-line <rule> -- <reason>`; never add a file-wide or rule-wide disable. Biome owns the rules both tools have (`no-explicit-any`, non-null assertions, unused variables, the React hooks rules).
 
@@ -136,62 +77,11 @@ Run `yarn typecheck && yarn lint && yarn lint:eslint && yarn test` before you ca
 
 ### Multi-tenancy (consent-api)
 
-- One `c15tInstance` per site, as c15t recommends for tenants. Config per instance:
-  - `basePath: '/s/<siteKey>'`
-  - `tenantId: <siteKey>`
-  - `requireTenantId: true`. This is mandatory. Without it a bad lookup silently writes consents with a null tenant.
-  - `trustedOrigins: site.domains`
-  - `manifest.policyRules`: built from the site's policy preset
-  - `apiKeys: [C15T_ADMIN_API_KEY]`
-- `siteKey` is immutable after creation (`^[a-z0-9-]{3,40}$`). It is the URL segment and the c15t `tenantId`.
-- The browser never sees `siteKey`. Each site's nginx vhost sets it with `set $c15t_site <siteKey>; include snippets/c15t.conf;`, and the shared snippet rewrites `/api/c15t/*` to `/s/<siteKey>/*` on upstream `c15t_consent_api`. The nginx config is the trusted tenant mapping.
-- Resolve the tenant **only** through the registry lookup of `siteKey`. An unknown or disabled site returns 404. Never take the tenant from a header, a cookie or a body field.
-- Defense in depth: consent-api also checks that the forwarded `Host` is one of `site.domains` for that `siteKey`, and returns 404 if it is not. Reject paths that contain `..` or encoded slashes before routing. List domains **without a port**: the shipped nginx snippet forwards `$host`, which never carries a port. `domainSchema` still accepts `host:port` (validation allows it), but the `Host` check can then never match it, so every request for that site gets a 404 (a site on a non-standard port does not work behind the snippet).
-- nginx restores the visitor IP from `CF-Connecting-IP` with the `real_ip` module, which trusts only Cloudflare ranges, and sends it on as `X-Forwarded-For`. Geo data comes from Cloudflare's `CF-IPCountry` and, when visitor location headers are enabled, `cf-region-code`. Verified for c15t 3.1.0, and again for 3.2.0 and 3.2.2: it reads `cf-ipcountry` and `cf-region-code` natively, so no mapping is needed. Without geo data, `/init` cannot resolve the jurisdiction.
-  - c15t also trusts `x-c15t-country` and `x-c15t-region` **before** the Cloudflare headers, and accepts `x-vercel-ip-country`, `x-vercel-ip-country-region`, `x-amz-cf-ipcountry`, `x-country-code`, `x-country` and `x-region-code`. A visitor could pick their own jurisdiction with any of them. consent-api must delete all of these from the request before the handler, then set only the ones nginx derived from Cloudflare.
-  - The default client-IP header order starts with `x-client-ip`, which a visitor can send. Set `ipAddress: { ipAddressHeaders: ['x-forwarded-for'] }` on every instance.
-  - `/init` also reads `?country=`, `?region=` and `?gpc=` before any header, and `x-c15t-gpc`. consent-api strips them from every request (only `sec-gpc` carries GPC), and from untrusted peers it also drops `cf-*` and `x-forwarded-*`. A trusted peer's `X-Forwarded-For` is reduced to the single client address (right to left, skipping trusted proxies).
-  - The `Host` check is skipped when the host is an IP literal or `localhost`: those are direct internal callers such as `@c15t/node-sdk` on `CONSENT_API_URL`, not browsers behind a vhost.
-- Set each instance's script `backendURL` to the same-origin path `/api/c15t`. Browsers resolve a relative `backendURL` against `window.location.origin`, so it works. Server-side code (SSR prefetch, node-sdk) needs an absolute URL.
-- `trustedOrigins` must never be empty, and must never contain `*` or `*.example.com` (c15t accepts both, and either would let every origin or every subdomain read the answers). Verified for the pinned 3.2.2, same code as 3.2.0 (`@c15t/backend` `dist/http/app.js`, `dist/http/save-domain.js`): the list drives the CORS response headers, and an empty list allows no cross-origin browser at all. Since 3.2.0 it also checks the `domain` field of a consent save: `POST /subjects` with a `domain` the list does not cover gets `400 DOMAIN_NOT_ALLOWED` (a bare host also covers its `www.` twin; an empty list or `*` allows every domain). That field is chosen by the caller, so the list still authenticates nothing: non-browser callers are not blocked by it and the platform cannot tell a real visitor from a script (docs/security-model.md). Entries are the same strings as `site.domains`: bare host names (c15t also accepts a scheme and `:port`, but see the `Host` check above). Enforce non-empty and no wildcard with zod in dashboard-api (`domainsSchema`) and assert it again in the registry.
-- Instances are cached and every instance owns a Postgres pool, so keep the per-instance pool small. A **database trigger** on `app.site` (migration `0001_guards`) sends `NOTIFY site_changed, '<siteKey>'` on every insert or update, in the writing transaction; dashboard-api does not send it. consent-api `LISTEN`s on that channel and calls `instance.dispose()` on the stale instance, then rebuilds it lazily.
-- Route every method (`GET POST PUT PATCH OPTIONS`) to `handler`. A route that only allows POST breaks `/init`, `/manifest` and subject reads.
-- consent-api answers `GET /health` (no database) and `GET /status` (database and `c15t` schema) at the root, for nginx, systemd and monitoring. They are not tenant routes. c15t's own `/s/<siteKey>/status` still exists.
-- Response headers: every response gets `Cloudflare-CDN-Cache-Control: no-store` and `CDN-Cache-Control: no-store`. `Cache-Control: no-store` is set on errors and wherever c15t sends none. c15t's own browser `Cache-Control` on `/manifest` and `/c15t.js` is kept on purpose, so Cloudflare never caches them but browsers still do.
-- Database failure on a request (a thrown failover error, or a c15t 500/503 with `cause.code` `DATABASE_ERROR` or `SERVICE_UNAVAILABLE`): the instance is evicted (5 s cooldown after creation), a `GET`/`HEAD` is retried once on a fresh instance, a write is never retried, and the client gets `503 SERVICE_UNAVAILABLE` JSON with `Retry-After: 1`. Non-JSON error bodies are rewritten to the `{ error: { code, message } }` shape.
+Full rules in `apps/consent-api/CLAUDE.md` (loads when you work under `apps/consent-api/`). Always: one `c15tInstance` per site with `requireTenantId: true`; the tenant comes only from the registry lookup of `siteKey` (set by the site's nginx vhost), never from a header, a cookie or a body field; `trustedOrigins` is never empty and never holds `*`.
 
-### Dashboard data access (dashboard-api)
+### Dashboard API (dashboard-api)
 
-- c15t has **no admin endpoints for listing consents or stats**. dashboard-api reads the `c15t` schema directly, through a **read-only** Postgres role. It never writes to `c15t.*`.
-- Every query against `c15t.*` filters by `tenantId IN (<sites the session can access>)`. Build the list in `authz.ts`, never from request input.
-- c15t table names are camelCase (`"consentPolicy"`, `"auditLog"`), so quote them in raw SQL. Prefer the generated Drizzle types from `db:pull-c15t`. Rerun the pull after every c15t upgrade, and fix any type errors it causes.
-- List endpoints use cursor pagination. CSV export streams rows from `db.analytics`, and never buffers a whole site in memory.
-- Planned, **not implemented yet** (dashboard-api *will* use `@c15t/node-sdk`; it reads `c15t.*` directly today): use `@c15t/node-sdk` with the API key for the endpoints c15t does expose (`consents.check`, `legalDocuments.publish`, `experiments.summary`), with `baseUrl: ${CONSENT_API_URL}/s/<siteKey>`. dashboard-api has no SDK dependency and makes no such call, so `C15T_ADMIN_API_KEY` and `CONSENT_API_URL` are optional in its env schema; consent-api still requires the key (at least 16 characters). Make them required again in the same change that adds the first call.
-- The SDK accepts plain `http:` with an API key **only for loopback hosts**. If `CONSENT_API_URL` points at a LAN address, the key-protected calls need TLS, or they must run on the consent-api host.
-
-### Authorization (dashboard-api only)
-
-- dashboard-api is the security boundary. Guards in dashboard-web are UX only, and the API never trusts them.
-- All checks live in `apps/dashboard-api/src/authz.ts` (it wires the guards; the session loader, the site lookup and the `TenantScope` type are in `session.ts`, `site-access.ts` and `authz-types.ts` next to it):
-  - `requireSession`
-  - `requireAdmin`
-  - `requireSiteAccess`, which resolves `:siteKey` against `accessibleSiteKeys(session)`.
-- Each route group attaches its guard explicitly:
-  - `/api/admin/*` gets `requireAdmin`. A user calling it gets 403.
-  - `/api/sites/:siteKey/*` gets `requireSiteAccess`. A site the user cannot access returns **404**, which avoids site enumeration.
-  - Handlers still filter every query by the allowed tenant IDs.
-- A **route coverage test** iterates over `app.routes` and calls each route without a session, expecting 401. The only exceptions are an explicit allowlist (`/api/auth/*`, `/api/health`). Any new route therefore fails CI until it is guarded.
-- While `mustChangePassword` is set, every route except `/api/me`, change-password and sign-out returns 403 `PASSWORD_CHANGE_REQUIRED`.
-- Admin-only mutations write a row to `app.admin_audit` in the same transaction.
-- Users are read-only. Only admins create, edit or disable sites, users, memberships and credentials.
-- Never delete consent records from the dashboard, because they are legal proof. When an admin disables a site, mark it `disabled` and stop serving it. Keep its data.
-
-### Credentials
-
-- Better Auth `emailAndPassword: { enabled: true, disableSignUp: true }`, `trustedOrigins: [BETTER_AUTH_URL]`. The origin check is the CSRF guard. Cookies are httpOnly, Secure and `SameSite=Lax`.
-- An admin creates each user with `auth.api.createUser` and a generated password. That password is shown to the admin **once**, and is never stored in plain text or logged.
-- Admins can reset passwords (`setUserPassword`), ban or unban users, and revoke sessions. Every one of these actions is audited.
-- Add rate limiting to login (the Better Auth rate limiter). The client IP comes from `X-Forwarded-For`, which nginx sets from the real visitor IP.
+Full rules (data access, authorization, credentials) in `apps/dashboard-api/CLAUDE.md` (loads when you work under `apps/dashboard-api/`). Always: dashboard-api is the security boundary and checks access only in `authz.ts`; it reads `c15t.*` through the read-only role, filters every query by the allowed tenant IDs and never writes there; admin-only mutations write `app.admin_audit` in the same transaction; users are read-only; never delete consent records from the dashboard (mark the site `disabled` instead).
 
 ### PostgreSQL (Patroni cluster)
 
@@ -217,20 +107,7 @@ Run `yarn typecheck && yarn lint && yarn lint:eslint && yarn test` before you ca
 
 ### Hosting (Cloudflare, nginx, systemd)
 
-- **No Docker** for deploy. Do not add Dockerfiles or compose files for production. The one exception is `infra/test/compose.yaml`, a test-only clean nginx (host networking) that mounts the real snippets from `infra/nginx/`. Start it with `docker compose -f infra/test/compose.yaml --env-file <file with CONSENT_API_HOST/PORT and DASHBOARD_API_HOST/PORT> --env-file infra/test/test.env up -d`; add `--profile stub` for an echo upstream when the apps are not running. It renders the real `upstreams.conf.tmpl` and includes the real `dashboard-locations.conf`, so change those files, not copies.
-  - consent-api and dashboard-api run as systemd services under the `c15t` system user, with secrets in `/etc/c15t-platform/*.env` (0600) loaded through `EnvironmentFile=`.
-  - Both use `ExecStart=/usr/bin/node dist/server.js`, with systemd hardening (`NoNewPrivileges`, `ProtectSystem=strict`, `PrivateTmp`), `NODE_ENV=production` and `TZ=UTC` (c15t stores timestamps without a time zone).
-  - Both env files must set the bind host and port explicitly (`CONSENT_API_HOST/PORT`, `DASHBOARD_API_HOST/PORT`). `deploy.sh` reads them to render the nginx upstreams and to health-check (`/status`, `/api/health`), and refuses to guess.
-  - dashboard-web has no process. nginx serves `/opt/c15t-platform/current/apps/dashboard-web/dist`.
-- `deploy.sh` builds into `/opt/c15t-platform/releases/<git sha>`, then atomically switches the `current` symlink. This way nginx and systemd never see a half-built release. It migrates before the switch, health-checks after it, and reverts the symlink and the nginx files if the check fails (migrations are not reverted, so keep them compatible with the running release). `deploy.sh --dry-run` and `rollback` exist.
-- First install order: systemd units and env files, then `infra/deploy.sh`, then the dashboard vhost. `cloudflare-ips.service` runs its script from `current/`, so it cannot start before the first deploy; the first `deploy.sh` starts it once when `conf.d/cloudflare-realip.conf` is missing. Never document starting it earlier. The nftables allowlist only survives a reboot after `systemctl enable --now c15t-cloudflare-nft.service` (or an `include "/etc/nftables.d/*.nft"` line in `/etc/nftables.conf`).
-- `infra/deploy.sh install` does the host preparation (user, directories, empty 0600 env files, unit files, `enable`). `infra/deploy.sh uninstall` is its counterpart and also undoes the deploy (docs/installation.md). Uninstall never touches PostgreSQL or consent data, keeps the env files in `/etc/c15t-platform` unless `--purge-config`, never removes the `c15t` user, and removes the nginx files only after `nginx -t` passes without them (otherwise it puts them back). The Cloudflare `real_ip` file, nftables allowlist, boot unit and ufw script are host-wide, so uninstall KEEPS them unless `--remove-cloudflare` is given. It deletes under `/opt/c15t-platform` only what `deploy.sh` makes (marker files checked first), validates every path and `C15T_SERVICES` setting, and refuses a `DRY_RUN` that is not 0 or 1. `install` never overwrites an env file or changes an existing directory, and keeps a `.c15t-saved` copy of a unit file it replaces. Keep `install`, `uninstall` and `infra/test/uninstall.test.sh` in step with every file that deploy, `docs/installation.md` or `docs/nginx.md` adds to the host.
-- The shared website snippet uses `location ^~ /api/c15t/`. Without `^~`, a regex location in a site's own vhost (`location ~* \.(js|json)$`) would answer the path instead of consent-api, and `nginx -t` would still pass. Check infra changes with `infra/test/nginx-snippet.test.sh` (needs Docker), `infra/test/update-cloudflare-ips.test.sh` and `infra/test/uninstall.test.sh`.
-- Dashboard caching: hashed `/assets/*` get `Cache-Control: public, max-age=31536000, immutable` **only for 200 and 304**, through `map $status $c15t_assets_cache`. A 404 there is `no-store`, otherwise Cloudflare caches a missing asset for a year. `index.html` gets `no-cache`. `/api/*` responses get `no-store`.
-- **No SEO, no indexing.** Every dashboard response, including `/api/*` and errors, sends `X-Robots-Tag: noindex, nofollow`. `robots.txt` disallows everything, and `index.html` carries the robots meta tag. Do not add a sitemap, Open Graph tags or SSR.
-- nginx `add_header` is **not inherited** into a `location` that declares its own `add_header`. Every dashboard location therefore includes `snippets/c15t-dashboard-headers.conf`, and every `add_header` there uses `always`.
-- Cloudflare must never cache `/api/c15t/*`, because `/init` depends on the visitor's country. A zone Cache Rule bypasses that path. As defense in depth, consent-api sets `Cloudflare-CDN-Cache-Control: no-store` on every response.
-- Never return Cloudflare challenges or HTML error pages to `/api/c15t/*` callers. The banner calls these routes with `fetch`, so a challenge makes the call fail silently and the consent is lost.
+Full rules in `infra/CLAUDE.md` (loads when you work under `infra/`). Always: no Docker for deploy (no Dockerfiles or compose files, except the test-only `infra/test/compose.yaml`); the dashboard is never indexed (every response sends `X-Robots-Tag: noindex, nofollow`; no sitemap, Open Graph tags or SSR); Cloudflare must never cache or challenge `/api/c15t/*`.
 
 ## Code conventions
 
@@ -249,7 +126,6 @@ Run `yarn typecheck && yarn lint && yarn lint:eslint && yarn test` before you ca
 - Keep `nodeLinker: node-modules`. Do not switch to Plug'n'Play: Vite, drizzle-kit, the c15t CLI and native dependencies expect `node_modules`.
 - Yarn **does not auto-install peer dependencies.** Add every peer we use as a direct dependency (for example the `@effect/sql-pg` version c15t pins). If a dependency declares peers that we don't use, mark them optional through `packageExtensions` in `.yarnrc.yml`. That keeps `yarn install` free of warnings.
 - `.yarnrc.yml` sets `injectEnvironmentFiles: ['.env?']`, so `yarn <script>` loads `.env` in dev. In production, systemd starts `/usr/bin/node` directly with `EnvironmentFile=`, and the server has no `.env*` files.
-- Internal dependencies use the `workspace:*` protocol. CI and deploys run `yarn install --immutable`. Commit `yarn.lock` and `.yarnrc.yml`.
 - Pin CLIs (`@c15t/cli`, `drizzle-kit`, `@playwright/test`) as devDependencies. Do not run them with unpinned `yarn dlx`.
 - If `npm install -g corepack` fails with EEXIST on `yarn`, an old global Yarn 1 sits in the same bin directory. Use `npm install -g corepack --force`, then `corepack enable`.
 - Yarn 4.18 refuses package versions that are only hours old ("quarantined"). That is why `postgres` is pinned to 3.4.9 (4.0.0 was too new). Bump it once the gate passes.
@@ -260,10 +136,11 @@ Run `yarn typecheck && yarn lint && yarn lint:eslint && yarn test` before you ca
 
 ### Workspace conventions (set up in the foundation)
 
-- Every workspace has `tsconfig.json` (the `src` build, tests excluded, emits to `dist/`) and `tsconfig.test.json` (type-checks `src/**/*.test.ts`, declaration output in `.tsbuild/`). Both extend `@consent/config/tsconfig.base.json`. A new workspace adds both to the root `tsconfig.json` references, which is what `yarn typecheck` (`tsc -b`) runs.
+- Internal dependencies use the `workspace:*` protocol. CI and deploys run `yarn install --immutable`. Commit `yarn.lock` and `.yarnrc.yml`.
+- Tests live next to the code as `src/**/*.test.ts`. Each workspace has a `vitest.config.ts` (`defineProject`) and the root `vitest.config.ts` lists `projects: ['packages/*', 'apps/*']`. dashboard-web switches its project to `jsdom`.
+- A new workspace needs `tsconfig.json` (the `src` build, tests excluded, emits to `dist/`) and `tsconfig.test.json` (type-checks `src/**/*.test.ts`), both extending `@consent/config/tsconfig.base.json`, and both listed in the root `tsconfig.json` references, which is what `yarn typecheck` (`tsc -b`) runs.
 - The base config uses `module: NodeNext`, so relative imports in `src` end in `.js`. dashboard-web overrides this with `Bundler` resolution.
 - Internal packages export `{ types: dist/*.d.ts, source: src/*.ts, default: dist/*.js }`. Vitest resolves the `source` condition (`resolve.conditions` and `ssr.resolve.conditions` / `externalConditions` set to `['source']` in each workspace `vitest.config.ts`; copy an existing one), so tests run without building first. `tsc -b` builds referenced packages in order, and each build keeps its `tsbuildinfo` inside `dist/`, so deleting `dist/` resets it.
-- Tests live next to the code as `src/**/*.test.ts`. Each workspace has a `vitest.config.ts` (`defineProject`) and the root `vitest.config.ts` lists `projects: ['packages/*', 'apps/*']`. dashboard-web switches its project to `jsdom`.
 - Biome (`yarn lint`, `yarn format`) ignores `*.md` on purpose: it would rewrite our tables. `process.env['X']` is allowed (`useLiteralKeys` is off) because `noPropertyAccessFromIndexSignature` requires brackets.
 - `@consent/db` tests run the real migration files in PGlite (an in-process Postgres) as a role that cannot create schemas, so they never touch the shared dev database. API integration tests against the dev database use a unique per-run prefix for site keys and emails and delete only their own rows.
 - `yarn db:migrate` uses our `applyMigrations` (`packages/db/src/migrator.ts`), not Drizzle's `migrate()`. Drizzle runs `CREATE SCHEMA IF NOT EXISTS app` first, which PostgreSQL rejects for a role without CREATE on the database, even when the schema exists. The `app` schema is created by `infra/postgres/init.sql`.
@@ -277,50 +154,3 @@ Run `yarn typecheck && yarn lint && yarn lint:eslint && yarn test` before you ca
 - Subject IDs are unique across the whole database, not per tenant. A conflicting save returns `409 SUBJECT_CONFLICT`. That is expected, not a bug.
 - `GET /status` returns 200 only when the database responds and the schema exists. Use it as the consent-api health check.
 - Docs: https://c15t.com/docs/self-host (configuration, endpoints, node-sdk, database-setup).
-
-The section below is generated by GitNexus, an **optional** local code-graph tool. `.gitnexus/` and `.claude/` are git-ignored and do not exist in a fresh clone, so contributors without the tool can skip it: the project rules are the ones above.
-
-<!-- gitnexus:start -->
-# GitNexus — Code Intelligence
-
-This project is indexed by GitNexus as **c15t** (2812 symbols, 7745 relationships, 218 execution flows).
-
-> Index stale? Run `node .gitnexus/run.cjs analyze --index-only` from the project root — it auto-selects an available runner. No `.gitnexus/run.cjs` yet? Bootstrap with `npx`, `bunx`, or `pnpm dlx` — e.g. `bunx gitnexus@latest analyze` (npm 11 npx crash; #1939).
-
-## Always Do
-
-- **MUST run impact before editing.** Use `impact({target: "symbolName", direction: "upstream"})` or `node .gitnexus/run.cjs impact "symbolName" --direction upstream --repo .`; report callers, processes, and risk. Never substitute grep for graph analysis.
-- **MUST analyze graph changes before committing.** Use `detect_changes({scope: "all"})` (MCP) or `node .gitnexus/run.cjs detect-changes --scope all --repo .` (CLI fallback). `partial: true` or `truncated: true` is not a clean check — a zero means unseen, not unaffected; re-run it. For regression review: `detect_changes({scope: "compare", base_ref: "main"})` or `node .gitnexus/run.cjs detect-changes --scope compare --base-ref "main" --repo .`.
-- MUST warn on HIGH/CRITICAL `risk` pre-edit; never use `riskSharedAxes` to waive a HIGH/CRITICAL `risk` warning. Compare File/symbol: MCP File omits axes; Graph-RAG expands File.
-- **MUST treat `risk: UNKNOWN` as unresolved, not as low.** An empty caller set is not evidence the symbol is unused — it can also mean the callers are not resolvable by the index (plain-object property access, dynamic dispatch, cross-language calls). `impact` pairs `UNKNOWN` with a `riskNote` saying so. Confirm with a text search before treating the symbol as safe to change or delete; do not proceed on the strength of a zero.
-- **MUST use `query({search_query: "concept"})` for concepts/flows, `context({name: "symbolName"})` for a named symbol, or `impact` for blast radius, on read-only callers, dependencies, imports, or execution flow.** Graph first; text search only for empty/`UNKNOWN`/literals.
-- For security review, `explain({target: "fileOrSymbol"})` lists taint findings (source→sink flows; needs `analyze --pdg`).
-
-## Never Do
-
-- NEVER edit a function, class, or method before MCP/CLI impact analysis.
-- NEVER ignore HIGH or CRITICAL risk warnings from impact analysis, and never read `UNKNOWN` as an all-clear — it means the walk could not answer, which is the one verdict that requires confirming by other means.
-- NEVER rename symbols with find-and-replace — use `rename` which understands the call graph.
-- NEVER commit before MCP/CLI graph change analysis.
-
-## Resources
-
-| Resource | Use for |
-| --- | --- |
-| `gitnexus://repo/c15t/context` | Codebase overview, check index freshness |
-| `gitnexus://repo/c15t/clusters` | All functional areas |
-| `gitnexus://repo/c15t/processes` | All execution flows |
-| `gitnexus://repo/c15t/process/{name}` | Step-by-step execution trace |
-
-## CLI
-
-| Task | Read this skill file |
-| --- | --- |
-| Understand architecture / "How does X work?" | `.claude/skills/gitnexus-exploring/SKILL.md` |
-| Blast radius / "What breaks if I change X?" | `.claude/skills/gitnexus-impact-analysis/SKILL.md` |
-| Trace bugs / "Why is X failing?" | `.claude/skills/gitnexus-debugging/SKILL.md` |
-| Rename / extract / split / refactor | `.claude/skills/gitnexus-refactoring/SKILL.md` |
-| Tools, resources, schema reference | `.claude/skills/gitnexus-guide/SKILL.md` |
-| Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus-cli/SKILL.md` |
-
-<!-- gitnexus:end -->

@@ -34,7 +34,7 @@ export function advancedOptions(secure: boolean): NonNullable<BetterAuthOptions[
     cookiePrefix: 'c15t-dashboard',
     useSecureCookies: secure,
     defaultCookieAttributes: { httpOnly: true, sameSite: 'lax', secure },
-    // nginx sets X-Forwarded-For from the real visitor IP (CLAUDE.md "Credentials").
+    // nginx sets X-Forwarded-For from the real visitor IP (apps/dashboard-api/CLAUDE.md "Credentials").
     ipAddress: { ipAddressHeaders: ['x-forwarded-for'] },
   };
 }
